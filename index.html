@@ -10,7 +10,7 @@
 <body>
 
 <header class="site-header">
-  <div class="site-logo" onclick="showView('leaderboard')">
+  <div class="site-logo" onclick="showView('home')">
     <svg class="logo-icon" viewBox="0 0 28 28" fill="none">
       <circle cx="14" cy="14" r="12.5" stroke="#e8c84a" stroke-width="1.5"/>
       <path d="M7 22 C9 11 19 11 21 22" stroke="#e8c84a" stroke-width="1.3" fill="none"/>
@@ -22,9 +22,67 @@
   </div>
 
   <nav class="nav-tabs" id="navTabs">
-    <button class="nav-tab active" id="tab-lb"    onclick="showView('leaderboard')">Hitting</button>
-    <button class="nav-tab"        id="tab-pitch" onclick="showView('pitching')">Pitching</button>
-    <button class="nav-tab"        id="tab-teams" onclick="showView('teams')">Teams</button>
+
+    <!-- Leaders dropdown -->
+    <div class="nav-dropdown">
+      <button class="nav-tab nav-dropdown-trigger" id="tab-leaders">
+        Leaders
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-left:4px;opacity:.6"><path d="M2 3.5L5 6.5L8 3.5"/></svg>
+      </button>
+      <div class="nav-dropdown-menu" id="menu-leaders">
+        <button class="nav-dropdown-item" onclick="showView('leaderboard');closeDropdowns()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="10" width="3" height="4" rx="1"/><rect x="6.5" y="6" width="3" height="8" rx="1"/><rect x="11" y="2" width="3" height="12" rx="1"/></svg>
+          Hitting
+        </button>
+        <button class="nav-dropdown-item" onclick="showView('pitching');closeDropdowns()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 5.5 Q8 8 10.5 5.5"/><path d="M5.5 10.5 Q8 8 10.5 10.5"/></svg>
+          Pitching
+        </button>
+      </div>
+    </div>
+
+    <!-- Teams dropdown -->
+    <div class="nav-dropdown">
+      <button class="nav-tab nav-dropdown-trigger" id="tab-teams-dd">
+        Teams
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-left:4px;opacity:.6"><path d="M2 3.5L5 6.5L8 3.5"/></svg>
+      </button>
+      <div class="nav-dropdown-menu nav-dropdown-menu--wide" id="menu-teams">
+        <button class="nav-dropdown-item nav-dropdown-item--highlight" onclick="showView('team-rankings');closeDropdowns()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 7L9 10L13 4"/></svg>
+          Team Rankings
+        </button>
+        <div class="nav-dropdown-divider"></div>
+        <div class="nav-dropdown-label">Liberty</div>
+        <button class="nav-dropdown-item" onclick="showTeam('West Orange','nav');closeDropdowns()">West Orange</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Verona','nav');closeDropdowns()">Verona</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Caldwell','nav');closeDropdowns()">Caldwell</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Nutley','nav');closeDropdowns()">Nutley</button>
+        <button class="nav-dropdown-item" onclick="showTeam('SHP','nav');closeDropdowns()">SHP</button>
+        <button class="nav-dropdown-item" onclick="showTeam('SBP','nav');closeDropdowns()">SBP</button>
+        <button class="nav-dropdown-item" onclick="showTeam('MKA','nav');closeDropdowns()">MKA</button>
+        <div class="nav-dropdown-divider"></div>
+        <div class="nav-dropdown-label">American</div>
+        <button class="nav-dropdown-item" onclick="showTeam('Montclair','nav');closeDropdowns()">Montclair</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Columbia','nav');closeDropdowns()">Columbia</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Bloomfield','nav');closeDropdowns()">Bloomfield</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Cedar Grove','nav');closeDropdowns()">Cedar Grove</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Glen Ridge','nav');closeDropdowns()">Glen Ridge</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Livingston','nav');closeDropdowns()">Livingston</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Millburn','nav');closeDropdowns()">Millburn</button>
+        <div class="nav-dropdown-divider"></div>
+        <div class="nav-dropdown-label">National</div>
+        <button class="nav-dropdown-item" onclick="showTeam('Newark Academy','nav');closeDropdowns()">Newark Academy</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Belleville','nav');closeDropdowns()">Belleville</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Barringer','nav');closeDropdowns()">Barringer</button>
+        <button class="nav-dropdown-item" onclick="showTeam('East Orange','nav');closeDropdowns()">East Orange</button>
+        <button class="nav-dropdown-item" onclick="showTeam('West Essex','nav');closeDropdowns()">West Essex</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Technology','nav');closeDropdowns()">Technology</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Orange','nav');closeDropdowns()">Orange</button>
+        <button class="nav-dropdown-item" onclick="showTeam('Weequahic','nav');closeDropdowns()">Weequahic</button>
+      </div>
+    </div>
+
   </nav>
 
   <button class="back-btn" id="backBtn" onclick="goBack()">
@@ -35,8 +93,57 @@
   </button>
 </header>
 
+<!-- HOME -->
+<div id="view-home" class="view active">
+
+  <div class="home-hero">
+    <div class="home-hero-inner">
+      <div class="home-hero-text">
+        <div class="home-hero-eyebrow">Super Essex Conference · 2025–26</div>
+        <h1 class="home-hero-title"><span>NJ</span>Baseball</h1>
+        <p class="home-hero-sub">Advanced stats for every player in the Super Essex Conference — wRC+, FIP, wOBA, WAR and more. Three divisions, 22 teams.</p>
+        <div class="home-hero-actions">
+          <button class="home-btn-primary" onclick="showView('leaderboard')">Hitting Leaders</button>
+          <button class="home-btn-secondary" onclick="showView('pitching')">Pitching Leaders</button>
+        </div>
+      </div>
+      <div class="home-hero-stats" id="homeHeroStats"></div>
+    </div>
+  </div>
+
+  <div class="home-wrap">
+
+    <!-- Top Performers -->
+    <div class="home-section">
+      <div class="home-section-header">
+        <div class="home-section-title">Top Performers</div>
+        <button class="home-section-link" onclick="showView('leaderboard')">All Leaders →</button>
+      </div>
+      <div class="home-performers-grid" id="homePerformers"></div>
+    </div>
+
+    <!-- Articles -->
+    <div class="home-section">
+      <div class="home-section-header">
+        <div class="home-section-title">Around the Conference</div>
+      </div>
+      <div class="home-articles-grid" id="homeArticles"></div>
+    </div>
+
+    <!-- Team Rankings Preview -->
+    <div class="home-section">
+      <div class="home-section-header">
+        <div class="home-section-title">Team wRC+ Rankings</div>
+        <button class="home-section-link" onclick="showView('team-rankings')">Full Rankings →</button>
+      </div>
+      <div id="homeTeamRankings"></div>
+    </div>
+
+  </div>
+</div>
+
 <!-- HITTING LEADERBOARD -->
-<div id="view-leaderboard" class="view active">
+<div id="view-leaderboard" class="view">
   <div class="page-banner">
     <div class="page-banner-inner">
       <div>
@@ -210,6 +317,35 @@
 <!-- PLAYER PAGE -->
 <div id="view-player" class="view">
   <div class="player-wrap" id="playerContent"></div>
+</div>
+
+<!-- TEAM RANKINGS -->
+<div id="view-team-rankings" class="view">
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Team <span>Rankings</span></div>
+        <div class="page-meta">
+          Super Essex Conference
+          <span class="page-meta-dot"></span>
+          2025–26 Season
+          <span class="page-meta-dot"></span>
+          Click a column to sort · Click a team to view roster
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="leaderboard-wrap">
+    <div class="controls-row">
+      <select class="ctrl-select" id="rankingTypeFilter" onchange="renderTeamRankings()">
+        <option value="hitting">Hitting</option>
+        <option value="pitching">Pitching</option>
+      </select>
+    </div>
+    <div class="lb-table-wrap">
+      <table><thead id="rankingsHead"></thead><tbody id="rankingsBody"></tbody></table>
+    </div>
+  </div>
 </div>
 
 <!-- TEAMS OVERVIEW -->
