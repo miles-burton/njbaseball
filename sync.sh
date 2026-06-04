@@ -10,7 +10,7 @@ python3 scraper.py
 
 echo ""
 echo "🚀 Pushing to GitHub..."
-git add js/data.js
+git add -A
 git commit -m "Update stats $(date '+%Y-%m-%d')"
 git push
 
