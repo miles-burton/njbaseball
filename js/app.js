@@ -357,9 +357,14 @@ function renderTeamsGrid() {
   document.getElementById('teamsGrid').innerHTML = Object.keys(TM).map(team => {
     const m      = TM[team];
     const qp     = AP.filter(p => p.team === team && p.qualified);
-    const avgAVG = qp.length ? qp.reduce((s, p) => s + p.AVG,      0) / qp.length : 0;
-    const avgOPS = qp.length ? qp.reduce((s, p) => s + p.OPS,      0) / qp.length : 0;
-    const avgWRC = qp.length ? Math.round(qp.reduce((s, p) => s + p.wRC_plus, 0) / qp.length) : 0;
+    const allP   = AP.filter(p => p.team === team);
+    const avgAVG = qp.length ? qp.reduce((s, p) => s + p.AVG, 0) / qp.length : 0;
+    const avgOPS = qp.length ? qp.reduce((s, p) => s + p.OPS, 0) / qp.length : 0;
+    const tPA    = allP.reduce((s, p) => s + p.PA, 0);
+    const tWOBA  = tPA > 0
+      ? (0.7*(allP.reduce((s,p)=>s+p.BB+p.HBP,0)) + 0.9*(allP.reduce((s,p)=>s+p.B1,0)) + 1.3*(allP.reduce((s,p)=>s+p.B2,0)) + 1.6*(allP.reduce((s,p)=>s+p.B3,0)) + 2*(allP.reduce((s,p)=>s+p.HR,0))) / tPA
+      : 0;
+    const avgWRC = Math.round(((tWOBA - 0.353) / 1.12 + 0.177) / 0.177 * 100);
     return `<div class="team-card" onclick="showTeam('${team}','teams')" style="border-color:${m.s}44">
       <div class="team-card-header">
         <div class="team-card-icon" style="background:${m.bg};border:1px solid ${m.s}55">
@@ -404,7 +409,11 @@ function showTeam(team, from) {
   const teamOBP     = wavg(tp, 'OBP');
   const teamSLG     = wavg(tp, 'SLG');
   const teamwOBA    = wavg(tp, 'wOBA');
-  const teamwRCplus = qp.length ? Math.round(qp.reduce((s, p) => s + p.wRC_plus, 0) / qp.length) : 0;
+  const teamPA   = tp.reduce((s, p) => s + p.PA, 0);
+  const teamwOBA = teamPA > 0
+    ? (0.7*(tp.reduce((s,p)=>s+p.BB+p.HBP,0)) + 0.9*(tp.reduce((s,p)=>s+p.B1,0)) + 1.3*(tp.reduce((s,p)=>s+p.B2,0)) + 1.6*(tp.reduce((s,p)=>s+p.B3,0)) + 2*(tp.reduce((s,p)=>s+p.HR,0))) / teamPA
+    : 0;
+  const teamwRCplus = Math.round(((teamwOBA - 0.353) / 1.12 + 0.177) / 0.177 * 100);
   const teamOPS     = teamOBP + teamSLG;
   const pitchers    = PP.filter(p => p.team === team);
   const teamERA     = pitchers.reduce((s, p) => s + p.ER, 0) / (pitchers.reduce((s, p) => s + p.IP, 0) / 9) || 0;
