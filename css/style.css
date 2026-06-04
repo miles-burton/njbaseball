@@ -318,6 +318,32 @@ body {
   font-family: 'Inter', sans-serif;
 }
 
+/* ── LEADERBOARD MODE TABS ────────────────────────────────────────────────── */
+.lb-mode-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border2);
+  margin-bottom: 1rem;
+  padding: 0 0;
+}
+
+.lb-tab {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  padding: 9px 20px;
+  cursor: pointer;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted2);
+  background: none;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+}
+
+.lb-tab:hover { color: var(--text); }
+.lb-tab.lb-tab-active { color: var(--accent); border-bottom-color: var(--accent); }
+
 /* ── LEADERBOARD ──────────────────────────────────────────────────────────── */
 .leaderboard-wrap {
   max-width: 1280px;

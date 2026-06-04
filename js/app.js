@@ -28,6 +28,44 @@ const ARTICLES = [
   },
 ];
 
+// ── STANDARD STAT CONFIGS ─────────────────────────────────────────────────────
+const HIT_STD_COLS = ['AB','R','H','B2','B3','HR','RBI','BB','HBP','SB','AVG','OBP','SLG','OPS'];
+const HIT_STD_CFG  = {
+  AB:  { label:'AB',  fmt: v => v,           tip:'At Bats' },
+  R:   { label:'R',   fmt: v => v,           tip:'Runs Scored' },
+  H:   { label:'H',   fmt: v => v,           tip:'Hits' },
+  B2:  { label:'2B',  fmt: v => v,           tip:'Doubles' },
+  B3:  { label:'3B',  fmt: v => v,           tip:'Triples' },
+  HR:  { label:'HR',  fmt: v => v,           tip:'Home Runs' },
+  RBI: { label:'RBI', fmt: v => v,           tip:'Runs Batted In' },
+  BB:  { label:'BB',  fmt: v => v,           tip:'Walks' },
+  HBP: { label:'HBP', fmt: v => v,           tip:'Hit By Pitch' },
+  SB:  { label:'SB',  fmt: v => v,           tip:'Stolen Bases' },
+  AVG: { label:'AVG', fmt: v => v.toFixed(3).replace(/^0/,''), tip:'Batting Average' },
+  OBP: { label:'OBP', fmt: v => v.toFixed(3).replace(/^0/,''), tip:'On-Base Percentage' },
+  SLG: { label:'SLG', fmt: v => v.toFixed(3).replace(/^0/,''), tip:'Slugging Percentage' },
+  OPS: { label:'OPS', fmt: v => v.toFixed(3), tip:'On-Base Plus Slugging' },
+};
+
+const PIT_STD_COLS = ['IP','W','L','H','R','ER','BB','K','HB','ERA','WHIP'];
+const PIT_STD_CFG  = {
+  IP:   { label:'IP',   fmt: v => v.toFixed(1),  lowerBetter:false, tip:'Innings Pitched' },
+  W:    { label:'W',    fmt: v => v,              lowerBetter:false, tip:'Wins' },
+  L:    { label:'L',    fmt: v => v,              lowerBetter:true,  tip:'Losses' },
+  H:    { label:'H',    fmt: v => v,              lowerBetter:true,  tip:'Hits Allowed' },
+  R:    { label:'R',    fmt: v => v,              lowerBetter:true,  tip:'Runs Allowed' },
+  ER:   { label:'ER',   fmt: v => v,              lowerBetter:true,  tip:'Earned Runs' },
+  BB:   { label:'BB',   fmt: v => v,              lowerBetter:true,  tip:'Walks' },
+  K:    { label:'K',    fmt: v => v,              lowerBetter:false, tip:'Strikeouts' },
+  HB:   { label:'HBP',  fmt: v => v,              lowerBetter:true,  tip:'Hit Batters' },
+  ERA:  { label:'ERA',  fmt: v => v.toFixed(2),   lowerBetter:true,  tip:'Earned Run Average' },
+  WHIP: { label:'WHIP', fmt: v => v.toFixed(2),   lowerBetter:true,  tip:'Walks + Hits per IP' },
+};
+
+// Track which mode each leaderboard is in
+let hitMode = 'advanced'; // 'standard' | 'advanced'
+let pitMode = 'advanced';
+
 // ── STAT TOOLTIPS ──────────────────────────────────────────────────────────────
 const HIT_TIPS = {
   wRC_plus: 'Weighted Runs Created Plus — 100 is avg, higher is better',
@@ -127,13 +165,21 @@ function showLastUpdated() {
 
 // ── HITTING LEADERBOARD ────────────────────────────────────────────────────────
 function renderHitTable() {
+  const isStd = hitMode === 'standard';
   const ss    = document.getElementById('hitStatFilter').value;
   const tf    = document.getElementById('hitTeamFilter').value;
   const minPA = parseInt(document.getElementById('hitMinPA').value) || 0;
   const q     = document.getElementById('hitSearchInput').value.trim().toLowerCase();
+
+  // Update tab UI
+  document.getElementById('hitTabStd')?.classList.toggle('lb-tab-active', isStd);
+  document.getElementById('hitTabAdv')?.classList.toggle('lb-tab-active', !isStd);
+  // Show/hide stat filter (only relevant for advanced)
+  const sf = document.getElementById('hitStatFilterWrap');
+  if (sf) sf.style.display = isStd ? 'none' : '';
+
   const qualP = AP.filter(p => p.qualified);
   const pf    = {};
-
   HIT_TABLE_COLS.forEach(s => {
     const vs = qualP.map(p => p[s]);
     pf[s] = v => calcPct(vs, v, false);
@@ -145,55 +191,69 @@ function renderHitTable() {
   if (tf !== 'all') pl = pl.filter(p => p.team === tf);
   if (q) pl = pl.filter(p => p.name.toLowerCase().includes(q));
   pl = pl.filter(p => p.PA >= minPA);
-  pl = [...pl].sort((a, b) => b[ss] - a[ss]);
+
+  if (isStd) {
+    pl = [...pl].sort((a, b) => (b.HR - a.HR) || (b.RBI - a.RBI));
+  } else {
+    pl = [...pl].sort((a, b) => b[ss] - a[ss]);
+  }
 
   document.getElementById('hitResultsInfo').innerHTML =
     `Showing <span>${pl.length}</span> player${pl.length !== 1 ? 's' : ''}`;
 
-  document.getElementById('hitLbHead').innerHTML =
-    `<tr>
-      <th style="width:36px">#</th>
-      <th>Player</th>
-      <th>Team</th>
-      <th class="num">PA</th>
-      ${HIT_TABLE_COLS.map(s =>
-        `<th class="num${s === ss ? ' sorted' : ''}" ${HIT_TIPS[s] ? `data-tip="${HIT_TIPS[s]}"` : ''}>
-          ${HSC[s].label}${s === ss ? ' ▾' : ''}
-        </th>`
-      ).join('')}
-    </tr>`;
-
-  if (!pl.length) {
-    document.getElementById('hitLbBody').innerHTML =
-      `<tr><td colspan="20" class="empty">No players match your filters.</td></tr>`;
-    return;
-  }
-
-  document.getElementById('hitLbBody').innerHTML = pl.map((p, i) => {
-    const r = i + 1;
-    const cells = HIT_TABLE_COLS.map(s => {
-      const v = p[s], pt = pf[s](v), clr = pc(pt), f = HSC[s].fmt(v), isSorted = s === ss;
-      return `<td class="num" style="color:${clr};font-weight:${isSorted ? '700' : '500'}">${f}</td>`;
+  if (isStd) {
+    document.getElementById('hitLbHead').innerHTML =
+      `<tr>
+        <th style="width:36px">#</th><th>Player</th><th>Team</th><th class="num">PA</th>
+        ${HIT_STD_COLS.map(s => `<th class="num" ${HIT_STD_CFG[s]?.tip ? `data-tip="${HIT_STD_CFG[s].tip}"` : ''}>${HIT_STD_CFG[s]?.label || s}</th>`).join('')}
+      </tr>`;
+    if (!pl.length) { document.getElementById('hitLbBody').innerHTML = `<tr><td colspan="20" class="empty">No players match your filters.</td></tr>`; return; }
+    document.getElementById('hitLbBody').innerHTML = pl.map((p, i) => {
+      const r = i + 1;
+      const cells = HIT_STD_COLS.map(s => {
+        const v = p[s] ?? 0;
+        return `<td class="num" style="color:var(--muted2)">${HIT_STD_CFG[s]?.fmt(v) ?? v}</td>`;
+      }).join('');
+      return `<tr onclick="showPlayer('${encodeURIComponent(p.name)}','${p.team}','leaderboard')">
+        <td class="rank-cell${r<=3?' top3':''}">${r}</td>${playerCell(p)}<td>${chip(p.team)}</td><td class="num">${p.PA}</td>${cells}</tr>`;
     }).join('');
-    return `<tr onclick="showPlayer('${encodeURIComponent(p.name)}','${p.team}','leaderboard')">
-      <td class="rank-cell${r <= 3 ? ' top3' : ''}">${r}</td>
-      ${playerCell(p)}
-      <td>${chip(p.team)}</td>
-      <td class="num">${p.PA}</td>
-      ${cells}
-    </tr>`;
-  }).join('');
+  } else {
+    document.getElementById('hitLbHead').innerHTML =
+      `<tr>
+        <th style="width:36px">#</th><th>Player</th><th>Team</th><th class="num">PA</th>
+        ${HIT_TABLE_COLS.map(s =>
+          `<th class="num${s===ss?' sorted':''}" ${HIT_TIPS[s]?`data-tip="${HIT_TIPS[s]}"`:''}>
+            ${HSC[s].label}${s===ss?' ▾':''}
+          </th>`).join('')}
+      </tr>`;
+    if (!pl.length) { document.getElementById('hitLbBody').innerHTML = `<tr><td colspan="20" class="empty">No players match your filters.</td></tr>`; return; }
+    document.getElementById('hitLbBody').innerHTML = pl.map((p, i) => {
+      const r = i + 1;
+      const cells = HIT_TABLE_COLS.map(s => {
+        const v = p[s], pt = pf[s](v), clr = pc(pt), f = HSC[s].fmt(v), isSorted = s === ss;
+        return `<td class="num" style="color:${clr};font-weight:${isSorted?'700':'500'}">${f}</td>`;
+      }).join('');
+      return `<tr onclick="showPlayer('${encodeURIComponent(p.name)}','${p.team}','leaderboard')">
+        <td class="rank-cell${r<=3?' top3':''}">${r}</td>${playerCell(p)}<td>${chip(p.team)}</td><td class="num">${p.PA}</td>${cells}</tr>`;
+    }).join('');
+  }
 }
 
 // ── PITCHING LEADERBOARD ───────────────────────────────────────────────────────
 function renderPitchTable() {
+  const isStd = pitMode === 'standard';
   const ss    = document.getElementById('pitStatFilter').value;
   const tf    = document.getElementById('pitTeamFilter').value;
   const minIP = parseFloat(document.getElementById('pitMinIP').value) || 0;
   const q     = document.getElementById('pitSearchInput').value.trim().toLowerCase();
+
+  document.getElementById('pitTabStd')?.classList.toggle('lb-tab-active', isStd);
+  document.getElementById('pitTabAdv')?.classList.toggle('lb-tab-active', !isStd);
+  const sf = document.getElementById('pitStatFilterWrap');
+  if (sf) sf.style.display = isStd ? 'none' : '';
+
   const qualP = PP.filter(p => p.qualPitch);
   const pf    = {};
-
   PIT_TABLE_COLS.forEach(s => {
     const vs = qualP.map(p => p[s]).filter(v => isFinite(v));
     pf[s] = v => calcPct(vs, v, PSC[s].lowerBetter);
@@ -206,51 +266,58 @@ function renderPitchTable() {
   if (tf !== 'all') pl = pl.filter(p => p.team === tf);
   if (q) pl = pl.filter(p => p.name.toLowerCase().includes(q));
   pl = pl.filter(p => p.IP >= minIP);
-  pl = [...pl].sort((a, b) => lb ? a[ss] - b[ss] : b[ss] - a[ss]);
+
+  if (isStd) {
+    pl = [...pl].sort((a, b) => b.K - a.K);
+  } else {
+    pl = [...pl].sort((a, b) => lb ? a[ss] - b[ss] : b[ss] - a[ss]);
+  }
 
   document.getElementById('pitResultsInfo').innerHTML =
     `Showing <span>${pl.length}</span> pitcher${pl.length !== 1 ? 's' : ''}`;
 
-  document.getElementById('pitLbHead').innerHTML =
-    `<tr>
-      <th style="width:36px">#</th>
-      <th>Pitcher</th>
-      <th>Team</th>
-      <th class="num">IP</th>
-      <th class="num">W</th>
-      <th class="num">L</th>
-      ${PIT_TABLE_COLS.map(s =>
-        `<th class="num${s === ss ? ' sorted' : ''}" ${PIT_TIPS[s] ? `data-tip="${PIT_TIPS[s]}"` : ''}>
-          ${PSC[s].label}${s === ss ? (lb ? ' ▴' : ' ▾') : ''}
-        </th>`
-      ).join('')}
-    </tr>`;
-
-  if (!pl.length) {
-    document.getElementById('pitLbBody').innerHTML =
-      `<tr><td colspan="20" class="empty">No pitchers match your filters.</td></tr>`;
-    return;
-  }
-
-  document.getElementById('pitLbBody').innerHTML = pl.map((p, i) => {
-    const r = i + 1;
-    const cells = PIT_TABLE_COLS.map(s => {
-      const v = p[s];
-      if (!isFinite(v)) return `<td class="num" style="color:var(--muted)">—</td>`;
-      const pt = pf[s](v), clr = pc(pt), f = PSC[s].fmt(v), isSorted = s === ss;
-      return `<td class="num" style="color:${clr};font-weight:${isSorted ? '700' : '500'}">${f}</td>`;
+  if (isStd) {
+    document.getElementById('pitLbHead').innerHTML =
+      `<tr>
+        <th style="width:36px">#</th><th>Pitcher</th><th>Team</th>
+        ${PIT_STD_COLS.map(s => `<th class="num" ${PIT_STD_CFG[s]?.tip?`data-tip="${PIT_STD_CFG[s].tip}"`:''}>
+          ${PIT_STD_CFG[s]?.label||s}</th>`).join('')}
+      </tr>`;
+    if (!pl.length) { document.getElementById('pitLbBody').innerHTML = `<tr><td colspan="20" class="empty">No pitchers match your filters.</td></tr>`; return; }
+    document.getElementById('pitLbBody').innerHTML = pl.map((p, i) => {
+      const r = i + 1;
+      const opacity = p.IP < 15 ? 'opacity:0.45' : '';
+      const cells = PIT_STD_COLS.map(s => {
+        const v = p[s] ?? 0;
+        return `<td class="num" style="color:var(--muted2)">${isFinite(v) ? (PIT_STD_CFG[s]?.fmt(v) ?? v) : '—'}</td>`;
+      }).join('');
+      return `<tr style="${opacity}" onclick="showPlayer('${encodeURIComponent(p.name)}','${p.team}','pitching')">
+        <td class="rank-cell${r<=3?' top3':''}">${r}</td>${playerCell(p)}<td>${chip(p.team)}</td>${cells}</tr>`;
     }).join('');
-    const opacity = p.IP < 15 ? 'opacity:0.45' : '';
-    return `<tr style="${opacity}" onclick="showPlayer('${encodeURIComponent(p.name)}','${p.team}','pitching')">
-      <td class="rank-cell${r <= 3 ? ' top3' : ''}">${r}</td>
-      ${playerCell(p)}
-      <td>${chip(p.team)}</td>
-      <td class="num">${p.IP.toFixed(1)}</td>
-      <td class="num">${p.W}</td>
-      <td class="num">${p.L}</td>
-      ${cells}
-    </tr>`;
-  }).join('');
+  } else {
+    document.getElementById('pitLbHead').innerHTML =
+      `<tr>
+        <th style="width:36px">#</th><th>Pitcher</th><th>Team</th><th class="num">IP</th><th class="num">W</th><th class="num">L</th>
+        ${PIT_TABLE_COLS.map(s =>
+          `<th class="num${s===ss?' sorted':''}" ${PIT_TIPS[s]?`data-tip="${PIT_TIPS[s]}"`:''}>
+            ${PSC[s].label}${s===ss?(lb?' ▴':' ▾'):''}
+          </th>`).join('')}
+      </tr>`;
+    if (!pl.length) { document.getElementById('pitLbBody').innerHTML = `<tr><td colspan="20" class="empty">No pitchers match your filters.</td></tr>`; return; }
+    document.getElementById('pitLbBody').innerHTML = pl.map((p, i) => {
+      const r = i + 1;
+      const opacity = p.IP < 15 ? 'opacity:0.45' : '';
+      const cells = PIT_TABLE_COLS.map(s => {
+        const v = p[s];
+        if (!isFinite(v)) return `<td class="num" style="color:var(--muted)">—</td>`;
+        const pt = pf[s](v), clr = pc(pt), f = PSC[s].fmt(v), isSorted = s === ss;
+        return `<td class="num" style="color:${clr};font-weight:${isSorted?'700':'500'}">${f}</td>`;
+      }).join('');
+      return `<tr style="${opacity}" onclick="showPlayer('${encodeURIComponent(p.name)}','${p.team}','pitching')">
+        <td class="rank-cell${r<=3?' top3':''}">${r}</td>${playerCell(p)}<td>${chip(p.team)}</td>
+        <td class="num">${p.IP.toFixed(1)}</td><td class="num">${p.W}</td><td class="num">${p.L}</td>${cells}</tr>`;
+    }).join('');
+  }
 }
 
 // ── PLAYER PAGE ────────────────────────────────────────────────────────────────

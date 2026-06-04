@@ -180,6 +180,10 @@
     </div>
   </div>
   <div class="leaderboard-wrap">
+    <div class="lb-mode-tabs">
+      <button class="lb-tab lb-tab-active" id="hitTabAdv" onclick="hitMode='advanced';renderHitTable()">Advanced</button>
+      <button class="lb-tab" id="hitTabStd" onclick="hitMode='standard';renderHitTable()">Standard</button>
+    </div>
     <div class="controls-row">
       <div class="search-wrap">
         <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -257,7 +261,7 @@
           <option value="Golda Och">Golda Och</option>
         </optgroup>
       </select>
-      <select class="ctrl-select" id="hitStatFilter" onchange="renderHitTable()">
+      <div id="hitStatFilterWrap" style="display:flex;align-items:center"><select class="ctrl-select" id="hitStatFilter" onchange="renderHitTable()">
         <option value="wRC_plus">wRC+</option>
         <option value="wRC">wRC</option>
         <option value="wOBA">wOBA</option>
@@ -270,7 +274,7 @@
         <option value="BB_pct">BB%</option>
         <option value="BsR">BsR</option>
         <option value="OFF">OFF</option>
-      </select>
+      </select></div>
       <div class="pa-filter-wrap">
         <span>Min PA:</span>
         <input type="number" id="hitMinPA" value="50" min="0" max="200" oninput="renderHitTable()">
@@ -305,6 +309,10 @@
     </div>
   </div>
   <div class="leaderboard-wrap">
+    <div class="lb-mode-tabs">
+      <button class="lb-tab lb-tab-active" id="pitTabAdv" onclick="pitMode='advanced';renderPitchTable()">Advanced</button>
+      <button class="lb-tab" id="pitTabStd" onclick="pitMode='standard';renderPitchTable()">Standard</button>
+    </div>
     <div class="controls-row">
       <div class="search-wrap">
         <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -382,7 +390,7 @@
           <option value="Golda Och">Golda Och</option>
         </optgroup>
       </select>
-      <select class="ctrl-select" id="pitStatFilter" onchange="renderPitchTable()">
+      <div id="pitStatFilterWrap" style="display:flex;align-items:center"><select class="ctrl-select" id="pitStatFilter" onchange="renderPitchTable()">
         <option value="ERA">ERA</option>
         <option value="FIP">FIP</option>
         <option value="WHIP">WHIP</option>
@@ -395,7 +403,7 @@
         <option value="RAA">RAA</option>
         <option value="IP">IP</option>
         <option value="K">K</option>
-      </select>
+      </select></div>
       <div class="pa-filter-wrap">
         <span>Min IP:</span>
         <input type="number" id="pitMinIP" value="15" min="0" max="200" oninput="renderPitchTable()">
