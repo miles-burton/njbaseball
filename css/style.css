@@ -227,6 +227,127 @@ body {
   text-align: right;
 }
 
+/* ── DIVISION MULTI-SELECT ────────────────────────────────────────────── */
+.div-filter-wrap { position: relative; }
+
+.div-filter-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: border-color 0.15s;
+  white-space: nowrap;
+}
+
+.div-filter-btn:hover  { border-color: rgba(255,255,255,0.2); }
+.div-filter-btn.active { border-color: var(--accent); color: var(--accent); }
+
+.div-filter-btn .div-filter-count {
+  background: var(--accent);
+  color: #08090c;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 10px;
+  line-height: 1.4;
+}
+
+.div-filter-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 8px;
+  z-index: 200;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  min-width: 180px;
+}
+
+.div-filter-menu.open { display: block; }
+
+.div-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.1s;
+  user-select: none;
+  font-size: 13px;
+  color: var(--muted2);
+}
+
+.div-filter-option:hover { background: var(--surface3); color: var(--text); }
+.div-filter-option.checked { color: var(--text); }
+
+.div-filter-checkbox {
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--border2);
+  border-radius: 3px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.div-filter-option.checked .div-filter-checkbox {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.div-filter-option.checked .div-filter-checkbox::after {
+  content: '';
+  width: 8px;
+  height: 5px;
+  border-left: 2px solid #08090c;
+  border-bottom: 2px solid #08090c;
+  transform: rotate(-45deg) translateY(-1px);
+  display: block;
+}
+
+.div-filter-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 8px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.div-filter-menu-label {
+  font-family: 'Outfit', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.div-filter-all-btn {
+  font-family: 'Outfit', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
 /* ── LEADERBOARD ──────────────────────────────────────────────────────── */
 .leaderboard-wrap {
   max-width: 1250px;

@@ -137,7 +137,9 @@ function renderHitTable() {
     pf[s] = v => calcPct(vs, v, false);
   });
 
+  const selDivs = getSelectedDivs('hitDiv');
   let pl = AP;
+  if (selDivs) pl = pl.filter(p => selDivs.includes(TM[p.team]?.div));
   if (tf !== 'all') pl = pl.filter(p => p.team === tf);
   if (q) pl = pl.filter(p => p.name.toLowerCase().includes(q));
   pl = pl.filter(p => p.PA >= minPA);
@@ -196,7 +198,9 @@ function renderPitchTable() {
   });
 
   const lb = PSC[ss] && PSC[ss].lowerBetter;
+  const selDivs = getSelectedDivs('pitDiv');
   let pl = PP;
+  if (selDivs) pl = pl.filter(p => selDivs.includes(TM[p.team]?.div));
   if (tf !== 'all') pl = pl.filter(p => p.team === tf);
   if (q) pl = pl.filter(p => p.name.toLowerCase().includes(q));
   pl = pl.filter(p => p.IP >= minIP);
@@ -553,6 +557,67 @@ function goBack() {
   else                                               showView('leaderboard');
 }
 
+// ── DIVISION MULTI-SELECT FILTER ──────────────────────────────────────────────
+function getSelectedDivs(id) {
+  const menu = document.getElementById(id + 'Menu');
+  if (!menu) return null;
+  const checked = [...menu.querySelectorAll('.div-filter-option.checked')].map(el => el.dataset.div);
+  const all = [...menu.querySelectorAll('.div-filter-option')].map(el => el.dataset.div);
+  return checked.length === all.length ? null : checked; // null = all selected
+}
+
+function toggleDivFilter(id) {
+  const menu = document.getElementById(id + 'Menu');
+  const isOpen = menu.classList.contains('open');
+  // close all other div menus
+  document.querySelectorAll('.div-filter-menu').forEach(m => m.classList.remove('open'));
+  document.querySelectorAll('.div-filter-btn').forEach(b => b.classList.remove('open'));
+  if (!isOpen) menu.classList.add('open');
+}
+
+function toggleDiv(el, id) {
+  el.classList.toggle('checked');
+  updateDivFilterBtn(id);
+  id.startsWith('hit') ? renderHitTable() : renderPitchTable();
+  event.stopPropagation();
+}
+
+function selectAllDivs(id) {
+  const menu = document.getElementById(id + 'Menu');
+  menu.querySelectorAll('.div-filter-option').forEach(el => el.classList.add('checked'));
+  updateDivFilterBtn(id);
+  id.startsWith('hit') ? renderHitTable() : renderPitchTable();
+}
+
+function updateDivFilterBtn(id) {
+  const menu  = document.getElementById(id + 'Menu');
+  const btn   = document.getElementById(id + 'Btn');
+  if (!menu || !btn) return;
+  const checked = menu.querySelectorAll('.div-filter-option.checked').length;
+  const total   = menu.querySelectorAll('.div-filter-option').length;
+  const isAll   = checked === total;
+  btn.classList.toggle('active', !isAll);
+  // Update label
+  const countEl = btn.querySelector('.div-filter-count');
+  if (isAll) {
+    if (countEl) countEl.remove();
+  } else {
+    if (!countEl) {
+      const span = document.createElement('span');
+      span.className = 'div-filter-count';
+      btn.appendChild(span);
+    }
+    btn.querySelector('.div-filter-count').textContent = checked;
+  }
+}
+
+// Close div filter menus when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('.div-filter-wrap')) {
+    document.querySelectorAll('.div-filter-menu').forEach(m => m.classList.remove('open'));
+  }
+}, true);
+
 // ── DROPDOWN NAV ───────────────────────────────────────────────────────────────
 function closeDropdowns() {
   document.querySelectorAll('.nav-dropdown-menu').forEach(m => m.classList.remove('open'));
@@ -565,6 +630,7 @@ document.addEventListener('click', e => {
     const dd = trigger.closest('.nav-dropdown').querySelector('.nav-dropdown-menu');
     const isOpen = dd.classList.contains('open');
     closeDropdowns();
+    document.querySelectorAll('.div-filter-menu').forEach(m => m.classList.remove('open'));
     if (!isOpen) dd.classList.add('open');
     e.stopPropagation();
   } else if (!menu) {

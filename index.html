@@ -183,6 +183,33 @@
         </svg>
         <input class="search-input" type="text" id="hitSearchInput" placeholder="Search player..." oninput="renderHitTable()">
       </div>
+      <div class="div-filter-wrap" id="hitDivWrap">
+        <button class="div-filter-btn" id="hitDivBtn" onclick="toggleDivFilter('hitDiv')">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+          Division
+        </button>
+        <div class="div-filter-menu" id="hitDivMenu">
+          <div class="div-filter-menu-header">
+            <span class="div-filter-menu-label">Filter by Division</span>
+            <button class="div-filter-all-btn" onclick="selectAllDivs('hitDiv')">All</button>
+          </div>
+          <div class="div-filter-option checked" data-div="Liberty" onclick="toggleDiv(this,'hitDiv')">
+            <div class="div-filter-checkbox"></div>Liberty
+          </div>
+          <div class="div-filter-option checked" data-div="American" onclick="toggleDiv(this,'hitDiv')">
+            <div class="div-filter-checkbox"></div>American
+          </div>
+          <div class="div-filter-option checked" data-div="Colonial" onclick="toggleDiv(this,'hitDiv')">
+            <div class="div-filter-checkbox"></div>Colonial
+          </div>
+          <div class="div-filter-option checked" data-div="Freedom" onclick="toggleDiv(this,'hitDiv')">
+            <div class="div-filter-checkbox"></div>Freedom
+          </div>
+          <div class="div-filter-option checked" data-div="Independence" onclick="toggleDiv(this,'hitDiv')">
+            <div class="div-filter-checkbox"></div>Independence
+          </div>
+        </div>
+      </div>
       <select class="ctrl-select" id="hitTeamFilter" onchange="renderHitTable()">
         <option value="all">All Teams</option>
         <optgroup label="Liberty Division">
@@ -280,6 +307,33 @@
           <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
         </svg>
         <input class="search-input" type="text" id="pitSearchInput" placeholder="Search player..." oninput="renderPitchTable()">
+      </div>
+      <div class="div-filter-wrap" id="pitDivWrap">
+        <button class="div-filter-btn" id="pitDivBtn" onclick="toggleDivFilter('pitDiv')">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+          Division
+        </button>
+        <div class="div-filter-menu" id="pitDivMenu">
+          <div class="div-filter-menu-header">
+            <span class="div-filter-menu-label">Filter by Division</span>
+            <button class="div-filter-all-btn" onclick="selectAllDivs('pitDiv')">All</button>
+          </div>
+          <div class="div-filter-option checked" data-div="Liberty" onclick="toggleDiv(this,'pitDiv')">
+            <div class="div-filter-checkbox"></div>Liberty
+          </div>
+          <div class="div-filter-option checked" data-div="American" onclick="toggleDiv(this,'pitDiv')">
+            <div class="div-filter-checkbox"></div>American
+          </div>
+          <div class="div-filter-option checked" data-div="Colonial" onclick="toggleDiv(this,'pitDiv')">
+            <div class="div-filter-checkbox"></div>Colonial
+          </div>
+          <div class="div-filter-option checked" data-div="Freedom" onclick="toggleDiv(this,'pitDiv')">
+            <div class="div-filter-checkbox"></div>Freedom
+          </div>
+          <div class="div-filter-option checked" data-div="Independence" onclick="toggleDiv(this,'pitDiv')">
+            <div class="div-filter-checkbox"></div>Independence
+          </div>
+        </div>
       </div>
       <select class="ctrl-select" id="pitTeamFilter" onchange="renderPitchTable()">
         <option value="all">All Teams</option>
