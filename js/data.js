@@ -5,20 +5,20 @@
 const DATA_UPDATED = 'Jun 04, 2026';
 
 const TM = {
-  'West Orange': { mascot:'Mountaineers', p:'#1c3a6e', s:'#4a7cc7', t:'#a8c4f0', bg:'#0c1e3a',
-    svg:'<svg viewBox="0 0 24 24" fill="none"><polygon points="12,3 2,19 22,19" fill="#4a7cc7" opacity="0.9"/><polygon points="6,19 12,9 18,19" fill="#1c3a6e"/></svg>'},
-  'Verona':      { mascot:'Hillbillies',  p:'#6b1a2a', s:'#b03050', t:'#f0b0c0', bg:'#2a0d14',
-    svg:'<svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="10" rx="5" ry="5" fill="#b03050" opacity="0.9"/><rect x="5" y="17" width="14" height="3" rx="1.5" fill="#b03050" opacity="0.7"/></svg>'},
-  'Caldwell':    { mascot:'Chiefs',       p:'#0d3060', s:'#2060c0', t:'#90c0f0', bg:'#071830',
-    svg:'<svg viewBox="0 0 24 24" fill="none"><polygon points="12,2 3,9 3,21 21,21 21,9" fill="#2060c0" opacity="0.85"/><rect x="8" y="13" width="8" height="8" fill="#0d3060"/></svg>'},
-  'Nutley':      { mascot:'Raiders',      p:'#5c1a1a', s:'#a03030', t:'#f0b0b0', bg:'#280a0a',
-    svg:'<svg viewBox="0 0 24 24" fill="none"><path d="M12 2 L22 8 L22 16 L12 22 L2 16 L2 8 Z" fill="#a03030" opacity="0.8"/></svg>'},
-  'SHP':         { mascot:'Pirates',      p:'#6b1520', s:'#9e2535', t:'#e09090', bg:'#28080e',
-    svg:'<svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="13" rx="6" ry="7" fill="#9e2535" opacity="0.85"/><line x1="7" y1="10" x2="17" y2="10" stroke="#6b1520" stroke-width="1.5"/><line x1="7" y1="14" x2="17" y2="14" stroke="#6b1520" stroke-width="1.5"/><path d="M8 6 Q12 2 16 6" stroke="#9e2535" stroke-width="1.5" fill="none"/></svg>'},
-  'SBP':         { mascot:'Gray Bees',    p:'#4a3000', s:'#c8960c', t:'#f5d060', bg:'#1e1400',
-    svg:'<svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="13" rx="6" ry="7" fill="#c8960c" opacity="0.85"/><line x1="7" y1="10" x2="17" y2="10" stroke="#4a3000" stroke-width="1.5"/><line x1="7" y1="14" x2="17" y2="14" stroke="#4a3000" stroke-width="1.5"/><path d="M8 6 Q12 2 16 6" stroke="#c8960c" stroke-width="1.5" fill="none"/></svg>'},
-  'MKA':         { mascot:'Cougars',      p:'#0e2d1a', s:'#1e7038', t:'#70d490', bg:'#061510',
-    svg:'<svg viewBox="0 0 24 24" fill="none"><path d="M4 20 C4 11 8 5 12 4 C16 5 20 11 20 20" fill="#1e7038" opacity="0.85"/><circle cx="12" cy="9" r="3" fill="#0e2d1a"/><line x1="8" y1="7" x2="5" y2="4" stroke="#1e7038" stroke-width="1.3"/><line x1="16" y1="7" x2="19" y2="4" stroke="#1e7038" stroke-width="1.3"/></svg>'}
+  'West Orange': { mascot:'Mountaineers', p:'#1e3a6e', s:'#4a7cc7', t:'#a8c8f0', bg:'#0a1628',
+    logo:'https://nj.vsand-static.com/Logos/4863.png' },
+  'Verona':      { mascot:'Hillbillies',  p:'#7a1010', s:'#a01818', t:'#d47070', bg:'#1e0505',
+    logo:'https://nj.vsand-static.com/Logos/4742.png' },
+  'Caldwell':    { mascot:'Chiefs',       p:'#1a35a0', s:'#2a50c8', t:'#80a8e8', bg:'#060d28',
+    logo:'https://nj.vsand-static.com/Logos/6250.png' },
+  'Nutley':      { mascot:'Raiders',      p:'#8b1a2a', s:'#b02535', t:'#d07080', bg:'#1a0508',
+    logo:'https://nj.vsand-static.com/Logos/4185.png' },
+  'SHP':         { mascot:'Pirates',      p:'#8b0000', s:'#b00000', t:'#e07070', bg:'#1e0000',
+    logo:'https://nj.vsand-static.com/Logos/5412.png' },
+  'SBP':         { mascot:'Gray Bees',    p:'#6b1520', s:'#8b1a28', t:'#c08088', bg:'#150508',
+    logo:'https://nj.vsand-static.com/Logos/5380.png' },
+  'MKA':         { mascot:'Cougars',      p:'#1a2a6b', s:'#7a6030', t:'#b09060', bg:'#07091e',
+    logo:'https://nj.vsand-static.com/Logos/6252.png' }
 };
 
 const HSC = {

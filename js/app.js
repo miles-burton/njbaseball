@@ -50,14 +50,16 @@ function calcPct(vals, v, lowerBetter) {
   return lowerBetter ? 100 - raw : raw;
 }
 
-function svgInner(team) {
-  return (TM[team] || { svg: '' }).svg.replace(/<svg[^>]*>/, '').replace('</svg>', '');
+function teamLogo(team, size = 16) {
+  const m = TM[team];
+  if (m && m.logo) return `<img src="${m.logo}" width="${size}" height="${size}" style="object-fit:contain;flex-shrink:0;border-radius:2px">`;
+  return '';
 }
 
 function chip(team) {
   const m = TM[team] || { bg: '#111', s: '#333', t: '#aaa' };
   return `<span class="team-chip" style="background:${m.bg};color:${m.t};border:1px solid ${m.s}66">
-    <svg width="11" height="11" viewBox="0 0 24 24" style="flex-shrink:0">${svgInner(team)}</svg>
+    ${teamLogo(team, 14)}
     ${team}
   </span>`;
 }
@@ -321,14 +323,14 @@ function showPlayer(enc, team, from) {
   document.getElementById('playerContent').innerHTML = `
     <div class="player-hero">
       <div class="player-shield" style="background:${m.bg};border:1px solid ${m.s}55">
-        <svg width="42" height="42" viewBox="0 0 24 24" style="opacity:0.8">${svgInner(team)}</svg>
+        ${m.logo ? `<img src="${m.logo}" width="48" height="48" style="object-fit:contain;border-radius:4px">` : ''}
       </div>
       <div class="player-info">
         <div class="player-full-name">${playerName}</div>
         <div class="player-details">
           <span class="p-tag" style="background:${m.bg};color:${m.t};border-color:${m.s}55;display:inline-flex;align-items:center;gap:5px;cursor:pointer"
             onclick="showTeam('${team}','player')">
-            <svg width="11" height="11" viewBox="0 0 24 24">${svgInner(team)}</svg>
+            ${teamLogo(team, 12)}
             ${team} <span style="opacity:.5;font-weight:400;margin-left:2px">${m.mascot}</span>
           </span>
           ${playerYear ? `<span class="p-tag">${playerYear}</span>` : ''}
@@ -361,7 +363,7 @@ function renderTeamsGrid() {
     return `<div class="team-card" onclick="showTeam('${team}','teams')" style="border-color:${m.s}44">
       <div class="team-card-header">
         <div class="team-card-icon" style="background:${m.bg};border:1px solid ${m.s}55">
-          <svg width="26" height="26" viewBox="0 0 24 24">${svgInner(team)}</svg>
+          ${m.logo ? `<img src="${m.logo}" width="30" height="30" style="object-fit:contain">` : ''}
         </div>
         <div>
           <div class="team-card-name" style="color:${m.t}">${team}</div>
@@ -436,7 +438,7 @@ function showTeam(team, from) {
   document.getElementById('teamContent').innerHTML = `
     <div class="team-hero">
       <div class="team-shield-lg" style="background:${m.bg};border:1px solid ${m.s}55">
-        <svg width="48" height="48" viewBox="0 0 24 24" style="opacity:0.9">${svgInner(team)}</svg>
+        ${m.logo ? `<img src="${m.logo}" width="52" height="52" style="object-fit:contain">` : ''}
       </div>
       <div>
         <div class="team-name-lg" style="color:${m.t}">${team}</div>
