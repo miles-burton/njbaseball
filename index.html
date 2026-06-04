@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NJ Baseball Savant</title>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <title>NJBaseball</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -18,7 +18,7 @@
       <line x1="4" y1="19" x2="24" y2="19" stroke="white" stroke-width="0.7" opacity="0.25"/>
       <circle cx="14" cy="14" r="1.8" fill="#e8c84a"/>
     </svg>
-    <span class="logo-nj">NJ</span><span class="logo-bs">BaseballSavant</span>
+    <span class="logo-nj">NJ</span><span class="logo-bs">Baseball</span>
   </div>
 
   <nav class="nav-tabs" id="navTabs">
@@ -37,13 +37,24 @@
 
 <!-- HITTING LEADERBOARD -->
 <div id="view-leaderboard" class="view active">
-  <div class="leaderboard-wrap">
-    <div class="lb-header">
+  <div class="page-banner">
+    <div class="page-banner-inner">
       <div>
-        <div class="lb-title">Hitting <span>Leaders</span></div>
-        <div class="lb-subtitle">Super Essex Conference · Essex County, NJ · Percentiles based on 50+ PA</div>
+        <div class="page-title">Hitting <span>Leaders</span></div>
+        <div class="page-meta">
+          Super Essex Conference
+          <span class="page-meta-dot"></span>
+          Essex County, NJ
+          <span class="page-meta-dot"></span>
+          2025–26 Season
+          <span class="page-meta-dot"></span>
+          Percentiles vs. qualified hitters (50+ PA)
+        </div>
       </div>
+      <div class="page-updated" id="hitLastUpdated"></div>
     </div>
+  </div>
+  <div class="leaderboard-wrap">
     <div class="controls-row">
       <div class="search-wrap">
         <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -57,6 +68,7 @@
         <option value="Verona">Verona</option>
         <option value="Caldwell">Caldwell</option>
         <option value="Nutley">Nutley</option>
+        <option value="SHP">SHP</option>
         <option value="SBP">SBP</option>
         <option value="MKA">MKA</option>
       </select>
@@ -88,13 +100,24 @@
 
 <!-- PITCHING LEADERBOARD -->
 <div id="view-pitching" class="view">
-  <div class="leaderboard-wrap">
-    <div class="lb-header">
+  <div class="page-banner">
+    <div class="page-banner-inner">
       <div>
-        <div class="lb-title">Pitching <span>Leaders</span></div>
-        <div class="lb-subtitle">Super Essex Conference · Essex County, NJ · Percentiles based on 15+ IP</div>
+        <div class="page-title">Pitching <span>Leaders</span></div>
+        <div class="page-meta">
+          Super Essex Conference
+          <span class="page-meta-dot"></span>
+          Essex County, NJ
+          <span class="page-meta-dot"></span>
+          2025–26 Season
+          <span class="page-meta-dot"></span>
+          Percentiles vs. qualified pitchers (15+ IP)
+        </div>
       </div>
+      <div class="page-updated" id="pitLastUpdated"></div>
     </div>
+  </div>
+  <div class="leaderboard-wrap">
     <div class="controls-row">
       <div class="search-wrap">
         <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -108,6 +131,7 @@
         <option value="Verona">Verona</option>
         <option value="Caldwell">Caldwell</option>
         <option value="Nutley">Nutley</option>
+        <option value="SHP">SHP</option>
         <option value="SBP">SBP</option>
         <option value="MKA">MKA</option>
       </select>
@@ -144,13 +168,19 @@
 
 <!-- TEAMS OVERVIEW -->
 <div id="view-teams" class="view">
-  <div class="teams-wrap">
-    <div class="lb-header">
+  <div class="page-banner">
+    <div class="page-banner-inner">
       <div>
-        <div class="lb-title">Conference <span>Teams</span></div>
-        <div class="lb-subtitle">Super Essex Conference · Click a team to view roster and stats</div>
+        <div class="page-title">Conference <span>Teams</span></div>
+        <div class="page-meta">
+          Super Essex Conference
+          <span class="page-meta-dot"></span>
+          Click a team to view roster and stats
+        </div>
       </div>
     </div>
+  </div>
+  <div class="teams-wrap">
     <div class="teams-grid" id="teamsGrid"></div>
   </div>
 </div>
