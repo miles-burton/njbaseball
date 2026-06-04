@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NJ Baseball Savant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-logo" onclick="showView('leaderboard')">
+    <svg class="logo-icon" viewBox="0 0 28 28" fill="none">
+      <circle cx="14" cy="14" r="12.5" stroke="#e8c84a" stroke-width="1.5"/>
+      <path d="M7 22 C9 11 19 11 21 22" stroke="#e8c84a" stroke-width="1.3" fill="none"/>
+      <path d="M3.5 14 Q14 7 24.5 14" stroke="white" stroke-width="0.9" fill="none" opacity="0.35"/>
+      <line x1="4" y1="19" x2="24" y2="19" stroke="white" stroke-width="0.7" opacity="0.25"/>
+      <circle cx="14" cy="14" r="1.8" fill="#e8c84a"/>
+    </svg>
+    <span class="logo-nj">NJ</span><span class="logo-bs">BaseballSavant</span>
+  </div>
+
+  <nav class="nav-tabs" id="navTabs">
+    <button class="nav-tab active" id="tab-lb"    onclick="showView('leaderboard')">Hitting</button>
+    <button class="nav-tab"        id="tab-pitch" onclick="showView('pitching')">Pitching</button>
+    <button class="nav-tab"        id="tab-teams" onclick="showView('teams')">Teams</button>
+  </nav>
+
+  <button class="back-btn" id="backBtn" onclick="goBack()">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M10 3L5 8l5 5"/>
+    </svg>
+    <span id="backLabel">Back</span>
+  </button>
+</header>
+
+<!-- HITTING LEADERBOARD -->
+<div id="view-leaderboard" class="view active">
+  <div class="leaderboard-wrap">
+    <div class="lb-header">
+      <div>
+        <div class="lb-title">Hitting <span>Leaders</span></div>
+        <div class="lb-subtitle">Super Essex Conference · Essex County, NJ · Percentiles based on 50+ PA</div>
+      </div>
+    </div>
+    <div class="controls-row">
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
+        </svg>
+        <input class="search-input" type="text" id="hitSearchInput" placeholder="Search player..." oninput="renderHitTable()">
+      </div>
+      <select class="ctrl-select" id="hitTeamFilter" onchange="renderHitTable()">
+        <option value="all">All Teams</option>
+        <option value="West Orange">West Orange</option>
+        <option value="Verona">Verona</option>
+        <option value="Caldwell">Caldwell</option>
+        <option value="Nutley">Nutley</option>
+        <option value="SBP">SBP</option>
+        <option value="MKA">MKA</option>
+      </select>
+      <select class="ctrl-select" id="hitStatFilter" onchange="renderHitTable()">
+        <option value="wRC_plus">wRC+</option>
+        <option value="wRC">wRC</option>
+        <option value="wOBA">wOBA</option>
+        <option value="wRAA">wRAA</option>
+        <option value="OPS">OPS</option>
+        <option value="OBP">OBP</option>
+        <option value="SLG">SLG</option>
+        <option value="AVG">AVG</option>
+        <option value="ISO">ISO</option>
+        <option value="BB_pct">BB%</option>
+        <option value="BsR">BsR</option>
+        <option value="OFF">OFF</option>
+      </select>
+      <div class="pa-filter-wrap">
+        <span>Min PA:</span>
+        <input type="number" id="hitMinPA" value="50" min="0" max="200" oninput="renderHitTable()">
+      </div>
+    </div>
+    <div class="results-info" id="hitResultsInfo"></div>
+    <div class="lb-table-wrap">
+      <table><thead id="hitLbHead"></thead><tbody id="hitLbBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- PITCHING LEADERBOARD -->
+<div id="view-pitching" class="view">
+  <div class="leaderboard-wrap">
+    <div class="lb-header">
+      <div>
+        <div class="lb-title">Pitching <span>Leaders</span></div>
+        <div class="lb-subtitle">Super Essex Conference · Essex County, NJ · Percentiles based on 15+ IP</div>
+      </div>
+    </div>
+    <div class="controls-row">
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
+        </svg>
+        <input class="search-input" type="text" id="pitSearchInput" placeholder="Search player..." oninput="renderPitchTable()">
+      </div>
+      <select class="ctrl-select" id="pitTeamFilter" onchange="renderPitchTable()">
+        <option value="all">All Teams</option>
+        <option value="West Orange">West Orange</option>
+        <option value="Verona">Verona</option>
+        <option value="Caldwell">Caldwell</option>
+        <option value="Nutley">Nutley</option>
+        <option value="SBP">SBP</option>
+        <option value="MKA">MKA</option>
+      </select>
+      <select class="ctrl-select" id="pitStatFilter" onchange="renderPitchTable()">
+        <option value="ERA">ERA</option>
+        <option value="FIP">FIP</option>
+        <option value="WHIP">WHIP</option>
+        <option value="K7">K/7</option>
+        <option value="BB7">BB/7</option>
+        <option value="KBB">K/BB</option>
+        <option value="ERA_minus">ERA-</option>
+        <option value="FIP_minus">FIP-</option>
+        <option value="WAR">WAR</option>
+        <option value="RAA">RAA</option>
+        <option value="IP">IP</option>
+        <option value="K">K</option>
+      </select>
+      <div class="pa-filter-wrap">
+        <span>Min IP:</span>
+        <input type="number" id="pitMinIP" value="15" min="0" max="200" oninput="renderPitchTable()">
+      </div>
+    </div>
+    <div class="results-info" id="pitResultsInfo"></div>
+    <div class="lb-table-wrap">
+      <table><thead id="pitLbHead"></thead><tbody id="pitLbBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- PLAYER PAGE -->
+<div id="view-player" class="view">
+  <div class="player-wrap" id="playerContent"></div>
+</div>
+
+<!-- TEAMS OVERVIEW -->
+<div id="view-teams" class="view">
+  <div class="teams-wrap">
+    <div class="lb-header">
+      <div>
+        <div class="lb-title">Conference <span>Teams</span></div>
+        <div class="lb-subtitle">Super Essex Conference · Click a team to view roster and stats</div>
+      </div>
+    </div>
+    <div class="teams-grid" id="teamsGrid"></div>
+  </div>
+</div>
+
+<!-- TEAM PAGE -->
+<div id="view-team" class="view">
+  <div class="team-wrap" id="teamContent"></div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

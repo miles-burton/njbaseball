@@ -1,0 +1,488 @@
+// ── STATE ──────────────────────────────────────────────────────────────────────
+let AP = [];   // all hitters
+let PP = [];   // all pitchers
+let prevView = 'leaderboard';
+
+// ── HELPERS ────────────────────────────────────────────────────────────────────
+function pc(p) {
+  if (p >= 85) return '#c0392b';
+  if (p >= 70) return '#d9534f';
+  if (p >= 58) return '#c07040';
+  if (p >= 42) return '#555f72';
+  if (p >= 30) return '#3a7ab8';
+  return '#1f5a96';
+}
+
+function calcPct(vals, v, lowerBetter) {
+  const sorted = [...vals].sort((a, b) => a - b);
+  const b = sorted.filter(x => x < v).length;
+  const e = sorted.filter(x => x === v).length;
+  const raw = sorted.length ? Math.round(((b + e * 0.5) / sorted.length) * 100) : 50;
+  return lowerBetter ? 100 - raw : raw;
+}
+
+function svgInner(team) {
+  return (TM[team] || { svg: '' }).svg.replace(/<svg[^>]*>/, '').replace('</svg>', '');
+}
+
+function chip(team) {
+  const m = TM[team] || { bg: '#111', s: '#333', t: '#aaa' };
+  return `<span class="team-chip" style="background:${m.bg};color:${m.t};border:1px solid ${m.s}55">
+    <svg width="13" height="13" viewBox="0 0 24 24" style="flex-shrink:0">${svgInner(team)}</svg>
+    ${team}
+  </span>`;
+}
+
+function pctRow(label, val, pctVal, fmtVal) {
+  const clr = pc(pctVal);
+  return `<div class="pct-row">
+    <span class="pct-label">${label}</span>
+    <div class="pct-bar-outer">
+      <div class="pct-bar-track">
+        <div class="pct-bar-fill" style="width:${pctVal}%;background:${clr}"></div>
+        <div class="pct-bubble" style="background:${clr};left:${pctVal}%">${pctVal}</div>
+      </div>
+    </div>
+    <span class="pct-raw">${fmtVal}</span>
+  </div>`;
+}
+
+// ── HITTING LEADERBOARD ────────────────────────────────────────────────────────
+function renderHitTable() {
+  const ss     = document.getElementById('hitStatFilter').value;
+  const tf     = document.getElementById('hitTeamFilter').value;
+  const minPA  = parseInt(document.getElementById('hitMinPA').value) || 0;
+  const q      = document.getElementById('hitSearchInput').value.trim().toLowerCase();
+  const qualP  = AP.filter(p => p.qualified);
+  const pf     = {};
+
+  HIT_TABLE_COLS.forEach(s => {
+    const vs = qualP.map(p => p[s]);
+    pf[s] = v => calcPct(vs, v, false);
+  });
+
+  let pl = AP;
+  if (tf !== 'all') pl = pl.filter(p => p.team === tf);
+  if (q) pl = pl.filter(p => p.name.toLowerCase().includes(q));
+  pl = pl.filter(p => p.PA >= minPA);
+  pl = [...pl].sort((a, b) => b[ss] - a[ss]);
+
+  document.getElementById('hitResultsInfo').innerHTML =
+    `Showing <span>${pl.length}</span> player${pl.length !== 1 ? 's' : ''}`;
+
+  document.getElementById('hitLbHead').innerHTML =
+    `<tr><th style="width:36px">#</th><th>Player</th><th>Team</th><th class="num">PA</th>` +
+    HIT_TABLE_COLS.map(s =>
+      `<th class="num${s === ss ? ' sorted' : ''}">${HSC[s].label}${s === ss ? ' &#9660;' : ''}</th>`
+    ).join('') + '</tr>';
+
+  if (!pl.length) {
+    document.getElementById('hitLbBody').innerHTML =
+      `<tr><td colspan="20" class="empty">No players match your filters.</td></tr>`;
+    return;
+  }
+
+  document.getElementById('hitLbBody').innerHTML = pl.map((p, i) => {
+    const r = i + 1;
+    const cells = HIT_TABLE_COLS.map(s => {
+      const v = p[s], pt = pf[s](v), clr = pc(pt), f = HSC[s].fmt(v), isSorted = s === ss;
+      return `<td class="num" style="${isSorted ? `color:${clr};font-weight:700` : ''}">${f}</td>`;
+    }).join('');
+    return `<tr onclick="showPlayer('${encodeURIComponent(p.name)}','${p.team}','leaderboard')">
+      <td class="rank-cell${r <= 3 ? ' top3' : ''}">${r}</td>
+      <td class="player-cell">${p.name}${p.pos ? `<span class="player-pos">${p.pos}</span>` : ''}</td>
+      <td>${chip(p.team)}</td>
+      <td class="num">${p.PA}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+}
+
+// ── PITCHING LEADERBOARD ───────────────────────────────────────────────────────
+function renderPitchTable() {
+  const ss    = document.getElementById('pitStatFilter').value;
+  const tf    = document.getElementById('pitTeamFilter').value;
+  const minIP = parseFloat(document.getElementById('pitMinIP').value) || 0;
+  const q     = document.getElementById('pitSearchInput').value.trim().toLowerCase();
+  const qualP = PP.filter(p => p.qualPitch);
+  const pf    = {};
+
+  PIT_TABLE_COLS.forEach(s => {
+    const vs = qualP.map(p => p[s]).filter(v => isFinite(v));
+    pf[s] = v => calcPct(vs, v, PSC[s].lowerBetter);
+  });
+
+  const lb = PSC[ss] && PSC[ss].lowerBetter;
+  let pl = PP;
+  if (tf !== 'all') pl = pl.filter(p => p.team === tf);
+  if (q) pl = pl.filter(p => p.name.toLowerCase().includes(q));
+  pl = pl.filter(p => p.IP >= minIP);
+  pl = [...pl].sort((a, b) => lb ? a[ss] - b[ss] : b[ss] - a[ss]);
+
+  document.getElementById('pitResultsInfo').innerHTML =
+    `Showing <span>${pl.length}</span> pitcher${pl.length !== 1 ? 's' : ''}`;
+
+  document.getElementById('pitLbHead').innerHTML =
+    `<tr><th style="width:36px">#</th><th>Pitcher</th><th>Team</th><th class="num">IP</th><th class="num">W</th><th class="num">L</th>` +
+    PIT_TABLE_COLS.map(s =>
+      `<th class="num${s === ss ? ' sorted' : ''}">${PSC[s].label}${s === ss ? (lb ? ' &#9650;' : ' &#9660;') : ''}</th>`
+    ).join('') + '</tr>';
+
+  if (!pl.length) {
+    document.getElementById('pitLbBody').innerHTML =
+      `<tr><td colspan="20" class="empty">No pitchers match your filters.</td></tr>`;
+    return;
+  }
+
+  document.getElementById('pitLbBody').innerHTML = pl.map((p, i) => {
+    const r = i + 1;
+    const cells = PIT_TABLE_COLS.map(s => {
+      const v = p[s];
+      if (!isFinite(v)) return `<td class="num" style="color:var(--muted)">—</td>`;
+      const pt = pf[s](v), clr = pc(pt), f = PSC[s].fmt(v), isSorted = s === ss;
+      return `<td class="num" style="${isSorted ? `color:${clr};font-weight:700` : ''}">${f}</td>`;
+    }).join('');
+    const opacity = p.IP < 15 ? 'opacity:0.45' : '';
+    return `<tr style="${opacity}" onclick="showPlayer('${encodeURIComponent(p.name)}','${p.team}','pitching')">
+      <td class="rank-cell${r <= 3 ? ' top3' : ''}">${r}</td>
+      <td class="player-cell">${p.name}${p.pos ? `<span class="player-pos">${p.pos}</span>` : ''}</td>
+      <td>${chip(p.team)}</td>
+      <td class="num">${p.IP.toFixed(1)}</td>
+      <td class="num">${p.W}</td>
+      <td class="num">${p.L}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+}
+
+// ── PLAYER PAGE ────────────────────────────────────────────────────────────────
+function showPlayer(enc, team, from) {
+  const name   = decodeURIComponent(enc);
+  prevView     = from || 'leaderboard';
+  const hitter  = AP.find(p => p.name === name && p.team === team);
+  const pitcher = PP.find(p => p.name === name && p.team === team);
+  if (!hitter && !pitcher) return;
+
+  const m          = TM[team] || { p: '#222', s: '#444', t: '#aaa', bg: '#111', mascot: '', svg: '' };
+  const playerName = hitter ? hitter.name : pitcher.name;
+  const playerPos  = hitter ? hitter.pos  : (pitcher ? pitcher.pos  : '');
+  const playerYear = hitter ? hitter.year : (pitcher ? pitcher.year : '');
+  const isTwoWay   = hitter && pitcher;
+
+  // Hitting panel
+  let hitPanel = '';
+  if (hitter) {
+    const qualP     = AP.filter(p => p.qualified);
+    const allStats  = ['AVG','SLG','OBP','OPS','BsR','ISO','BB_pct','wOBA','wRAA','wRC','wRC_plus','OFF'];
+    const hpf       = {};
+    allStats.forEach(s => {
+      const vs = qualP.map(p => p[s]).filter(v => isFinite(v));
+      hpf[s] = v => calcPct(vs, v, false);
+    });
+    const miniCards = [['AVG','AVG'],['OPS','OPS'],['wRC+','wRC_plus'],['wOBA','wOBA']].map(([l, k]) =>
+      `<div class="stat-mini">
+        <div class="stat-mini-label">${l}</div>
+        <div class="stat-mini-val">${HSC[k].fmt(hitter[k])}</div>
+      </div>`
+    ).join('');
+    const sects = HIT_PCT_GROUPS.map(g =>
+      `<div class="pct-section">
+        <div class="pct-section-title">${g.title}</div>
+        ${g.stats.map(s => {
+          const v = hitter[s], pt = hpf[s](v), f = HSC[s].fmt(v);
+          return pctRow(HSC[s].label, v, pt, f);
+        }).join('')}
+      </div>`
+    ).join('');
+    const paTag   = `<span class="p-tag pa">${hitter.PA} PA</span>`;
+    const nonqTag = !hitter.qualified ? `<span class="p-tag nonq">Non-Qualified</span>` : '';
+    hitPanel = `<div class="stat-mini-grid">${miniCards}</div>${sects}`;
+    if (!isTwoWay) hitPanel = `<div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap">${paTag}${nonqTag}</div>` + hitPanel;
+  }
+
+  // Pitching panel
+  let pitPanel = '';
+  if (pitcher) {
+    const qualP    = PP.filter(p => p.qualPitch);
+    const allStats = Object.keys(PSC);
+    const ppf      = {};
+    allStats.forEach(s => {
+      const vs = qualP.map(p => p[s]).filter(v => isFinite(v));
+      ppf[s] = v => calcPct(vs, v, PSC[s].lowerBetter);
+    });
+    const miniCards = [['ERA','ERA'],['FIP','FIP'],['WHIP','WHIP'],['K/7','K7']].map(([l, k]) => {
+      const v = pitcher[k];
+      return `<div class="stat-mini">
+        <div class="stat-mini-label">${l}</div>
+        <div class="stat-mini-val">${isFinite(v) ? PSC[k].fmt(v) : '—'}</div>
+      </div>`;
+    }).join('');
+    const sects = PIT_PCT_GROUPS.map(g =>
+      `<div class="pct-section">
+        <div class="pct-section-title">${g.title}</div>
+        ${g.stats.map(s => {
+          const v = pitcher[s];
+          if (!isFinite(v)) return `<div class="pct-row"><span class="pct-label">${PSC[s].label}</span><span style="color:var(--muted);font-size:13px">—</span></div>`;
+          const pt = ppf[s](v), f = PSC[s].fmt(v);
+          return pctRow(PSC[s].label, v, pt, f);
+        }).join('')}
+      </div>`
+    ).join('');
+    const ipTag   = `<span class="p-tag pa">${pitcher.IP.toFixed(1)} IP · ${pitcher.W}W-${pitcher.L}L</span>`;
+    const nonqTag = !pitcher.qualPitch ? `<span class="p-tag nonq">Non-Qualified (&lt;15 IP)</span>` : '';
+    pitPanel = `<div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap">${ipTag}${nonqTag}</div>
+      <div class="stat-mini-grid">${miniCards}</div>${sects}`;
+  }
+
+  // Combine with role tabs if two-way
+  let bodyHTML = '';
+  if (isTwoWay) {
+    const paTag   = `<span class="p-tag pa">${hitter.PA} PA</span>`;
+    const nonqHit = !hitter.qualified ? `<span class="p-tag nonq">Non-Qualified</span>` : '';
+    const encName = encodeURIComponent(name);
+    bodyHTML = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">${paTag}${nonqHit}</div>
+      <div class="role-tabs">
+        <button class="role-tab active" onclick="switchRole(this,'hit-panel-${encName}')">Hitting</button>
+        <button class="role-tab" onclick="switchRole(this,'pit-panel-${encName}')">Pitching</button>
+      </div>
+      <div id="hit-panel-${encName}" class="role-panel active">${hitPanel}</div>
+      <div id="pit-panel-${encName}" class="role-panel">${pitPanel}</div>`;
+  } else if (hitter) {
+    bodyHTML = hitPanel;
+  } else {
+    bodyHTML = pitPanel;
+  }
+
+  document.getElementById('playerContent').innerHTML = `
+    <div class="player-hero">
+      <div class="player-shield" style="background:${m.bg};border:1px solid ${m.s}66">
+        <svg width="44" height="44" viewBox="0 0 24 24" style="opacity:0.7">${svgInner(team)}</svg>
+      </div>
+      <div class="player-info">
+        <div class="player-full-name">${playerName}</div>
+        <div class="player-details">
+          <span class="p-tag" style="background:${m.bg};color:${m.t};border-color:${m.s}66;display:inline-flex;align-items:center;gap:5px;cursor:pointer"
+            onclick="showTeam('${team}','player')">
+            <svg width="12" height="12" viewBox="0 0 24 24">${svgInner(team)}</svg>
+            ${team}&nbsp;<span style="opacity:.55;font-weight:400">${m.mascot}</span>
+          </span>
+          ${playerYear ? `<span class="p-tag">${playerYear}</span>` : ''}
+          ${playerPos  ? `<span class="p-tag">${playerPos}</span>`  : ''}
+          ${isTwoWay   ? `<span class="p-tag" style="color:#e8c84a;border-color:rgba(232,200,74,0.4);background:rgba(232,200,74,0.07)">Two-Way</span>` : ''}
+        </div>
+      </div>
+    </div>
+    ${bodyHTML}`;
+
+  showView('player', from);
+}
+
+function switchRole(btn, panelId) {
+  const wrap = btn.closest('.player-wrap');
+  wrap.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+  wrap.querySelectorAll('.role-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+}
+
+// ── TEAMS OVERVIEW ─────────────────────────────────────────────────────────────
+function renderTeamsGrid() {
+  document.getElementById('teamsGrid').innerHTML = Object.keys(TM).map(team => {
+    const m      = TM[team];
+    const qp     = AP.filter(p => p.team === team && p.qualified);
+    const avgAVG = qp.length ? qp.reduce((s, p) => s + p.AVG,      0) / qp.length : 0;
+    const avgOPS = qp.length ? qp.reduce((s, p) => s + p.OPS,      0) / qp.length : 0;
+    const avgWRC = qp.length ? Math.round(qp.reduce((s, p) => s + p.wRC_plus, 0) / qp.length) : 0;
+    return `<div class="team-card" onclick="showTeam('${team}','teams')" style="border-color:${m.s}33">
+      <div class="team-card-header">
+        <div class="team-card-icon" style="background:${m.bg};border:1px solid ${m.s}55">
+          <svg width="28" height="28" viewBox="0 0 24 24">${svgInner(team)}</svg>
+        </div>
+        <div>
+          <div class="team-card-name" style="color:${m.t}">${team}</div>
+          <div class="team-card-mascot" style="color:${m.s}">${m.mascot}</div>
+        </div>
+      </div>
+      <div class="team-card-stats">
+        <div class="team-card-stat">
+          <div class="team-card-stat-val" style="color:${m.t}">${avgAVG.toFixed(3).replace(/^0/, '')}</div>
+          <div class="team-card-stat-label">Avg AVG</div>
+        </div>
+        <div class="team-card-stat">
+          <div class="team-card-stat-val" style="color:${m.t}">${avgOPS.toFixed(3)}</div>
+          <div class="team-card-stat-label">Avg OPS</div>
+        </div>
+        <div class="team-card-stat">
+          <div class="team-card-stat-val" style="color:${m.t}">${avgWRC}</div>
+          <div class="team-card-stat-label">Avg wRC+</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── TEAM PAGE ──────────────────────────────────────────────────────────────────
+function showTeam(team, from) {
+  prevView = from || 'teams';
+  const m  = TM[team] || { p: '#222', s: '#444', t: '#aaa', bg: '#111', mascot: '', svg: '' };
+  const tp = AP.filter(p => p.team === team);
+  const qp = tp.filter(p => p.qualified);
+
+  const wavg = (arr, k) => {
+    const tot = arr.reduce((s, p) => s + p.PA, 0);
+    return tot ? arr.reduce((s, p) => s + p[k] * p.PA, 0) / tot : 0;
+  };
+
+  const teamAVG     = wavg(tp, 'AVG');
+  const teamOBP     = wavg(tp, 'OBP');
+  const teamSLG     = wavg(tp, 'SLG');
+  const teamwOBA    = wavg(tp, 'wOBA');
+  const teamwRCplus = qp.length ? Math.round(qp.reduce((s, p) => s + p.wRC_plus, 0) / qp.length) : 0;
+  const teamOPS     = teamOBP + teamSLG;
+  const pitchers    = PP.filter(p => p.team === team);
+  const teamERA     = pitchers.reduce((s, p) => s + p.ER, 0) / (pitchers.reduce((s, p) => s + p.IP, 0) / 9) || 0;
+  const teamWHIP    = pitchers.reduce((s, p) => s + p.BB + p.H, 0) / pitchers.reduce((s, p) => s + p.IP, 0) || 0;
+
+  const hitCols = ['PA', 'AVG', 'OBP', 'SLG', 'OPS', 'ISO', 'wOBA', 'wRC_plus', 'OFF'];
+  const pitCols = ['IP', 'W', 'L', 'ERA', 'FIP', 'WHIP', 'K7', 'BB7', 'KBB', 'WAR'];
+
+  const hitRows = [...tp].sort((a, b) => b.PA - a.PA).map(p =>
+    `<tr onclick="showPlayer('${encodeURIComponent(p.name)}','${p.team}','team-${team}')"
+      style="${!p.qualified ? 'opacity:0.45' : ''}">
+      <td class="player-cell">${p.name}${p.pos ? `<span class="player-pos">${p.pos}</span>` : ''}</td>
+      <td><span class="p-tag" style="font-size:10px;padding:2px 7px;
+        background:${p.qualified ? 'rgba(232,200,74,0.07)' : 'var(--surface2)'};
+        color:${p.qualified ? 'var(--accent)' : 'var(--muted)'};
+        border-color:${p.qualified ? 'rgba(232,200,74,0.3)' : 'var(--border2)'}">${p.PA} PA</span></td>
+      ${hitCols.slice(1).map(s => `<td class="num" style="font-size:13px">${HSC[s] ? HSC[s].fmt(p[s]) : p[s]}</td>`).join('')}
+    </tr>`
+  ).join('');
+
+  const pitRows = [...pitchers].sort((a, b) => b.IP - a.IP).map(p =>
+    `<tr onclick="showPlayer('${encodeURIComponent(p.name)}','${p.team}','team-${team}')"
+      style="${!p.qualPitch ? 'opacity:0.45' : ''}">
+      <td class="player-cell">${p.name}${p.pos ? `<span class="player-pos">${p.pos}</span>` : ''}</td>
+      <td class="num" style="font-size:13px">${p.IP.toFixed(1)}</td>
+      <td class="num" style="font-size:13px">${p.W}-${p.L}</td>
+      ${pitCols.slice(3).map(s => `<td class="num" style="font-size:13px">${isFinite(p[s]) ? PSC[s].fmt(p[s]) : '—'}</td>`).join('')}
+    </tr>`
+  ).join('');
+
+  document.getElementById('teamContent').innerHTML = `
+    <div class="team-hero">
+      <div class="team-shield-lg" style="background:${m.bg};border:1px solid ${m.s}66">
+        <svg width="50" height="50" viewBox="0 0 24 24" style="opacity:0.85">${svgInner(team)}</svg>
+      </div>
+      <div>
+        <div class="team-name-lg" style="color:${m.t}">${team}</div>
+        <div class="team-mascot-lg" style="color:${m.s}">${m.mascot}</div>
+      </div>
+    </div>
+    <div class="team-stat-cards">
+      <div class="team-stat-card"><div class="team-stat-card-label">AVG</div><div class="team-stat-card-val" style="color:${m.t}">${teamAVG.toFixed(3).replace(/^0/, '')}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">OPS</div><div class="team-stat-card-val" style="color:${m.t}">${teamOPS.toFixed(3)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">wOBA</div><div class="team-stat-card-val" style="color:${m.t}">${teamwOBA.toFixed(3).replace(/^0/, '')}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">wRC+</div><div class="team-stat-card-val" style="color:${m.t}">${teamwRCplus}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">Team ERA</div><div class="team-stat-card-val" style="color:${m.t}">${teamERA.toFixed(2)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">Team WHIP</div><div class="team-stat-card-val" style="color:${m.t}">${teamWHIP.toFixed(2)}</div></div>
+    </div>
+    <div class="team-section-tabs">
+      <button class="team-section-tab active" onclick="switchTeamPanel(this,'tp-hit-${team}')">Hitting Roster</button>
+      <button class="team-section-tab" onclick="switchTeamPanel(this,'tp-pit-${team}')">Pitching Roster</button>
+    </div>
+    <div id="tp-hit-${team}" class="team-panel active">
+      <div class="lb-table-wrap"><table>
+        <thead><tr><th>Player</th><th>PA</th>${hitCols.slice(1).map(s => `<th class="num">${HSC[s] ? HSC[s].label : s}</th>`).join('')}</tr></thead>
+        <tbody>${hitRows}</tbody>
+      </table></div>
+    </div>
+    <div id="tp-pit-${team}" class="team-panel">
+      <div class="lb-table-wrap"><table>
+        <thead><tr><th>Pitcher</th><th class="num">IP</th><th class="num">W-L</th>${pitCols.slice(3).map(s => `<th class="num">${PSC[s].label}</th>`).join('')}</tr></thead>
+        <tbody>${pitRows}</tbody>
+      </table></div>
+    </div>`;
+
+  showView('team', from);
+}
+
+function switchTeamPanel(btn, panelId) {
+  const wrap = btn.closest('.team-wrap');
+  wrap.querySelectorAll('.team-section-tab').forEach(t => t.classList.remove('active'));
+  wrap.querySelectorAll('.team-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+}
+
+// ── VIEW MANAGEMENT ────────────────────────────────────────────────────────────
+function showView(v, from) {
+  document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  const back = document.getElementById('backBtn');
+  const nav  = document.getElementById('navTabs');
+
+  if (v === 'player' || v === 'team') {
+    back.style.display = 'flex';
+    nav.style.display  = 'none';
+    let lbl = 'Back';
+    if (from === 'leaderboard')       lbl = 'Hitting';
+    else if (from === 'pitching')     lbl = 'Pitching';
+    else if (from === 'teams')        lbl = 'Teams';
+    else if (from && from.startsWith('team-')) lbl = from.replace('team-', '');
+    else if (from === 'player')       lbl = 'Player';
+    document.getElementById('backLabel').textContent = lbl;
+  } else {
+    back.style.display = 'none';
+    nav.style.display  = 'flex';
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    const map = { leaderboard: 'tab-lb', pitching: 'tab-pitch', teams: 'tab-teams' };
+    if (map[v]) document.getElementById(map[v]).classList.add('active');
+  }
+}
+
+function goBack() {
+  if (prevView === 'teams')                       showView('teams');
+  else if (prevView === 'pitching')               showView('pitching');
+  else if (prevView && prevView.startsWith('team-')) showTeam(prevView.replace('team-', ''), 'teams');
+  else                                            showView('leaderboard');
+}
+
+// ── DATA INIT ──────────────────────────────────────────────────────────────────
+(function loadHitting() {
+  for (const [team, data] of Object.entries(RAW_HITTING)) {
+    for (const line of data.trim().split('\n')) {
+      const p = line.split(',');
+      const [name, pos, year] = p;
+      const [PA, AVG, SLG, OBP, OPS, BsR, ISO, BB_pct, wOBA, wRAA, wRC, wRC_plus, OFF] =
+        p.slice(3).map(Number);
+      AP.push({ name, pos, year, team, PA, AVG, SLG, OBP, OPS, BsR, ISO, BB_pct, wOBA, wRAA, wRC, wRC_plus, OFF, qualified: PA >= 50 });
+    }
+  }
+})();
+
+(function loadPitching() {
+  for (const [team, rows] of Object.entries(RAW_PITCHING)) {
+    for (const r of rows) {
+      const [name, pos, year, W, L, IPraw, H, Rr, ER, BB, K, HB, ERA, ERA_minus, FIP, FIP_minus, RAA, K7, BB7, PIP, KBB, WHIP_r, WAR] = r;
+      const IP   = parseFloat(IPraw);
+      const WHIP = IP > 0 ? (BB + H) / IP : 0;
+      const KBBv = BB === 0 ? 999 : K / BB;
+      PP.push({
+        name, pos, year, team, W, L, IP, H, R: Rr, ER, BB, K, HB,
+        ERA:       isFinite(ERA)       ? +ERA       : Infinity,
+        ERA_minus: isFinite(ERA_minus) ? +ERA_minus : Infinity,
+        FIP:       isFinite(FIP)       ? +FIP       : Infinity,
+        FIP_minus: isFinite(FIP_minus) ? +FIP_minus : Infinity,
+        RAA: +RAA, K7: +K7, BB7: +BB7, PIP: +PIP,
+        KBB:  isFinite(KBB) ? +KBB : KBBv,
+        WHIP: +WHIP_r || WHIP,
+        WAR: +WAR,
+        qualPitch: IP >= 15
+      });
+    }
+  }
+  renderHitTable();
+  renderPitchTable();
+  renderTeamsGrid();
+})();
