@@ -35,6 +35,11 @@
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 5.5 Q8 8 10.5 5.5"/><path d="M5.5 10.5 Q8 8 10.5 10.5"/></svg>
           Pitching
         </button>
+        <div class="nav-dropdown-divider"></div>
+        <button class="nav-dropdown-item" onclick="showView('standings');closeDropdowns()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="2" rx="1"/><rect x="2" y="7" width="9" height="2" rx="1"/><rect x="2" y="12" width="6" height="2" rx="1"/></svg>
+          Standings
+        </button>
       </div>
     </div>
 
@@ -484,6 +489,29 @@
 <!-- TEAM PAGE -->
 <div id="view-team" class="view">
   <div class="team-wrap" id="teamContent"></div>
+</div>
+
+
+<!-- STANDINGS -->
+<div id="view-standings" class="view">
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Division <span>Standings</span></div>
+        <div class="page-meta">
+          Super Essex Conference
+          <span class="page-meta-dot"></span>
+          2025–26 Season
+          <span class="page-meta-dot"></span>
+          Pyth = Pythagorean Expected Record
+          <span class="page-meta-dot"></span>
+          BSR = BaseRun Expected Record
+        </div>
+      </div>
+      <div class="page-updated" id="standingsUpdated"></div>
+    </div>
+  </div>
+  <div class="standings-wrap" id="standingsContent"></div>
 </div>
 
 <script src="js/data.js"></script>

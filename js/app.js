@@ -590,15 +590,15 @@ function showView(v, from) {
     nav.style.display  = 'flex';
   }
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  if (v === 'leaderboard') document.getElementById('tab-leaders')?.classList.add('active');
-  if (v === 'pitching')    document.getElementById('tab-leaders')?.classList.add('active');
-  if (v === 'teams' || v === 'team' || v === 'team-rankings') document.getElementById('tab-teams-dd')?.classList.add('active');
+  if (['leaderboard','pitching','standings'].includes(v)) document.getElementById('tab-leaders')?.classList.add('active');
+  if (['teams','team','team-rankings'].includes(v))       document.getElementById('tab-teams-dd')?.classList.add('active');
 }
 
 function goBack() {
   if (prevView === 'home')                           showView('home');
   else if (prevView === 'teams')                     showView('teams');
   else if (prevView === 'pitching')                  showView('pitching');
+  else if (prevView === 'standings')                 showView('standings');
   else if (prevView === 'team-rankings')             showView('team-rankings');
   else if (prevView && prevView.startsWith('team-')) showTeam(prevView.replace('team-', ''), 'teams');
   else                                               showView('leaderboard');
@@ -888,6 +888,129 @@ function sortRankings(col, lowerBetter) {
   renderTeamRankings();
 }
 
+// ── STANDINGS ─────────────────────────────────────────────────────────────────
+function teamStandingsRow(team) {
+  const sched    = (typeof SCHEDULES !== 'undefined' && SCHEDULES[team]) || {};
+  const games    = sched.games || [];
+  const W        = sched.wins   || 0;
+  const L        = sched.losses || 0;
+  const G        = W + L;
+
+  // Runs scored / allowed from game scores
+  let RS = 0, RA = 0;
+  games.forEach(g => {
+    if (g.score && g.outcome) {
+      const parts = g.score.split('-').map(Number);
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        RS += parts[0];
+        RA += parts[1];
+      }
+    }
+  });
+
+  const wpct  = G > 0 ? W / G : 0;
+  const rdiff = RS - RA;
+  const raPG  = G > 0 ? RA / G : 0;
+  const rsPG  = G > 0 ? RS / G : 0;
+
+  // Pythagorean expected record (exponent 1.83)
+  const EXP = 1.83;
+  const pythWpct = (RS + RA) > 0
+    ? Math.pow(RS, EXP) / (Math.pow(RS, EXP) + Math.pow(RA, EXP))
+    : 0.5;
+  const pythW = Math.round(pythWpct * G);
+  const pythL = G - pythW;
+
+  // BaseRun expected record — uses team wRC vs total ER allowed
+  const tp         = AP.filter(p => p.team === team);
+  const pitchers   = PP.filter(p => p.team === team);
+  const bsrRS      = tp.reduce((s, p) => s + p.wRC, 0);
+  const bsrRA      = pitchers.reduce((s, p) => s + p.ER, 0);
+  const bsrWpct    = (bsrRS + bsrRA) > 0
+    ? Math.pow(bsrRS, EXP) / (Math.pow(bsrRS, EXP) + Math.pow(bsrRA, EXP))
+    : 0.5;
+  const bsrW = Math.round(bsrWpct * G);
+  const bsrL = G - bsrW;
+
+  return { team, W, L, G, wpct, RS, RA, rdiff, raPG, rsPG,
+           pythW, pythL, pythWpct, bsrW, bsrL, bsrWpct };
+}
+
+function renderStandings() {
+  const DIVISIONS = ['Liberty','American','Colonial','Freedom','Independence'];
+
+  const el = document.getElementById('standingsContent');
+  if (!el) return;
+
+  // Show last updated
+  const upd = document.getElementById('standingsUpdated');
+  if (upd && typeof DATA_UPDATED !== 'undefined') upd.textContent = `Updated ${DATA_UPDATED}`;
+
+  el.innerHTML = DIVISIONS.map(div => {
+    const divTeams = Object.keys(TM).filter(t => TM[t].div === div);
+    const rows = divTeams.map(t => teamStandingsRow(t))
+                         .sort((a, b) => b.wpct - a.wpct || b.rdiff - a.rdiff);
+
+    const tableRows = rows.map((r, i) => {
+      const m        = TM[r.team] || {};
+      const wlClass  = r.wpct > 0.5 ? 'over-500' : r.wpct < 0.5 ? 'under-500' : 'even-500';
+      const pdiff    = r.pythW - r.W;
+      const pdiffStr = pdiff > 0 ? `+${pdiff}` : `${pdiff}`;
+      const pdiffCls = pdiff > 0 ? 'pyth-diff-pos' : pdiff < 0 ? 'pyth-diff-neg' : 'pyth-diff-neu';
+      const bdiff    = r.bsrW - r.W;
+      const bdiffStr = bdiff > 0 ? `+${bdiff}` : `${bdiff}`;
+      const bdiffCls = bdiff > 0 ? 'pyth-diff-pos' : bdiff < 0 ? 'pyth-diff-neg' : 'pyth-diff-neu';
+
+      return `<tr onclick="showTeam('${r.team}','standings')">
+        <td>
+          <div class="standings-team-cell">
+            <span class="standings-pos ${i === 0 ? 'leader' : ''}">${i + 1}</span>
+            ${m.logo ? `<img src="${m.logo}" width="22" height="22" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : ''}
+            <span class="standings-team-name" style="color:${m.t || 'var(--text)'}">${r.team}</span>
+          </div>
+        </td>
+        <td class="num">
+          <span class="standings-record ${wlClass}">${r.W}-${r.L}</span>
+        </td>
+        <td class="num" style="font-variant-numeric:tabular-nums">${r.wpct.toFixed(3).replace(/^0/,'')}</td>
+        <td class="num" style="color:${r.rdiff > 0 ? '#4ade80' : r.rdiff < 0 ? '#f87171' : 'var(--muted2)'}">
+          ${r.rdiff > 0 ? '+' : ''}${r.rdiff}
+        </td>
+        <td class="num" style="color:var(--muted2)">${r.rsPG.toFixed(2)}</td>
+        <td class="num" style="color:var(--muted2)">${r.raPG.toFixed(2)}</td>
+        <td class="num">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:14px">${r.pythW}-${r.pythL}</span>
+          <span class="${pdiffCls}" style="margin-left:5px">(${pdiffStr})</span>
+        </td>
+        <td class="num">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:14px">${r.bsrW}-${r.bsrL}</span>
+          <span class="${bdiffCls}" style="margin-left:5px">(${bdiffStr})</span>
+        </td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="standings-division">
+      <div class="standings-division-header">
+        <span class="standings-division-name">${div} Division</span>
+        <span class="standings-division-sub">${rows.length} teams</span>
+      </div>
+      <table class="standings-table">
+        <thead><tr>
+          <th>Team</th>
+          <th class="num">Record</th>
+          <th class="num" title="Win Percentage">PCT</th>
+          <th class="num" title="Run Differential">RDIFF</th>
+          <th class="num" title="Runs Scored per Game">RS/G</th>
+          <th class="num" title="Runs Allowed per Game">RA/G</th>
+          <th class="num" title="Pythagorean Expected Record (RS^1.83 / (RS^1.83 + RA^1.83)) — difference from actual in parentheses">PYTH</th>
+          <th class="num" title="BaseRun Expected Record (uses wRC vs ER) — difference from actual in parentheses">BSR</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+
 // ── INIT ───────────────────────────────────────────────────────────────────────
 showLastUpdated();
 renderHitTable();
@@ -895,3 +1018,4 @@ renderPitchTable();
 renderTeamsGrid();
 renderHome();
 renderTeamRankings();
+renderStandings();
