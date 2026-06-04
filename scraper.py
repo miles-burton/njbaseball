@@ -288,16 +288,16 @@ def generate_js(all_hitters, all_pitchers):
   'SBP':            { div:'Liberty',      mascot:'Gray Bees',    p:'#6b1520', s:'#8b1a28', t:'#c08088', bg:'#150508', logo:'https://nj.vsand-static.com/Logos/5380.png' },
   'MKA':            { div:'Liberty',      mascot:'Cougars',      p:'#1a2a6b', s:'#7a6030', t:'#b09060', bg:'#07091e', logo:'https://nj.vsand-static.com/Logos/6252.png' },
   // ── American Division ──────────────────────────────────────────────────
-  'SHP':            { div:'American',     mascot:'Pirates',      p:'#8b0000', s:'#b00000', t:'#e07070', bg:'#1e0000', logo:'https://nj.vsand-static.com/Logos/5412.png' },
+  'SHP':            { div:'American',     mascot:'Pirates',      p:'#1a2a8b', s:'#2a50c8', t:'#8090e8', bg:'#06091e', logo:'logos/shp.png' },
   'West Essex':     { div:'American',     mascot:'Knights',      p:'#8b0a0a', s:'#b81818', t:'#e07070', bg:'#1e0505', logo:'https://nj.vsand-static.com/Logos/4855.png' },
   'Columbia':       { div:'American',     mascot:'Cougars',      p:'#0a4a1a', s:'#1a7a30', t:'#60c870', bg:'#051008', logo:'https://nj.vsand-static.com/Logos/2890.png' },
-  'Livingston':     { div:'American',     mascot:'Lancers',      p:'#1a5a1a', s:'#2a8a2a', t:'#70c870', bg:'#071507', logo:'https://nj.vsand-static.com/Logos/3711.png' },
+  'Livingston':     { div:'American',     mascot:'Lancers',      p:'#1a5a1a', s:'#2a8a2a', t:'#70c870', bg:'#071507', logo:'logos/livingston.png' },
   'Millburn':       { div:'American',     mascot:'Millers',      p:'#1a1a8b', s:'#3030b0', t:'#8888e0', bg:'#06061e', logo:'https://nj.vsand-static.com/Logos/3915.png' },
   'Montclair':      { div:'American',     mascot:'Mounties',     p:'#8b6914', s:'#c8960c', t:'#f0c040', bg:'#1e1500', logo:'https://nj.vsand-static.com/Logos/3939.png' },
   // ── Colonial Division ──────────────────────────────────────────────────
-  'Cedar Grove':    { div:'Colonial',     mascot:'Panthers',     p:'#1a1a8b', s:'#2a2ac8', t:'#8080e8', bg:'#06061e', logo:'https://nj.vsand-static.com/Logos/2785.png' },
+  'Cedar Grove':    { div:'Colonial',     mascot:'Panthers',     p:'#1a1500', s:'#c8960c', t:'#f0c040', bg:'#0e0b00', logo:'logos/cedar-grove.png' },
   'Glen Ridge':     { div:'Colonial',     mascot:'Ridgers',      p:'#8b1a1a', s:'#c02828', t:'#e08080', bg:'#1e0606', logo:'https://nj.vsand-static.com/Logos/3234.png' },
-  'Belleville':     { div:'Colonial',     mascot:'Buccaneers',   p:'#8b4500', s:'#c06010', t:'#e8a060', bg:'#1e0e00', logo:'https://nj.vsand-static.com/Logos/2646.png' },
+  'Belleville':     { div:'Colonial',     mascot:'Buccaneers',   p:'#1a2a6b', s:'#c8960c', t:'#f0c040', bg:'#06091a', logo:'logos/belleville.png' },
   'Newark Academy': { div:'Colonial',     mascot:'Minutemen',    p:'#6b1a1a', s:'#902828', t:'#d07070', bg:'#150606', logo:'https://nj.vsand-static.com/Logos/6253.png' },
   'Barringer':      { div:'Colonial',     mascot:'Blue Bears',   p:'#0a2a6b', s:'#1a4aa0', t:'#6090d8', bg:'#05101e', logo:'https://nj.vsand-static.com/Logos/2623.png' },
   'Bloomfield':     { div:'Colonial',     mascot:'Bengals',      p:'#a04010', s:'#d05818', t:'#f0a060', bg:'#200d05', logo:'https://nj.vsand-static.com/Logos/2683.png' },
@@ -312,7 +312,7 @@ def generate_js(all_hitters, all_pitchers):
   'Newark Tech':    { div:'Independence', mascot:'Engineers',    p:'#1a3a6e', s:'#2858a8', t:'#7098d8', bg:'#060f1e', logo:'https://nj.vsand-static.com/Logos/6318.png' },
   'Payne Tech':     { div:'Independence', mascot:'Panthers',     p:'#1a1a5a', s:'#2828a0', t:'#7878d8', bg:'#060614', logo:'https://nj.vsand-static.com/Logos/9906.png' },
   'East Side':      { div:'Independence', mascot:'Argonauts',    p:'#6b1a1a', s:'#a02828', t:'#d87070', bg:'#180606', logo:'https://nj.vsand-static.com/Logos/3019.png' },
-  'Technology':     { div:'Independence', mascot:'Panthers',     p:'#1a1a5a', s:'#2828a0', t:'#7878d8', bg:'#060614', logo:'https://nj.vsand-static.com/Logos/4632.png' },
+  'Technology':     { div:'Independence', mascot:'Panthers',     p:'#1a1a1a', s:'#444444', t:'#cccccc', bg:'#0a0a0a', logo:'logos/technology.png' },
   'Newark Central': { div:'Independence', mascot:'Golden Bears', p:'#6b5000', s:'#a87800', t:'#e8c050', bg:'#181200', logo:'https://nj.vsand-static.com/Logos/2806.png' },
   'Golda Och':      { div:'Independence', mascot:'Royals',       p:'#4a006b', s:'#7800a8', t:'#c060e0', bg:'#100018', logo:'https://nj.vsand-static.com/Logos/6327.png' }
 };\n\n""")
