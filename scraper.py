@@ -25,15 +25,31 @@ R_PA_LEAGUE  = 0.177   # league runs/PA  (adjust each season)
 # ── TEAMS TO SCRAPE ────────────────────────────────────────────────────────────
 # Format: "Display Name" -> "url-slug"
 TEAMS = {
-    "West Orange":  "west-orange-west-orange",
-    "Verona":       "verona-verona",
-    "Caldwell":     "west-caldwell-caldwell",
-    "Nutley":       "nutley-nutley",
-    "SHP":          "west-orange-seton-hall-prep",
-    "SBP":          "newark-st-benedicts",
-    "MKA":          "montclair-montclair-kimberley",
-    # Add more teams here as you expand to all of NJ:
-    # "Team Name": "town-school-name",
+    # ── Liberty Division ──────────────────────────────────────────────────
+    "West Orange":     "west-orange-west-orange",
+    "Verona":          "verona-verona",
+    "Caldwell":        "west-caldwell-caldwell",
+    "Nutley":          "nutley-nutley",
+    "SHP":             "west-orange-seton-hall-prep",
+    "SBP":             "newark-st-benedicts",
+    "MKA":             "montclair-montclair-kimberley",
+    # ── American Division ─────────────────────────────────────────────────
+    "Montclair":       "montclair-montclair",
+    "Columbia":        "maplewood-columbia",
+    "Bloomfield":      "bloomfield-bloomfield",
+    "Cedar Grove":     "cedar-grove-cedar-grove",
+    "Glen Ridge":      "glen-ridge-glen-ridge",
+    "Livingston":      "livingston-livingston",
+    "Millburn":        "millburn-millburn",
+    # ── National Division ─────────────────────────────────────────────────
+    "Newark Academy":  "livingston-newark-academy",
+    "Belleville":      "belleville-belleville",
+    "Barringer":       "newark-barringer",
+    "East Orange":     "east-orange-east-orange",
+    "West Essex":      "north-caldwell-west-essex",
+    "Technology":      "newark-technology",
+    "Orange":          "orange-orange",
+    "Weequahic":       "newark-weequahic",
 }
 
 # ── SCRAPER ────────────────────────────────────────────────────────────────────
@@ -254,20 +270,31 @@ def generate_js(all_hitters, all_pitchers):
 
     # Team identity (preserved from original)
     lines.append("""const TM = {
-  'West Orange': { mascot:'Mountaineers', p:'#1e3a6e', s:'#4a7cc7', t:'#a8c8f0', bg:'#0a1628',
-    logo:'https://nj.vsand-static.com/Logos/4863.png' },
-  'Verona':      { mascot:'Hillbillies',  p:'#7a1010', s:'#a01818', t:'#d47070', bg:'#1e0505',
-    logo:'https://nj.vsand-static.com/Logos/4742.png' },
-  'Caldwell':    { mascot:'Chiefs',       p:'#1a35a0', s:'#2a50c8', t:'#80a8e8', bg:'#060d28',
-    logo:'https://nj.vsand-static.com/Logos/6250.png' },
-  'Nutley':      { mascot:'Raiders',      p:'#8b1a2a', s:'#b02535', t:'#d07080', bg:'#1a0508',
-    logo:'https://nj.vsand-static.com/Logos/4185.png' },
-  'SHP':         { mascot:'Pirates',      p:'#8b0000', s:'#b00000', t:'#e07070', bg:'#1e0000',
-    logo:'https://nj.vsand-static.com/Logos/5412.png' },
-  'SBP':         { mascot:'Gray Bees',    p:'#6b1520', s:'#8b1a28', t:'#c08088', bg:'#150508',
-    logo:'https://nj.vsand-static.com/Logos/5380.png' },
-  'MKA':         { mascot:'Cougars',      p:'#1a2a6b', s:'#7a6030', t:'#b09060', bg:'#07091e',
-    logo:'https://nj.vsand-static.com/Logos/6252.png' }
+  // ── Liberty Division ───────────────────────────────────────────────────
+  'West Orange':    { mascot:'Mountaineers', p:'#1e3a6e', s:'#4a7cc7', t:'#a8c8f0', bg:'#0a1628', logo:'https://nj.vsand-static.com/Logos/4863.png' },
+  'Verona':         { mascot:'Hillbillies',  p:'#7a1010', s:'#a01818', t:'#d47070', bg:'#1e0505', logo:'https://nj.vsand-static.com/Logos/4742.png' },
+  'Caldwell':       { mascot:'Chiefs',       p:'#1a35a0', s:'#2a50c8', t:'#80a8e8', bg:'#060d28', logo:'https://nj.vsand-static.com/Logos/6250.png' },
+  'Nutley':         { mascot:'Raiders',      p:'#8b1a2a', s:'#b02535', t:'#d07080', bg:'#1a0508', logo:'https://nj.vsand-static.com/Logos/4185.png' },
+  'SHP':            { mascot:'Pirates',      p:'#8b0000', s:'#b00000', t:'#e07070', bg:'#1e0000', logo:'https://nj.vsand-static.com/Logos/5412.png' },
+  'SBP':            { mascot:'Gray Bees',    p:'#6b1520', s:'#8b1a28', t:'#c08088', bg:'#150508', logo:'https://nj.vsand-static.com/Logos/5380.png' },
+  'MKA':            { mascot:'Cougars',      p:'#1a2a6b', s:'#7a6030', t:'#b09060', bg:'#07091e', logo:'https://nj.vsand-static.com/Logos/6252.png' },
+  // ── American Division ──────────────────────────────────────────────────
+  'Montclair':      { mascot:'Mounties',     p:'#8b6914', s:'#c8960c', t:'#f0c040', bg:'#1e1500', logo:'https://nj.vsand-static.com/Logos/3939.png' },
+  'Columbia':       { mascot:'Cougars',      p:'#0a4a1a', s:'#1a7a30', t:'#60c870', bg:'#051008', logo:'https://nj.vsand-static.com/Logos/2890.png' },
+  'Bloomfield':     { mascot:'Bengals',      p:'#a04010', s:'#d05818', t:'#f0a060', bg:'#200d05', logo:'https://nj.vsand-static.com/Logos/2683.png' },
+  'Cedar Grove':    { mascot:'Panthers',     p:'#1a1a8b', s:'#2a2ac8', t:'#8080e8', bg:'#06061e', logo:'https://nj.vsand-static.com/Logos/2785.png' },
+  'Glen Ridge':     { mascot:'Ridgers',      p:'#8b1a1a', s:'#c02828', t:'#e08080', bg:'#1e0606', logo:'https://nj.vsand-static.com/Logos/3234.png' },
+  'Livingston':     { mascot:'Lancers',      p:'#1a5a1a', s:'#2a8a2a', t:'#70c870', bg:'#071507', logo:'https://nj.vsand-static.com/Logos/3711.png' },
+  'Millburn':       { mascot:'Millers',      p:'#1a1a8b', s:'#3030b0', t:'#8888e0', bg:'#06061e', logo:'https://nj.vsand-static.com/Logos/3915.png' },
+  // ── National Division ──────────────────────────────────────────────────
+  'Newark Academy': { mascot:'Minutemen',    p:'#6b1a1a', s:'#902828', t:'#d07070', bg:'#150606', logo:'https://nj.vsand-static.com/Logos/6253.png' },
+  'Belleville':     { mascot:'Buccaneers',   p:'#8b4500', s:'#c06010', t:'#e8a060', bg:'#1e0e00', logo:'https://nj.vsand-static.com/Logos/2646.png' },
+  'Barringer':      { mascot:'Blue Bears',   p:'#0a2a6b', s:'#1a4aa0', t:'#6090d8', bg:'#05101e', logo:'https://nj.vsand-static.com/Logos/2623.png' },
+  'East Orange':    { mascot:'Jaguars',      p:'#1a6b1a', s:'#2a9a2a', t:'#70d070', bg:'#071507', logo:'https://nj.vsand-static.com/Logos/3018.png' },
+  'West Essex':     { mascot:'Knights',      p:'#8b0a0a', s:'#b81818', t:'#e07070', bg:'#1e0505', logo:'https://nj.vsand-static.com/Logos/4855.png' },
+  'Technology':     { mascot:'Panthers',     p:'#1a1a5a', s:'#2828a0', t:'#7878d8', bg:'#060614', logo:'https://nj.vsand-static.com/Logos/4632.png' },
+  'Orange':         { mascot:'Tornadoes',    p:'#8b4a00', s:'#c86800', t:'#f0a030', bg:'#1e1000', logo:'https://nj.vsand-static.com/Logos/4222.png' },
+  'Weequahic':      { mascot:'Indians',      p:'#1a1a8b', s:'#2828b8', t:'#7878e0', bg:'#06061e', logo:'https://nj.vsand-static.com/Logos/4840.png' }
 };\n\n""")
 
     # Stat configs
