@@ -475,14 +475,47 @@ function showTeam(team, from) {
     </tr>`
   ).join('');
 
+  const sched   = (typeof SCHEDULES !== 'undefined' && SCHEDULES[team]) || {};
+  const coach   = sched.coach  || '';
+  const wins    = sched.wins   ?? '';
+  const losses  = sched.losses ?? '';
+  const games   = sched.games  || [];
+  const record  = (wins !== '' && losses !== '') ? `${wins}-${losses}` : '';
+
+  const gameRows = games.map(g => {
+    const loc     = g.home ? 'vs' : '@';
+    const wl      = g.outcome === 'W' ? `<span style="color:#4ade80;font-weight:700">W</span>` :
+                    g.outcome === 'L' ? `<span style="color:#f87171;font-weight:700">L</span>` : '—';
+    return `<tr>
+      <td style="color:var(--muted2);font-size:12px;white-space:nowrap">${g.date}</td>
+      <td style="font-size:13px"><span style="color:var(--muted);font-size:11px;margin-right:4px">${loc}</span>${g.opponent}</td>
+      <td class="num" style="font-size:13px">${wl}</td>
+      <td class="num" style="font-size:13px;font-variant-numeric:tabular-nums">${g.score || '—'}</td>
+    </tr>`;
+  }).join('');
+
   document.getElementById('teamContent').innerHTML = `
     <div class="team-hero">
       <div class="team-shield-lg" style="background:${m.bg};border:1px solid ${m.s}55">
         ${m.logo ? `<img src="${m.logo}" width="52" height="52" style="object-fit:contain">` : ''}
       </div>
-      <div>
+      <div style="flex:1">
         <div class="team-name-lg" style="color:${m.t}">${team}</div>
-        <div class="team-mascot-lg" style="color:${m.s}">${m.mascot}</div>
+        <div class="team-mascot-lg" style="color:${m.s};margin-bottom:10px">${m.mascot}</div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+          ${record ? `<div>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:.1em;color:var(--muted)">RECORD&nbsp;&nbsp;</span>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.04em;color:var(--accent)">${record}</span>
+          </div>` : ''}
+          ${coach ? `<div>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:.1em;color:var(--muted)">HEAD COACH&nbsp;&nbsp;</span>
+            <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--text)">${coach}</span>
+          </div>` : ''}
+          <div>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:.1em;color:var(--muted)">DIVISION&nbsp;&nbsp;</span>
+            <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--text)">${m.div || ''}</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="team-stat-cards">
@@ -496,6 +529,7 @@ function showTeam(team, from) {
     <div class="team-section-tabs">
       <button class="team-section-tab active" onclick="switchTeamPanel(this,'tp-hit-${team}')">Hitting Roster</button>
       <button class="team-section-tab" onclick="switchTeamPanel(this,'tp-pit-${team}')">Pitching Roster</button>
+      <button class="team-section-tab" onclick="switchTeamPanel(this,'tp-sched-${team}')">Schedule</button>
     </div>
     <div id="tp-hit-${team}" class="team-panel active">
       <div class="lb-table-wrap"><table>
@@ -508,6 +542,17 @@ function showTeam(team, from) {
         <thead><tr><th>Pitcher</th><th class="num">IP</th><th class="num">W-L</th>${pitCols.slice(3).map(s => `<th class="num">${PSC[s].label}</th>`).join('')}</tr></thead>
         <tbody>${pitRows}</tbody>
       </table></div>
+    </div>
+    <div id="tp-sched-${team}" class="team-panel">
+      ${gameRows ? `<div class="lb-table-wrap"><table>
+        <thead><tr>
+          <th>Date</th>
+          <th>Opponent</th>
+          <th class="num">W/L</th>
+          <th class="num">Score</th>
+        </tr></thead>
+        <tbody>${gameRows}</tbody>
+      </table></div>` : '<div class="empty">No schedule data available.</div>'}
     </div>`;
 
   showView('team', from);

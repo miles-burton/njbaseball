@@ -65,12 +65,73 @@ TEAMS = {
 # ── SCRAPER ────────────────────────────────────────────────────────────────────
 HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
 
-def fetch(slug):
-    url = f"https://highschoolsports.nj.com/school/{slug}/baseball/season/{SEASON}/stats"
+def fetch(url):
     req = urllib.request.Request(url, headers=HEADERS)
     ctx = ssl.create_default_context(cafile=certifi.where())
     with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
         return r.read().decode("utf-8")
+
+def fetch_stats(slug):
+    return fetch(f"https://highschoolsports.nj.com/school/{slug}/baseball/season/{SEASON}/stats")
+
+def fetch_schedule(slug):
+    return fetch(f"https://highschoolsports.nj.com/school/{slug}/baseball/season/{SEASON}")
+
+def parse_schedule(html):
+    """Parse schedule page → {coach, wins, losses, games: [{date, opponent, result, score, home}]}"""
+    # Head coach
+    coach_match = re.search(r'Head Coach:\s*([A-Z][a-zA-Z\'\-]+(?: [A-Z][a-zA-Z\'\-]+)+)', html)
+    coach = coach_match.group(1).strip() if coach_match else ""
+
+    games = []
+    tables = re.findall(r'<table.*?</table>', html, re.DOTALL)
+    if not tables:
+        return {"coach": coach, "wins": 0, "losses": 0, "games": []}
+
+    rows = re.findall(r'<tr.*?</tr>', tables[0], re.DOTALL)
+    wins = losses = 0
+
+    for row in rows:
+        cells = re.findall(r'<t[dh][^>]*>(.*?)</t[dh]>', row, re.DOTALL)
+        cells = [re.sub(r'&amp;', '&', c) for c in cells]
+        cells = [re.sub(r'&#x27;', "'", c) for c in cells]
+        cells = [re.sub(r'&[a-z]+;', '', c) for c in cells]
+        cells = [re.sub(r'<[^>]+>', ' ', c) for c in cells]
+        cells = [re.sub(r'\s+', ' ', c).strip() for c in cells]
+        cells = [c for c in cells if c and c != '\xa0']
+
+        if len(cells) < 3 or cells[0] == 'Date':
+            continue
+
+        date     = cells[0] if len(cells) > 0 else ""
+        opponent = cells[1] if len(cells) > 1 else ""
+        result   = cells[2] if len(cells) > 2 else ""
+
+        # Clean opponent (strip tournament info after comma)
+        opp_clean = opponent.split(',')[0].strip()
+        home = not opp_clean.startswith('@')
+        opp_clean = opp_clean.lstrip('vs@ ').strip()
+
+        # Parse result: "W 11-1" or "L 6-1"
+        outcome = ""
+        score   = ""
+        rm = re.match(r'([WL])\s+(\d+-\d+)', result)
+        if rm:
+            outcome = rm.group(1)
+            score   = rm.group(2)
+            if outcome == 'W': wins += 1
+            else: losses += 1
+
+        if date and opp_clean:
+            games.append({
+                "date":     date,
+                "opponent": opp_clean,
+                "home":     home,
+                "outcome":  outcome,
+                "score":    score,
+            })
+
+    return {"coach": coach, "wins": wins, "losses": losses, "games": games}
 
 def get_table_rows(html):
     """Return list of tables, each a list of rows, each a list of cell strings."""
@@ -255,17 +316,21 @@ def parse_pitching(rows, team_name):
 def scrape_team(display_name, slug):
     print(f"  Scraping {display_name} ({slug})...", end=" ", flush=True)
     try:
-        html   = fetch(slug)
-        tables = get_table_rows(html)
-        hitters  = parse_hitting(tables[0],  display_name) if len(tables) > 0 else []
-        pitchers = parse_pitching(tables[1], display_name) if len(tables) > 1 else []
-        print(f"{len(hitters)} hitters, {len(pitchers)} pitchers")
-        return hitters, pitchers
+        stats_html = fetch_stats(slug)
+        tables     = get_table_rows(stats_html)
+        hitters    = parse_hitting(tables[0],  display_name) if len(tables) > 0 else []
+        pitchers   = parse_pitching(tables[1], display_name) if len(tables) > 1 else []
+
+        sched_html = fetch_schedule(slug)
+        schedule   = parse_schedule(sched_html)
+
+        print(f"{len(hitters)} hitters, {len(pitchers)} pitchers, {schedule['wins']}-{schedule['losses']}")
+        return hitters, pitchers, schedule
     except Exception as e:
         print(f"ERROR: {e}")
-        return [], []
+        return [], [], {"coach": "", "wins": 0, "losses": 0, "games": []}
 
-def generate_js(all_hitters, all_pitchers):
+def generate_js(all_hitters, all_pitchers, all_schedules={}):
     """Write scraped data directly into js/data.js so the site updates immediately."""
     import os
     out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "js", "data.js")
@@ -376,7 +441,13 @@ const PIT_PCT_GROUPS = [
     lines.append("const PP = [\n")
     for p in all_pitchers:
         lines.append(f"  {json.dumps(p)},\n")
-    lines.append("];\n")
+    lines.append("];\n\n")
+
+    # Schedules object
+    lines.append("const SCHEDULES = {\n")
+    for team, sched in all_schedules.items():
+        lines.append(f"  {json.dumps(team)}: {json.dumps(sched)},\n")
+    lines.append("};\n")
 
     with open(out_path, "w") as f:
         f.writelines(lines)
@@ -415,14 +486,16 @@ if __name__ == "__main__":
 
     print(f"\n🔍 Scraping {len(teams_to_scrape)} team(s) from highschoolsports.nj.com...\n")
 
-    all_hitters  = []
-    all_pitchers = []
+    all_hitters   = []
+    all_pitchers  = []
+    all_schedules = {}
 
     for display_name, slug in teams_to_scrape.items():
-        hitters, pitchers = scrape_team(display_name, slug)
+        hitters, pitchers, schedule = scrape_team(display_name, slug)
         all_hitters.extend(hitters)
         all_pitchers.extend(pitchers)
+        all_schedules[display_name] = schedule
         time.sleep(0.5)  # be polite to the server
 
     print_summary(all_hitters, all_pitchers)
-    generate_js(all_hitters, all_pitchers)
+    generate_js(all_hitters, all_pitchers, all_schedules)
