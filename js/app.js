@@ -34,12 +34,12 @@ const PIT_TIPS = {
 
 // ── HELPERS ────────────────────────────────────────────────────────────────────
 function pc(p) {
-  if (p >= 90) return '#d63031';
-  if (p >= 75) return '#e17055';
-  if (p >= 58) return '#b8860b';
-  if (p >= 42) return '#4a5568';
-  if (p >= 25) return '#2980b9';
-  return '#1a5276';
+  if (p >= 90) return '#e84040';
+  if (p >= 75) return '#e06060';
+  if (p >= 58) return '#c47070';
+  if (p >= 42) return '#8892a4';
+  if (p >= 25) return '#5b8fc9';
+  return '#3a6ea8';
 }
 
 function calcPct(vals, v, lowerBetter) {
