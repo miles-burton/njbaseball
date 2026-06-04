@@ -66,6 +66,22 @@ const PIT_STD_CFG  = {
 let hitMode = 'advanced'; // 'standard' | 'advanced'
 let pitMode = 'advanced';
 
+// Standard sort state
+let hitStdSort = { col: 'HR', asc: false };
+let pitStdSort = { col: 'K',  asc: false };
+
+function setHitStdSort(col) {
+  if (hitStdSort.col === col) hitStdSort.asc = !hitStdSort.asc;
+  else hitStdSort = { col, asc: HIT_STD_CFG[col]?.lowerBetter ?? false };
+  renderHitTable();
+}
+
+function setPitStdSort(col) {
+  if (pitStdSort.col === col) pitStdSort.asc = !pitStdSort.asc;
+  else pitStdSort = { col, asc: PIT_STD_CFG[col]?.lowerBetter ?? false };
+  renderPitchTable();
+}
+
 // ── STAT TOOLTIPS ──────────────────────────────────────────────────────────────
 const HIT_TIPS = {
   wRC_plus: 'Weighted Runs Created Plus — 100 is avg, higher is better',
@@ -193,7 +209,9 @@ function renderHitTable() {
   pl = pl.filter(p => p.PA >= minPA);
 
   if (isStd) {
-    pl = [...pl].sort((a, b) => (b.HR - a.HR) || (b.RBI - a.RBI));
+    pl = [...pl].sort((a, b) => hitStdSort.asc
+      ? (a[hitStdSort.col] ?? 0) - (b[hitStdSort.col] ?? 0)
+      : (b[hitStdSort.col] ?? 0) - (a[hitStdSort.col] ?? 0));
   } else {
     pl = [...pl].sort((a, b) => b[ss] - a[ss]);
   }
@@ -202,17 +220,23 @@ function renderHitTable() {
     `Showing <span>${pl.length}</span> player${pl.length !== 1 ? 's' : ''}`;
 
   if (isStd) {
+    const arrow = hitStdSort.asc ? ' ▴' : ' ▾';
     document.getElementById('hitLbHead').innerHTML =
       `<tr>
-        <th style="width:36px">#</th><th>Player</th><th>Team</th><th class="num">PA</th>
-        ${HIT_STD_COLS.map(s => `<th class="num" ${HIT_STD_CFG[s]?.tip ? `data-tip="${HIT_STD_CFG[s].tip}"` : ''}>${HIT_STD_CFG[s]?.label || s}</th>`).join('')}
+        <th style="width:36px">#</th><th>Player</th><th>Team</th>
+        <th class="num" onclick="setHitStdSort('PA')" style="cursor:pointer" ${hitStdSort.col==='PA'?'class="num sorted"':''}>PA${hitStdSort.col==='PA'?arrow:''}</th>
+        ${HIT_STD_COLS.map(s => {
+          const isSorted = hitStdSort.col === s;
+          return `<th class="num${isSorted?' sorted':''}" onclick="setHitStdSort('${s}')" style="cursor:pointer" ${HIT_STD_CFG[s]?.tip?`data-tip="${HIT_STD_CFG[s].tip}"`:''}>${HIT_STD_CFG[s]?.label||s}${isSorted?arrow:''}</th>`;
+        }).join('')}
       </tr>`;
     if (!pl.length) { document.getElementById('hitLbBody').innerHTML = `<tr><td colspan="20" class="empty">No players match your filters.</td></tr>`; return; }
     document.getElementById('hitLbBody').innerHTML = pl.map((p, i) => {
       const r = i + 1;
       const cells = HIT_STD_COLS.map(s => {
         const v = p[s] ?? 0;
-        return `<td class="num" style="color:var(--muted2)">${HIT_STD_CFG[s]?.fmt(v) ?? v}</td>`;
+        const isSorted = hitStdSort.col === s;
+        return `<td class="num" style="color:var(--muted2);font-weight:${isSorted?'700':'400'}">${HIT_STD_CFG[s]?.fmt(v) ?? v}</td>`;
       }).join('');
       return `<tr onclick="showPlayer('${encodeURIComponent(p.name)}','${p.team}','leaderboard')">
         <td class="rank-cell${r<=3?' top3':''}">${r}</td>${playerCell(p)}<td>${chip(p.team)}</td><td class="num">${p.PA}</td>${cells}</tr>`;
@@ -268,7 +292,9 @@ function renderPitchTable() {
   pl = pl.filter(p => p.IP >= minIP);
 
   if (isStd) {
-    pl = [...pl].sort((a, b) => b.K - a.K);
+    pl = [...pl].sort((a, b) => pitStdSort.asc
+      ? (a[pitStdSort.col] ?? 0) - (b[pitStdSort.col] ?? 0)
+      : (b[pitStdSort.col] ?? 0) - (a[pitStdSort.col] ?? 0));
   } else {
     pl = [...pl].sort((a, b) => lb ? a[ss] - b[ss] : b[ss] - a[ss]);
   }
@@ -277,11 +303,14 @@ function renderPitchTable() {
     `Showing <span>${pl.length}</span> pitcher${pl.length !== 1 ? 's' : ''}`;
 
   if (isStd) {
+    const arrow = pitStdSort.asc ? ' ▴' : ' ▾';
     document.getElementById('pitLbHead').innerHTML =
       `<tr>
         <th style="width:36px">#</th><th>Pitcher</th><th>Team</th>
-        ${PIT_STD_COLS.map(s => `<th class="num" ${PIT_STD_CFG[s]?.tip?`data-tip="${PIT_STD_CFG[s].tip}"`:''}>
-          ${PIT_STD_CFG[s]?.label||s}</th>`).join('')}
+        ${PIT_STD_COLS.map(s => {
+          const isSorted = pitStdSort.col === s;
+          return `<th class="num${isSorted?' sorted':''}" onclick="setPitStdSort('${s}')" style="cursor:pointer" ${PIT_STD_CFG[s]?.tip?`data-tip="${PIT_STD_CFG[s].tip}"`:''}>${PIT_STD_CFG[s]?.label||s}${isSorted?arrow:''}</th>`;
+        }).join('')}
       </tr>`;
     if (!pl.length) { document.getElementById('pitLbBody').innerHTML = `<tr><td colspan="20" class="empty">No pitchers match your filters.</td></tr>`; return; }
     document.getElementById('pitLbBody').innerHTML = pl.map((p, i) => {
@@ -289,7 +318,8 @@ function renderPitchTable() {
       const opacity = p.IP < 15 ? 'opacity:0.45' : '';
       const cells = PIT_STD_COLS.map(s => {
         const v = p[s] ?? 0;
-        return `<td class="num" style="color:var(--muted2)">${isFinite(v) ? (PIT_STD_CFG[s]?.fmt(v) ?? v) : '—'}</td>`;
+        const isSorted = pitStdSort.col === s;
+        return `<td class="num" style="color:var(--muted2);font-weight:${isSorted?'700':'400'}">${isFinite(v) ? (PIT_STD_CFG[s]?.fmt(v) ?? v) : '—'}</td>`;
       }).join('');
       return `<tr style="${opacity}" onclick="showPlayer('${encodeURIComponent(p.name)}','${p.team}','pitching')">
         <td class="rank-cell${r<=3?' top3':''}">${r}</td>${playerCell(p)}<td>${chip(p.team)}</td>${cells}</tr>`;
