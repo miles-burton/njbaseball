@@ -575,13 +575,13 @@ function toggleDivFilter(id) {
   if (!isOpen) menu.classList.add('open');
 }
 
-function toggleDiv(el, id) {
+function toggleDiv(el, id, e) {
   el.classList.toggle('checked');
   updateDivFilterBtn(id);
   if (id.startsWith('hit'))  renderHitTable();
   else if (id.startsWith('pit')) renderPitchTable();
   else renderTeamRankings();
-  event.stopPropagation();
+  if (e) e.stopPropagation();
 }
 
 function selectAllDivs(id) {
@@ -620,7 +620,7 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.div-filter-wrap')) {
     document.querySelectorAll('.div-filter-menu').forEach(m => m.classList.remove('open'));
   }
-}, true);
+});
 
 // ── DROPDOWN NAV ───────────────────────────────────────────────────────────────
 function closeDropdowns() {
