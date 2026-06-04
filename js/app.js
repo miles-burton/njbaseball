@@ -590,8 +590,9 @@ function showView(v, from) {
     nav.style.display  = 'flex';
   }
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  if (['leaderboard','pitching','standings'].includes(v)) document.getElementById('tab-leaders')?.classList.add('active');
-  if (['teams','team','team-rankings'].includes(v))       document.getElementById('tab-teams-dd')?.classList.add('active');
+  if (['leaderboard','pitching'].includes(v))       document.getElementById('tab-leaders')?.classList.add('active');
+  if (['teams','team','team-rankings'].includes(v)) document.getElementById('tab-teams-dd')?.classList.add('active');
+  if (v === 'standings')                            document.getElementById('tab-standings')?.classList.add('active');
 }
 
 function goBack() {
