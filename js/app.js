@@ -693,19 +693,6 @@ document.addEventListener('click', e => {
 
 // ── HOME PAGE ──────────────────────────────────────────────────────────────────
 function renderHome() {
-  // Hero stats
-  const qualH = AP.filter(p => p.qualified);
-  const qualP = PP.filter(p => p.qualPitch);
-  const teamCount = Object.keys(TM).length;
-  document.getElementById('homeHeroStats').innerHTML = [
-    { val: AP.length,    label: 'Players' },
-    { val: teamCount,    label: 'Teams' },
-    { val: qualH.length, label: 'Qualified Hitters' },
-    { val: qualP.length, label: 'Qualified Pitchers' },
-  ].map(s => `<div class="home-hero-stat">
-    <div class="home-hero-stat-val">${s.val}</div>
-    <div class="home-hero-stat-label">${s.label}</div>
-  </div>`).join('');
 
   // Top performers — top 3 hitters by wRC+, top 3 pitchers by ERA
   const rankColors = ['gold','silver','bronze'];
