@@ -431,6 +431,33 @@
         <option value="hitting">Hitting</option>
         <option value="pitching">Pitching</option>
       </select>
+      <div class="div-filter-wrap" id="rankDivWrap">
+        <button class="div-filter-btn" id="rankDivBtn" onclick="toggleDivFilter('rankDiv')">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+          Division
+        </button>
+        <div class="div-filter-menu" id="rankDivMenu">
+          <div class="div-filter-menu-header">
+            <span class="div-filter-menu-label">Filter by Division</span>
+            <button class="div-filter-all-btn" onclick="selectAllDivs('rankDiv')">All</button>
+          </div>
+          <div class="div-filter-option checked" data-div="Liberty" onclick="toggleDiv(this,'rankDiv')">
+            <div class="div-filter-checkbox"></div>Liberty
+          </div>
+          <div class="div-filter-option checked" data-div="American" onclick="toggleDiv(this,'rankDiv')">
+            <div class="div-filter-checkbox"></div>American
+          </div>
+          <div class="div-filter-option checked" data-div="Colonial" onclick="toggleDiv(this,'rankDiv')">
+            <div class="div-filter-checkbox"></div>Colonial
+          </div>
+          <div class="div-filter-option checked" data-div="Freedom" onclick="toggleDiv(this,'rankDiv')">
+            <div class="div-filter-checkbox"></div>Freedom
+          </div>
+          <div class="div-filter-option checked" data-div="Independence" onclick="toggleDiv(this,'rankDiv')">
+            <div class="div-filter-checkbox"></div>Independence
+          </div>
+        </div>
+      </div>
     </div>
     <div class="lb-table-wrap">
       <table><thead id="rankingsHead"></thead><tbody id="rankingsBody"></tbody></table>

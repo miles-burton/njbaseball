@@ -578,7 +578,9 @@ function toggleDivFilter(id) {
 function toggleDiv(el, id) {
   el.classList.toggle('checked');
   updateDivFilterBtn(id);
-  id.startsWith('hit') ? renderHitTable() : renderPitchTable();
+  if (id.startsWith('hit'))  renderHitTable();
+  else if (id.startsWith('pit')) renderPitchTable();
+  else renderTeamRankings();
   event.stopPropagation();
 }
 
@@ -586,7 +588,9 @@ function selectAllDivs(id) {
   const menu = document.getElementById(id + 'Menu');
   menu.querySelectorAll('.div-filter-option').forEach(el => el.classList.add('checked'));
   updateDivFilterBtn(id);
-  id.startsWith('hit') ? renderHitTable() : renderPitchTable();
+  if (id.startsWith('hit'))  renderHitTable();
+  else if (id.startsWith('pit')) renderPitchTable();
+  else renderTeamRankings();
 }
 
 function updateDivFilterBtn(id) {
@@ -742,8 +746,9 @@ let rankingsSort = { col: 'wRC_plus', asc: false };
 
 function renderTeamRankings() {
   const type = document.getElementById('rankingTypeFilter').value;
+  const selDivs = getSelectedDivs('rankDiv');
 
-  const teams = Object.keys(TM).map(team => {
+  const teams = Object.keys(TM).filter(team => !selDivs || selDivs.includes(TM[team]?.div)).map(team => {
     const tp  = AP.filter(p => p.team === team);
     const tPA = tp.reduce((s,p) => s+p.PA, 0);
     const twOBA = tPA > 0
