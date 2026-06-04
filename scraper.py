@@ -678,7 +678,7 @@ def generate_js(all_hitters, all_pitchers, all_schedules={}):
   'East Side':      { div:'Independence', mascot:'Argonauts',    p:'#6b1a1a', s:'#a02828', t:'#d87070', bg:'#180606', logo:'https://nj.vsand-static.com/Logos/3019.png' },
   'Technology':     { div:'Independence', mascot:'Panthers',     p:'#1a1a1a', s:'#444444', t:'#cccccc', bg:'#0a0a0a', logo:'logos/technology.png' },
   'Newark Central': { div:'Independence', mascot:'Golden Bears', p:'#6b5000', s:'#a87800', t:'#e8c050', bg:'#181200', logo:'https://nj.vsand-static.com/Logos/2806.png' },
-  'Golda Och':      { div:'Independence', mascot:'Royals',       p:'#4a006b', s:'#7800a8', t:'#c060e0', bg:'#100018', logo:'https://nj.vsand-static.com/Logos/6327.png' }
+  'Golda Och':      { div:'Independence', mascot:'Royals',       p:'#4a006b', s:'#7800a8', t:'#c060e0', bg:'#100018', logo:'https://nj.vsand-static.com/Logos/6327.png' },
 
   // ── Statewide teams (auto-discovered) ─────────────────────────────────
   'Matawan': { div:'', mascot:'', p:'#1a2a4a', s:'#2a4a7a', t:'#8aaccc', bg:'#060d18', logo:'https://nj.vsand-static.com/Logos/3818.png' },
