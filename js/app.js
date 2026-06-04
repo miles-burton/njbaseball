@@ -924,19 +924,8 @@ function teamStandingsRow(team) {
   const pythW = Math.round(pythWpct * G);
   const pythL = G - pythW;
 
-  // BaseRun expected record — uses team wRC vs total ER allowed
-  const tp         = AP.filter(p => p.team === team);
-  const pitchers   = PP.filter(p => p.team === team);
-  const bsrRS      = tp.reduce((s, p) => s + p.wRC, 0);
-  const bsrRA      = pitchers.reduce((s, p) => s + p.ER, 0);
-  const bsrWpct    = (bsrRS + bsrRA) > 0
-    ? Math.pow(bsrRS, EXP) / (Math.pow(bsrRS, EXP) + Math.pow(bsrRA, EXP))
-    : 0.5;
-  const bsrW = Math.round(bsrWpct * G);
-  const bsrL = G - bsrW;
-
   return { team, W, L, G, wpct, RS, RA, rdiff, raPG, rsPG,
-           pythW, pythL, pythWpct, bsrW, bsrL, bsrWpct };
+           pythW, pythL, pythWpct };
 }
 
 function renderStandings() {
@@ -960,9 +949,6 @@ function renderStandings() {
       const pdiff    = r.pythW - r.W;
       const pdiffStr = pdiff > 0 ? `+${pdiff}` : `${pdiff}`;
       const pdiffCls = pdiff > 0 ? 'pyth-diff-pos' : pdiff < 0 ? 'pyth-diff-neg' : 'pyth-diff-neu';
-      const bdiff    = r.bsrW - r.W;
-      const bdiffStr = bdiff > 0 ? `+${bdiff}` : `${bdiff}`;
-      const bdiffCls = bdiff > 0 ? 'pyth-diff-pos' : bdiff < 0 ? 'pyth-diff-neg' : 'pyth-diff-neu';
 
       return `<tr onclick="showTeam('${r.team}','standings')">
         <td>
@@ -985,10 +971,6 @@ function renderStandings() {
           <span style="font-family:'Bebas Neue',sans-serif;font-size:14px">${r.pythW}-${r.pythL}</span>
           <span class="${pdiffCls}" style="margin-left:5px">(${pdiffStr})</span>
         </td>
-        <td class="num">
-          <span style="font-family:'Bebas Neue',sans-serif;font-size:14px">${r.bsrW}-${r.bsrL}</span>
-          <span class="${bdiffCls}" style="margin-left:5px">(${bdiffStr})</span>
-        </td>
       </tr>`;
     }).join('');
 
@@ -1006,7 +988,6 @@ function renderStandings() {
           <th class="num" title="Runs Scored per Game">RS/G</th>
           <th class="num" title="Runs Allowed per Game">RA/G</th>
           <th class="num" title="Pythagorean Expected Record (RS^1.83 / (RS^1.83 + RA^1.83)) — difference from actual in parentheses">PYTH</th>
-          <th class="num" title="BaseRun Expected Record (uses wRC vs ER) — difference from actual in parentheses">BSR</th>
         </tr></thead>
         <tbody>${tableRows}</tbody>
       </table>
