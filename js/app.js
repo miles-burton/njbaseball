@@ -6,7 +6,7 @@ let prevView = 'home';
 const ARTICLES = [
   {
     tag: 'Liberty Division',
-    title: 'SHP's Jordan Burwell Leading the Conference in wRC+ at 227',
+    title: 'SHP\'s Jordan Burwell Leading the Conference in wRC+ at 227',
     meta: 'NJBaseball · 2025–26 Season',
     emoji: '⚾',
     url: 'https://highschoolsports.nj.com/school/west-orange-seton-hall-prep/baseball/season/2025-2026/stats',
@@ -431,10 +431,9 @@ function showTeam(team, from) {
     return tot ? arr.reduce((s, p) => s + p[k] * p.PA, 0) / tot : 0;
   };
 
-  const teamAVG     = wavg(tp, 'AVG');
-  const teamOBP     = wavg(tp, 'OBP');
-  const teamSLG     = wavg(tp, 'SLG');
-  const teamwOBA    = wavg(tp, 'wOBA');
+  const teamAVG  = wavg(tp, 'AVG');
+  const teamOBP  = wavg(tp, 'OBP');
+  const teamSLG  = wavg(tp, 'SLG');
   const teamPA   = tp.reduce((s, p) => s + p.PA, 0);
   const teamwOBA = teamPA > 0
     ? (0.7*(tp.reduce((s,p)=>s+p.BB+p.HBP,0)) + 0.9*(tp.reduce((s,p)=>s+p.B1,0)) + 1.3*(tp.reduce((s,p)=>s+p.B2,0)) + 1.6*(tp.reduce((s,p)=>s+p.B3,0)) + 2*(tp.reduce((s,p)=>s+p.HR,0))) / teamPA
