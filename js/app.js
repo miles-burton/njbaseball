@@ -3,26 +3,27 @@ let prevView = 'home';
 
 // ── ARTICLES ───────────────────────────────────────────────────────────────────
 // Update these with real article URLs and content as needed
+// Update these with real article URLs as Diamond Index grows
 const ARTICLES = [
   {
-    tag: 'Liberty Division',
-    title: 'SHP\'s Jordan Burwell Leading the Conference in wRC+ at 227',
-    meta: 'NJBaseball · 2025–26 Season',
-    emoji: '⚾',
-    url: 'https://highschoolsports.nj.com/school/west-orange-seton-hall-prep/baseball/season/2025-2026/stats',
-  },
-  {
-    tag: 'Pitching',
-    title: 'Gauvin, Pontoriero, and Drennan Headline Elite SEC Pitching Staff',
-    meta: 'NJBaseball · 2025–26 Season',
-    emoji: '🔥',
+    tag: 'Player Analysis',
+    title: 'Burwell & Mercado Are Redefining What Elite Looks Like in the SEC',
+    meta: 'Diamond Index · 2025–26 Season',
+    emoji: '◆',
     url: 'https://highschoolsports.nj.com/baseball',
   },
   {
-    tag: 'Conference',
-    title: 'Super Essex Conference 2025–26: Full Advanced Stats Now Available',
-    meta: 'NJBaseball · 2025–26 Season',
-    emoji: '📊',
+    tag: 'Pitching Report',
+    title: 'The Case for Pontoriero: ERA Under 1.00 Through 15+ Innings',
+    meta: 'Diamond Index · 2025–26 Season',
+    emoji: '◆',
+    url: 'https://highschoolsports.nj.com/baseball',
+  },
+  {
+    tag: 'Team Rankings',
+    title: 'wRC+ Power Rankings: Which SEC Team Has the Most Dangerous Lineup?',
+    meta: 'Diamond Index · 2025–26 Season',
+    emoji: '◆',
     url: 'https://highschoolsports.nj.com/baseball',
   },
 ];
@@ -60,12 +61,12 @@ const PIT_TIPS = {
 
 // ── HELPERS ────────────────────────────────────────────────────────────────────
 function pc(p) {
-  if (p >= 90) return '#e84040';
-  if (p >= 75) return '#e06060';
-  if (p >= 58) return '#c47070';
-  if (p >= 42) return '#8892a4';
-  if (p >= 25) return '#5b8fc9';
-  return '#3a6ea8';
+  if (p >= 90) return '#C89B3C';
+  if (p >= 75) return '#b8863a';
+  if (p >= 58) return '#7a6035';
+  if (p >= 42) return '#5C677D';
+  if (p >= 25) return '#3a6ea8';
+  return '#2a5080';
 }
 
 function calcPct(vals, v, lowerBetter) {
@@ -100,12 +101,13 @@ function playerCell(p) {
 
 function pctRow(label, val, pctVal, fmtVal) {
   const clr = pc(pctVal);
+  const textClr = pctVal >= 58 ? '#0B1F3A' : '#F8F9FA';
   return `<div class="pct-row">
     <span class="pct-label">${label}</span>
     <div class="pct-bar-outer">
       <div class="pct-bar-track">
         <div class="pct-bar-fill" style="width:${pctVal}%;background:${clr}"></div>
-        <div class="pct-bubble" style="background:${clr};left:${pctVal}%">${pctVal}</div>
+        <div class="pct-bubble" style="background:${clr};left:${pctVal}%;color:${textClr}">${pctVal}</div>
       </div>
     </div>
     <span class="pct-raw">${fmtVal}</span>
