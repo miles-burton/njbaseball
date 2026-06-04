@@ -848,16 +848,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   padding: 4.5rem 2rem 4rem;
   position: relative;
   overflow: hidden;
-}
-
-.home-hero::before {
-  content: '';
-  position: absolute;
-  top: -120px; right: -120px;
-  width: 500px; height: 500px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(200,155,60,0.06) 0%, transparent 65%);
-  pointer-events: none;
+  min-height: 340px;
 }
 
 .home-hero::after {

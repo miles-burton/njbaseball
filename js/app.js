@@ -695,7 +695,9 @@ document.addEventListener('click', e => {
 function renderHome() {
 
   // Top performers — top 3 hitters by wRC+, top 3 pitchers by ERA
-  const rankColors = ['gold','silver','bronze'];
+  const rankColors  = ['gold','silver','bronze'];
+  const qualH       = AP.filter(p => p.qualified);
+  const qualP       = PP.filter(p => p.qualPitch);
   const topHitters  = [...qualH].sort((a,b) => b.wRC_plus - a.wRC_plus).slice(0,3);
   const topPitchers = [...qualP].sort((a,b) => a.ERA - b.ERA).slice(0,3);
 
