@@ -593,6 +593,7 @@ function showView(v, from) {
   if (['leaderboard','pitching'].includes(v))       document.getElementById('tab-leaders')?.classList.add('active');
   if (['teams','team','team-rankings'].includes(v)) document.getElementById('tab-teams-dd')?.classList.add('active');
   if (v === 'standings')                            document.getElementById('tab-standings')?.classList.add('active');
+  if (v === 'glossary')                             document.getElementById('tab-glossary')?.classList.add('active');
 }
 
 function goBack() {
@@ -903,8 +904,9 @@ function teamStandingsRow(team) {
     if (g.score && g.outcome) {
       const parts = g.score.split('-').map(Number);
       if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-        RS += parts[0];
-        RA += parts[1];
+        // nj.com shows winning score first — so W = parts[0] is team, L = parts[0] is opponent
+        if (g.outcome === 'W') { RS += parts[0]; RA += parts[1]; }
+        else                   { RS += parts[1]; RA += parts[0]; }
       }
     }
   });

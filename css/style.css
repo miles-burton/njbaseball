@@ -1285,6 +1285,87 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .pyth-diff-neg { color: #f87171; font-size: 11px; }
 .pyth-diff-neu { color: var(--muted); font-size: 11px; }
 
+/* ── GLOSSARY PAGE ────────────────────────────────────────────────────────── */
+.glossary-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.glossary-section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: 1rem;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border2);
+}
+
+.glossary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.glossary-card {
+  background: var(--navy);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 14px 16px;
+}
+
+.glossary-card.gc-highlight {
+  border-color: rgba(200,155,60,0.4);
+  background: var(--accent3);
+}
+
+.gc-stat {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.gc-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.gc-def {
+  font-size: 12px;
+  color: var(--muted2);
+  line-height: 1.55;
+}
+
+.glossary-pct-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.glossary-pct-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--muted2);
+}
+
+.glossary-pct-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid var(--bg);
+}
+
 /* ── RESPONSIVE ───────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .leaderboard-wrap,

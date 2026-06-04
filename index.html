@@ -95,6 +95,7 @@
 
     <!-- Standings direct link -->
     <button class="nav-tab" id="tab-standings" onclick="showView('standings')">Standings</button>
+    <button class="nav-tab" id="tab-glossary" onclick="showView('glossary')">Glossary</button>
 
   </nav>
 
@@ -511,6 +512,85 @@
     </div>
   </div>
   <div class="standings-wrap" id="standingsContent"></div>
+</div>
+
+
+<!-- GLOSSARY -->
+<div id="view-glossary" class="view">
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Stat <span>Glossary</span></div>
+        <div class="page-meta">
+          Definitions and formulas for every metric on Diamond Index
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="glossary-wrap">
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Hitting</div>
+      <div class="glossary-grid">
+        <div class="glossary-card"><div class="gc-stat">PA</div><div class="gc-name">Plate Appearances</div><div class="gc-def">Total times a batter completes a turn at bat. AB + BB + HBP + SF + SH.</div></div>
+        <div class="glossary-card"><div class="gc-stat">AVG</div><div class="gc-name">Batting Average</div><div class="gc-def">H / AB. The most basic measure of hitting performance.</div></div>
+        <div class="glossary-card"><div class="gc-stat">OBP</div><div class="gc-name">On-Base Percentage</div><div class="gc-def">(H + BB + HBP) / (AB + BB + HBP + SF). How often a batter reaches base per plate appearance.</div></div>
+        <div class="glossary-card"><div class="gc-stat">SLG</div><div class="gc-name">Slugging Percentage</div><div class="gc-def">Total bases / AB. Measures the power component of hitting.</div></div>
+        <div class="glossary-card"><div class="gc-stat">OPS</div><div class="gc-name">On-Base Plus Slugging</div><div class="gc-def">OBP + SLG. A quick composite of a hitter's ability to get on base and hit for power.</div></div>
+        <div class="glossary-card"><div class="gc-stat">ISO</div><div class="gc-name">Isolated Power</div><div class="gc-def">SLG − AVG. Measures raw power by isolating extra bases from hits.</div></div>
+        <div class="glossary-card"><div class="gc-stat">BB%</div><div class="gc-name">Walk Percentage</div><div class="gc-def">BB / PA × 100. Measures plate discipline; how often a batter draws a walk.</div></div>
+        <div class="glossary-card"><div class="gc-stat">BsR</div><div class="gc-name">Baserunning Runs</div><div class="gc-def">(SB × 0.2) + (3B × 0.1). Estimates run value added through baserunning.</div></div>
+        <div class="glossary-card"><div class="gc-stat">wOBA</div><div class="gc-name">Weighted On-Base Average</div><div class="gc-def">(0.7×(BB+HBP) + 0.9×1B + 1.3×2B + 1.6×3B + 2.0×HR) / PA. Assigns run values to each offensive event. League average ≈ .353.</div></div>
+        <div class="glossary-card"><div class="gc-stat">wRAA</div><div class="gc-name">Weighted Runs Above Average</div><div class="gc-def">((wOBA − .353) / 1.12) × PA. Runs contributed above or below a league-average hitter.</div></div>
+        <div class="glossary-card"><div class="gc-stat">wRC</div><div class="gc-name">Weighted Runs Created</div><div class="gc-def">wRAA + (PA × .177). Total estimated runs created by the player.</div></div>
+        <div class="glossary-card gc-highlight"><div class="gc-stat">wRC+</div><div class="gc-name">Weighted Runs Created Plus</div><div class="gc-def">((wOBA − .353) / 1.12 + .177) / .177 × 100. Park- and league-adjusted offensive production. 100 = league average. 150 = 50% above average.</div></div>
+        <div class="glossary-card"><div class="gc-stat">OFF</div><div class="gc-name">Offensive Runs Above Average</div><div class="gc-def">wRAA + BsR. Total offensive value combining hitting and baserunning.</div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Pitching</div>
+      <div class="glossary-grid">
+        <div class="glossary-card"><div class="gc-stat">IP</div><div class="gc-name">Innings Pitched</div><div class="gc-def">Total innings pitched. Partial innings shown as decimals (e.g. 6.1 = 6⅓ innings).</div></div>
+        <div class="glossary-card"><div class="gc-stat">ERA</div><div class="gc-name">Earned Run Average</div><div class="gc-def">(ER / IP) × 9. Earned runs allowed per nine innings. Lower is better.</div></div>
+        <div class="glossary-card gc-highlight"><div class="gc-stat">FIP</div><div class="gc-name">Fielding Independent Pitching</div><div class="gc-def">((3×(BB+HB) − 2×K) / IP) + 3.10. Estimates ERA based only on outcomes the pitcher controls: strikeouts, walks, and hit batters. Removes defense and luck.</div></div>
+        <div class="glossary-card"><div class="gc-stat">WHIP</div><div class="gc-name">Walks + Hits per IP</div><div class="gc-def">(BB + H) / IP. Measures baserunners allowed per inning. League average ≈ 1.30.</div></div>
+        <div class="glossary-card"><div class="gc-stat">K/7</div><div class="gc-name">Strikeouts per 7 Innings</div><div class="gc-def">(K / IP) × 7. Strikeout rate normalized to a standard high school game length.</div></div>
+        <div class="glossary-card"><div class="gc-stat">BB/7</div><div class="gc-name">Walks per 7 Innings</div><div class="gc-def">(BB / IP) × 7. Walk rate normalized to 7 innings. Lower is better.</div></div>
+        <div class="glossary-card"><div class="gc-stat">K/BB</div><div class="gc-name">Strikeout-to-Walk Ratio</div><div class="gc-def">K / BB. The single best indicator of a pitcher's command. 2.0+ is solid; 3.0+ is elite.</div></div>
+        <div class="glossary-card"><div class="gc-stat">ERA−</div><div class="gc-name">ERA Minus</div><div class="gc-def">(ERA / 4.31) × 100. ERA relative to conference average. 100 = average. Below 100 = better than average.</div></div>
+        <div class="glossary-card"><div class="gc-stat">FIP−</div><div class="gc-name">FIP Minus</div><div class="gc-def">(FIP / 4.31) × 100. FIP relative to conference average. 100 = average. Below 100 = better than average.</div></div>
+        <div class="glossary-card"><div class="gc-stat">RAA</div><div class="gc-name">Runs Above Average</div><div class="gc-def">((4.31 − ERA) / 9) × IP. Runs saved compared to a league-average pitcher over the same innings.</div></div>
+        <div class="glossary-card"><div class="gc-stat">WAR</div><div class="gc-name">Wins Above Replacement</div><div class="gc-def">RAA / 10 (simplified). Estimates wins contributed above a replacement-level pitcher.</div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Standings &amp; Team Metrics</div>
+      <div class="glossary-grid">
+        <div class="glossary-card"><div class="gc-stat">PCT</div><div class="gc-name">Win Percentage</div><div class="gc-def">W / (W + L). Standard winning percentage.</div></div>
+        <div class="glossary-card"><div class="gc-stat">RDIFF</div><div class="gc-name">Run Differential</div><div class="gc-def">RS − RA. The total difference between runs scored and runs allowed. One of the strongest predictors of future performance.</div></div>
+        <div class="glossary-card"><div class="gc-stat">RS/G</div><div class="gc-name">Runs Scored per Game</div><div class="gc-def">Total runs scored divided by games played. Measures offensive output.</div></div>
+        <div class="glossary-card"><div class="gc-stat">RA/G</div><div class="gc-name">Runs Allowed per Game</div><div class="gc-def">Total runs allowed divided by games played. Measures pitching and defensive performance.</div></div>
+        <div class="glossary-card gc-highlight"><div class="gc-stat">PYTH</div><div class="gc-name">Pythagorean Expected Record</div><div class="gc-def">RS^1.83 / (RS^1.83 + RA^1.83) × G. Estimates the win total a team deserves based on runs scored and allowed. Teams significantly above their Pythagorean record have likely been lucky in close games.</div></div>
+        <div class="glossary-card gc-highlight"><div class="gc-stat">BSR</div><div class="gc-name">BaseRun Expected Record</div><div class="gc-def">Applies the Pythagorean formula using wRC (expected runs from advanced hitting metrics) vs total ER allowed. Removes variance from actual run totals to estimate true talent level.</div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Percentile Colors</div>
+      <div class="glossary-pct-legend">
+        <div class="glossary-pct-item"><div class="glossary-pct-swatch" style="background:#C89B3C"></div><div><strong>Gold (90th+)</strong> — Elite. Top 10% of all qualified players.</div></div>
+        <div class="glossary-pct-item"><div class="glossary-pct-swatch" style="background:#b8863a"></div><div><strong>Dark Gold (75–89th)</strong> — Above average. Solid contributor.</div></div>
+        <div class="glossary-pct-item"><div class="glossary-pct-swatch" style="background:#7a6035"></div><div><strong>Brown (58–74th)</strong> — Slightly above average.</div></div>
+        <div class="glossary-pct-item"><div class="glossary-pct-swatch" style="background:#5C677D"></div><div><strong>Slate (42–57th)</strong> — League average.</div></div>
+        <div class="glossary-pct-item"><div class="glossary-pct-swatch" style="background:#3a6ea8"></div><div><strong>Blue (25–41st)</strong> — Below average.</div></div>
+        <div class="glossary-pct-item"><div class="glossary-pct-swatch" style="background:#2a5080"></div><div><strong>Dark Blue (0–24th)</strong> — Well below average.</div></div>
+        <div style="margin-top:10px;font-size:12px;color:var(--muted)">Percentiles are calculated against qualified players only (50+ PA for hitters, 15+ IP for pitchers).</div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <script src="js/data.js"></script>
