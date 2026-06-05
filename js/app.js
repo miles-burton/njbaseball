@@ -89,6 +89,7 @@ function setPitStdSort(col) {
 
 // ── STAT TOOLTIPS ──────────────────────────────────────────────────────────────
 const HIT_TIPS = {
+  PS:       'Player Score — 0-100 composite from qualified-player percentiles',
   wRC_plus: 'Weighted Runs Created Plus — 100 is avg, higher is better',
   wOBA:     'Weighted On-Base Average — measures overall offensive value',
   OPS:      'On-Base Plus Slugging',
@@ -97,13 +98,13 @@ const HIT_TIPS = {
   OBP:      'On-Base Percentage',
   ISO:      'Isolated Power — SLG minus AVG',
   BsR:      'Baserunning Runs — value of stolen bases & triples',
-  OFF:      'Offensive Runs Above Average — wRAA + BsR',
   wRAA:     'Weighted Runs Above Average',
   wRC:      'Weighted Runs Created',
   BB_pct:   'Walk Percentage',
 };
 
 const PIT_TIPS = {
+  PS:        'Player Score — 0-100 composite from qualified-pitcher percentiles',
   ERA:       'Earned Run Average — per 7 innings (high school standard)',
   FIP:       'Fielding Independent Pitching — strikeouts, walks, HBP only',
   WHIP:      'Walks + Hits per Inning Pitched',
@@ -112,7 +113,6 @@ const PIT_TIPS = {
   KBB:       'Strikeout-to-Walk Ratio',
   ERA_minus: 'ERA- — 100 is avg, lower is better',
   FIP_minus: 'FIP- — 100 is avg, lower is better',
-  WAR:       'Wins Above Replacement (simplified)',
   RAA:       'Runs Above Average',
   IP:        'Innings Pitched',
   K:         'Total Strikeouts',
@@ -134,6 +134,63 @@ function calcPct(vals, v, lowerBetter) {
   const e = sorted.filter(x => x === v).length;
   const raw = sorted.length ? Math.round(((b + e * 0.5) / sorted.length) * 100) : 50;
   return lowerBetter ? 100 - raw : raw;
+}
+
+function setupPlayerScore() {
+  HSC.PS = { label:'PS', fmt: v => Math.round(v).toString() };
+  PSC.PS = { label:'PS', fmt: v => Math.round(v).toString(), lowerBetter:false };
+
+  const replaceStat = (arr, from, to) => {
+    const idx = arr.indexOf(from);
+    if (idx >= 0) arr.splice(idx, 1, to);
+  };
+  replaceStat(HIT_TABLE_COLS, 'OFF', 'PS');
+  replaceStat(PIT_TABLE_COLS, 'WAR', 'PS');
+  HIT_PCT_GROUPS.forEach(g => replaceStat(g.stats, 'OFF', 'PS'));
+  PIT_PCT_GROUPS.forEach(g => replaceStat(g.stats, 'WAR', 'PS'));
+
+  const hitQualified = AP.filter(p => p.qualified);
+  const pitQualified = PP.filter(p => p.qualPitch);
+  const hitVals = stat => hitQualified.map(p => p[stat]).filter(Number.isFinite);
+  const pitVals = stat => pitQualified.map(p => p[stat]).filter(Number.isFinite);
+
+  const h = {
+    wRC_plus: hitVals('wRC_plus'),
+    wOBA: hitVals('wOBA'),
+    OPS: hitVals('OPS'),
+    ISO: hitVals('ISO'),
+    BB_pct: hitVals('BB_pct'),
+    BsR: hitVals('BsR'),
+  };
+  AP.forEach(p => {
+    p.PS = Math.round(
+      calcPct(h.wRC_plus, p.wRC_plus, false) * 0.45 +
+      calcPct(h.wOBA, p.wOBA, false) * 0.20 +
+      calcPct(h.OPS, p.OPS, false) * 0.15 +
+      calcPct(h.ISO, p.ISO, false) * 0.10 +
+      calcPct(h.BB_pct, p.BB_pct, false) * 0.05 +
+      calcPct(h.BsR, p.BsR, false) * 0.05
+    );
+  });
+
+  const q = {
+    ERA_minus: pitVals('ERA_minus'),
+    FIP_minus: pitVals('FIP_minus'),
+    WHIP: pitVals('WHIP'),
+    K7: pitVals('K7'),
+    KBB: pitVals('KBB'),
+    IP: pitVals('IP'),
+  };
+  PP.forEach(p => {
+    p.PS = Math.round(
+      calcPct(q.ERA_minus, p.ERA_minus, true) * 0.30 +
+      calcPct(q.FIP_minus, p.FIP_minus, true) * 0.25 +
+      calcPct(q.WHIP, p.WHIP, true) * 0.15 +
+      calcPct(q.K7, p.K7, false) * 0.15 +
+      calcPct(q.KBB, p.KBB, false) * 0.10 +
+      calcPct(q.IP, p.IP, false) * 0.05
+    );
+  });
 }
 
 function resetHitPage() { hitPage = 1; renderHitTable(); }
@@ -440,7 +497,7 @@ function showPlayer(enc, team, from) {
   let hitPanel = '';
   if (hitter) {
     const qualP    = AP.filter(p => p.qualified);
-    const allStats = ['AVG','SLG','OBP','OPS','BsR','ISO','BB_pct','wOBA','wRAA','wRC','wRC_plus','OFF'];
+    const allStats = ['PS','AVG','SLG','OBP','OPS','BsR','ISO','BB_pct','wOBA','wRAA','wRC','wRC_plus'];
     const hpf      = {};
     allStats.forEach(s => {
       const vs = qualP.map(p => p[s]).filter(v => isFinite(v));
@@ -648,8 +705,8 @@ function showTeam(team, from) {
   const teamERA     = pitchers.reduce((s, p) => s + p.ER, 0) / (pitchers.reduce((s, p) => s + p.IP, 0) / 7) || 0;
   const teamWHIP    = pitchers.reduce((s, p) => s + p.BB + p.H, 0) / pitchers.reduce((s, p) => s + p.IP, 0) || 0;
 
-  const hitCols = ['PA','AVG','OBP','SLG','OPS','ISO','wOBA','wRC_plus','OFF'];
-  const pitCols = ['IP','W','L','ERA','FIP','WHIP','K7','BB7','KBB','WAR'];
+  const hitCols = ['PA','AVG','OBP','SLG','OPS','ISO','wOBA','wRC_plus','PS'];
+  const pitCols = ['IP','W','L','ERA','FIP','WHIP','K7','BB7','KBB','PS'];
 
   const hitRows = [...tp].sort((a, b) => b.PA - a.PA).map(p =>
     `<tr onclick="showPlayer('${encodeURIComponent(p.name)}','${p.team}','team-${team}')"
@@ -1200,6 +1257,7 @@ function renderStandings() {
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────────
+setupPlayerScore();
 showLastUpdated();
 buildDivFilters();
 buildTeamFilters();
