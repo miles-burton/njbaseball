@@ -137,17 +137,21 @@ function calcPct(vals, v, lowerBetter) {
 }
 
 function setupPlayerScore() {
-  HSC.PS = { label:'PS', fmt: v => Math.round(v).toString() };
-  PSC.PS = { label:'PS', fmt: v => Math.round(v).toString(), lowerBetter:false };
+  HSC.PS = { label:'PS', fmt: v => v.toFixed(1) };
+  PSC.PS = { label:'PS', fmt: v => v.toFixed(1), lowerBetter:false };
 
   const replaceStat = (arr, from, to) => {
     const idx = arr.indexOf(from);
     if (idx >= 0) arr.splice(idx, 1, to);
   };
+  const removeStat = (arr, stat) => {
+    const idx = arr.indexOf(stat);
+    if (idx >= 0) arr.splice(idx, 1);
+  };
   replaceStat(HIT_TABLE_COLS, 'OFF', 'PS');
   replaceStat(PIT_TABLE_COLS, 'WAR', 'PS');
-  HIT_PCT_GROUPS.forEach(g => replaceStat(g.stats, 'OFF', 'PS'));
-  PIT_PCT_GROUPS.forEach(g => replaceStat(g.stats, 'WAR', 'PS'));
+  HIT_PCT_GROUPS.forEach(g => removeStat(g.stats, 'OFF'));
+  PIT_PCT_GROUPS.forEach(g => removeStat(g.stats, 'WAR'));
 
   const hitQualified = AP.filter(p => p.qualified);
   const pitQualified = PP.filter(p => p.qualPitch);
@@ -163,14 +167,13 @@ function setupPlayerScore() {
     BsR: hitVals('BsR'),
   };
   AP.forEach(p => {
-    p.PS = Math.round(
+    p.PS =
       calcPct(h.wRC_plus, p.wRC_plus, false) * 0.45 +
       calcPct(h.wOBA, p.wOBA, false) * 0.20 +
       calcPct(h.OPS, p.OPS, false) * 0.15 +
       calcPct(h.ISO, p.ISO, false) * 0.10 +
       calcPct(h.BB_pct, p.BB_pct, false) * 0.05 +
-      calcPct(h.BsR, p.BsR, false) * 0.05
-    );
+      calcPct(h.BsR, p.BsR, false) * 0.05;
   });
 
   const q = {
@@ -182,14 +185,13 @@ function setupPlayerScore() {
     IP: pitVals('IP'),
   };
   PP.forEach(p => {
-    p.PS = Math.round(
+    p.PS =
       calcPct(q.ERA_minus, p.ERA_minus, true) * 0.30 +
       calcPct(q.FIP_minus, p.FIP_minus, true) * 0.25 +
       calcPct(q.WHIP, p.WHIP, true) * 0.15 +
       calcPct(q.K7, p.K7, false) * 0.15 +
       calcPct(q.KBB, p.KBB, false) * 0.10 +
-      calcPct(q.IP, p.IP, false) * 0.05
-    );
+      calcPct(q.IP, p.IP, false) * 0.05;
   });
 }
 
@@ -497,13 +499,13 @@ function showPlayer(enc, team, from) {
   let hitPanel = '';
   if (hitter) {
     const qualP    = AP.filter(p => p.qualified);
-    const allStats = ['PS','AVG','SLG','OBP','OPS','BsR','ISO','BB_pct','wOBA','wRAA','wRC','wRC_plus'];
+    const allStats = ['AVG','SLG','OBP','OPS','BsR','ISO','BB_pct','wOBA','wRAA','wRC','wRC_plus'];
     const hpf      = {};
     allStats.forEach(s => {
       const vs = qualP.map(p => p[s]).filter(v => isFinite(v));
       hpf[s] = v => calcPct(vs, v, false);
     });
-    const miniCards = [['AVG','AVG'],['OPS','OPS'],['wRC+','wRC_plus'],['wOBA','wOBA']].map(([l, k]) =>
+    const miniCards = [['PS','PS'],['AVG','AVG'],['OPS','OPS'],['wRC+','wRC_plus'],['wOBA','wOBA']].map(([l, k]) =>
       `<div class="stat-mini">
         <div class="stat-mini-label">${l}</div>
         <div class="stat-mini-val">${HSC[k].fmt(hitter[k])}</div>
@@ -534,7 +536,7 @@ function showPlayer(enc, team, from) {
       const vs = qualP.map(p => p[s]).filter(v => isFinite(v));
       ppf[s] = v => calcPct(vs, v, PSC[s].lowerBetter);
     });
-    const miniCards = [['ERA','ERA'],['FIP','FIP'],['WHIP','WHIP'],['K/7','K7']].map(([l, k]) => {
+    const miniCards = [['PS','PS'],['ERA','ERA'],['FIP','FIP'],['WHIP','WHIP'],['K/7','K7']].map(([l, k]) => {
       const v = pitcher[k];
       return `<div class="stat-mini">
         <div class="stat-mini-label">${l}</div>

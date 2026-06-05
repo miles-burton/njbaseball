@@ -652,7 +652,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 /* ── STAT MINI GRID ───────────────────────────────────────────────────────── */
 .stat-mini-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
   margin-bottom: 1.5rem;
 }
