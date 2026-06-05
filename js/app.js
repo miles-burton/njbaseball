@@ -593,7 +593,7 @@ function showTeam(team, from) {
   const teamwRCplus = Math.round(((teamwOBA - 0.353) / 1.12 + 0.177) / 0.177 * 100);
   const teamOPS     = teamOBP + teamSLG;
   const pitchers    = PP.filter(p => p.team === team);
-  const teamERA     = pitchers.reduce((s, p) => s + p.ER, 0) / (pitchers.reduce((s, p) => s + p.IP, 0) / 9) || 0;
+  const teamERA     = pitchers.reduce((s, p) => s + p.ER, 0) / (pitchers.reduce((s, p) => s + p.IP, 0) / 7) || 0;
   const teamWHIP    = pitchers.reduce((s, p) => s + p.BB + p.H, 0) / pitchers.reduce((s, p) => s + p.IP, 0) || 0;
 
   const hitCols = ['PA','AVG','OBP','SLG','OPS','ISO','wOBA','wRC_plus','OFF'];
@@ -853,12 +853,12 @@ document.addEventListener('click', e => {
 // ── HOME PAGE ──────────────────────────────────────────────────────────────────
 function renderHome() {
 
-  // Top performers — top 3 hitters by wRC+, top 3 pitchers by ERA
+  // Top performers — top 3 hitters by wRC+, top 3 pitchers by strikeouts
   const rankColors  = ['gold','silver','bronze'];
   const qualH       = AP.filter(p => p.qualified);
   const qualP       = PP.filter(p => p.qualPitch);
   const topHitters  = [...qualH].sort((a,b) => b.wRC_plus - a.wRC_plus).slice(0,3);
-  const topPitchers = [...qualP].sort((a,b) => a.ERA - b.ERA).slice(0,3);
+  const topPitchers = [...qualP].sort((a,b) => b.K - a.K).slice(0,3);
 
   const perfCard = (p, stat, fmt, label, idx, isPit) => {
     const m = TM[p.team] || {};
@@ -881,8 +881,8 @@ function renderHome() {
   document.getElementById('homePerformers').innerHTML =
     `<div style="grid-column:1/-1;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Hitting — wRC+</div>`+
     topHitters.map((p,i) => perfCard(p,'wRC_plus',v=>Math.round(v),'wRC+',i,false)).join('')+
-    `<div style="grid-column:1/-1;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-top:12px;margin-bottom:4px">Pitching — ERA</div>`+
-    topPitchers.map((p,i) => perfCard(p,'ERA',v=>v.toFixed(2),'ERA',i,true)).join('');
+    `<div style="grid-column:1/-1;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-top:12px;margin-bottom:4px">Pitching — Strikeouts</div>`+
+    topPitchers.map((p,i) => perfCard(p,'K',v=>Math.round(v),'K',i,true)).join('');
 
   // Articles
   document.getElementById('homeArticles').innerHTML = ARTICLES.map(a => `
