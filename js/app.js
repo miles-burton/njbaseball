@@ -179,6 +179,26 @@ function showLastUpdated() {
   }
 }
 
+// ── POPULATE TEAM FILTER DROPDOWNS ────────────────────────────────────────────
+function buildTeamFilters() {
+  ['hitTeamFilter','pitTeamFilter'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel || sel.options.length > 1) return;
+    const confs = [...new Set(Object.values(TM).map(m => m.div).filter(Boolean))].sort();
+    confs.forEach(conf => {
+      const teams = Object.keys(TM).filter(t => TM[t].div === conf).sort();
+      const grp = document.createElement('optgroup');
+      grp.label = conf;
+      teams.forEach(t => {
+        const o = document.createElement('option');
+        o.value = t; o.textContent = t;
+        grp.appendChild(o);
+      });
+      sel.appendChild(grp);
+    });
+  });
+}
+
 // ── HITTING LEADERBOARD ────────────────────────────────────────────────────────
 function renderHitTable() {
   const isStd = hitMode === 'standard';
@@ -481,9 +501,38 @@ function switchRole(btn, panelId) {
   document.getElementById(panelId).classList.add('active');
 }
 
+// ── TEAMS NAV (dynamic) ────────────────────────────────────────────────────────
+function buildTeamsNav() {
+  const el = document.getElementById('teamsNavList');
+  if (!el) return;
+  const confs = [...new Set(Object.values(TM).map(m => m.div).filter(Boolean))].sort();
+  el.innerHTML = confs.map(conf => {
+    const teams = Object.keys(TM).filter(t => TM[t].div === conf);
+    return `<div class="nav-dropdown-label">${conf}</div>` +
+      teams.map(t => `<button class="nav-dropdown-item" onclick="showTeam('${t}','nav');closeDropdowns()">${t}</button>`).join('');
+  }).join('<div class="nav-dropdown-divider"></div>');
+}
+
 // ── TEAMS OVERVIEW ─────────────────────────────────────────────────────────────
 function renderTeamsGrid() {
-  document.getElementById('teamsGrid').innerHTML = Object.keys(TM).map(team => {
+  // Populate conference filter on first run
+  const sel = document.getElementById('teamsConfFilter');
+  if (sel && sel.options.length === 1) {
+    const confs = [...new Set(Object.values(TM).map(m => m.div).filter(Boolean))].sort();
+    confs.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c; o.textContent = c;
+      sel.appendChild(o);
+    });
+  }
+  const confFilter = sel?.value || 'all';
+  const q = document.getElementById('teamsSearchInput')?.value.trim().toLowerCase() || '';
+
+  let teams = Object.keys(TM);
+  if (confFilter !== 'all') teams = teams.filter(t => TM[t].div === confFilter);
+  if (q) teams = teams.filter(t => t.toLowerCase().includes(q) || (TM[t].mascot||'').toLowerCase().includes(q));
+
+  document.getElementById('teamsGrid').innerHTML = teams.map(team => {
     const m      = TM[team];
     const qp     = AP.filter(p => p.team === team && p.qualified);
     const allP   = AP.filter(p => p.team === team);
@@ -1015,14 +1064,11 @@ function teamStandingsRow(team) {
 }
 
 function renderStandings() {
-  // SEC has named divisions; all other conferences group by conference name
-  const SEC_DIVS  = ['Liberty','American','Colonial','Freedom','Independence'];
-  const ALL_DIVS  = [...new Set(Object.values(TM).map(m => m.div).filter(Boolean))].sort();
-  // Put SEC divisions first, then other conferences
-  const DIVISIONS = [
-    ...SEC_DIVS.filter(d => ALL_DIVS.includes(d)),
-    ...ALL_DIVS.filter(d => !SEC_DIVS.includes(d))
-  ];
+  const confFilter = document.getElementById('standingsConfFilter')?.value?.toLowerCase() || '';
+  const ALL_CONFS  = [...new Set(Object.values(TM).map(m => m.div).filter(Boolean))].sort();
+  const DIVISIONS  = confFilter
+    ? ALL_CONFS.filter(c => c.toLowerCase().includes(confFilter))
+    : ALL_CONFS;
 
   const el = document.getElementById('standingsContent');
   if (!el) return;
@@ -1069,7 +1115,7 @@ function renderStandings() {
 
     return `<div class="standings-division">
       <div class="standings-division-header">
-        <span class="standings-division-name">${SEC_DIVS.includes(div) ? `Super Essex — ${div}` : div}</span>
+        <span class="standings-division-name">${div}</span>
         <span class="standings-division-sub">${rows.length} teams</span>
       </div>
       <table class="standings-table">
@@ -1090,9 +1136,11 @@ function renderStandings() {
 
 // ── INIT ───────────────────────────────────────────────────────────────────────
 showLastUpdated();
+buildTeamFilters();
 renderHitTable();
 renderPitchTable();
 renderTeamsGrid();
+buildTeamsNav();
 renderHome();
 renderTeamRankings();
 renderStandings();
