@@ -145,15 +145,15 @@
   </div>
   <div class="leaderboard-wrap">
     <div class="lb-mode-tabs">
-      <button class="lb-tab lb-tab-active" id="hitTabAdv" onclick="hitMode='advanced';renderHitTable()">Advanced</button>
-      <button class="lb-tab" id="hitTabStd" onclick="hitMode='standard';renderHitTable()">Standard</button>
+      <button class="lb-tab lb-tab-active" id="hitTabAdv" onclick="hitMode='advanced';resetHitPage()">Advanced</button>
+      <button class="lb-tab" id="hitTabStd" onclick="hitMode='standard';resetHitPage()">Standard</button>
     </div>
     <div class="controls-row">
       <div class="search-wrap">
         <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
           <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
         </svg>
-        <input class="search-input" type="text" id="hitSearchInput" placeholder="Search player..." oninput="renderHitTable()">
+        <input class="search-input" type="text" id="hitSearchInput" placeholder="Search player..." oninput="resetHitPage()">
       </div>
       <div class="div-filter-wrap" id="hitDivWrap">
         <button class="div-filter-btn" id="hitDivBtn" onclick="toggleDivFilter('hitDiv')">
@@ -168,10 +168,10 @@
           <div id="hitDivOptions" style="max-height:260px;overflow-y:auto"></div>
         </div>
       </div>
-      <select class="ctrl-select" id="hitTeamFilter" onchange="renderHitTable()">
+      <select class="ctrl-select" id="hitTeamFilter" onchange="resetHitPage()">
         <option value="all">All Teams</option>
       </select>
-      <div id="hitStatFilterWrap" style="display:flex;align-items:center"><select class="ctrl-select" id="hitStatFilter" onchange="renderHitTable()">
+      <div id="hitStatFilterWrap" style="display:flex;align-items:center"><select class="ctrl-select" id="hitStatFilter" onchange="resetHitPage()">
         <option value="wRC_plus">wRC+</option>
         <option value="wRC">wRC</option>
         <option value="wOBA">wOBA</option>
@@ -187,13 +187,14 @@
       </select></div>
       <div class="pa-filter-wrap">
         <span>Min PA:</span>
-        <input type="number" id="hitMinPA" value="50" min="0" max="200" oninput="renderHitTable()">
+        <input type="number" id="hitMinPA" value="50" min="0" max="200" oninput="resetHitPage()">
       </div>
     </div>
     <div class="results-info" id="hitResultsInfo"></div>
     <div class="lb-table-wrap">
       <table><thead id="hitLbHead"></thead><tbody id="hitLbBody"></tbody></table>
     </div>
+    <div class="pagination-bar" id="hitPagination"></div>
   </div>
 </div>
 
@@ -216,15 +217,15 @@
   </div>
   <div class="leaderboard-wrap">
     <div class="lb-mode-tabs">
-      <button class="lb-tab lb-tab-active" id="pitTabAdv" onclick="pitMode='advanced';renderPitchTable()">Advanced</button>
-      <button class="lb-tab" id="pitTabStd" onclick="pitMode='standard';renderPitchTable()">Standard</button>
+      <button class="lb-tab lb-tab-active" id="pitTabAdv" onclick="pitMode='advanced';resetPitPage()">Advanced</button>
+      <button class="lb-tab" id="pitTabStd" onclick="pitMode='standard';resetPitPage()">Standard</button>
     </div>
     <div class="controls-row">
       <div class="search-wrap">
         <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
           <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
         </svg>
-        <input class="search-input" type="text" id="pitSearchInput" placeholder="Search player..." oninput="renderPitchTable()">
+        <input class="search-input" type="text" id="pitSearchInput" placeholder="Search player..." oninput="resetPitPage()">
       </div>
       <div class="div-filter-wrap" id="pitDivWrap">
         <button class="div-filter-btn" id="pitDivBtn" onclick="toggleDivFilter('pitDiv')">
@@ -239,10 +240,10 @@
           <div id="pitDivOptions" style="max-height:260px;overflow-y:auto"></div>
         </div>
       </div>
-      <select class="ctrl-select" id="pitTeamFilter" onchange="renderPitchTable()">
+      <select class="ctrl-select" id="pitTeamFilter" onchange="resetPitPage()">
         <option value="all">All Teams</option>
       </select>
-      <div id="pitStatFilterWrap" style="display:flex;align-items:center"><select class="ctrl-select" id="pitStatFilter" onchange="renderPitchTable()">
+      <div id="pitStatFilterWrap" style="display:flex;align-items:center"><select class="ctrl-select" id="pitStatFilter" onchange="resetPitPage()">
         <option value="ERA">ERA</option>
         <option value="FIP">FIP</option>
         <option value="WHIP">WHIP</option>
@@ -258,13 +259,14 @@
       </select></div>
       <div class="pa-filter-wrap">
         <span>Min IP:</span>
-        <input type="number" id="pitMinIP" value="15" min="0" max="200" oninput="renderPitchTable()">
+        <input type="number" id="pitMinIP" value="15" min="0" max="200" oninput="resetPitPage()">
       </div>
     </div>
     <div class="results-info" id="pitResultsInfo"></div>
     <div class="lb-table-wrap">
       <table><thead id="pitLbHead"></thead><tbody id="pitLbBody"></tbody></table>
     </div>
+    <div class="pagination-bar" id="pitPagination"></div>
   </div>
 </div>
 

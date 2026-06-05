@@ -65,6 +65,9 @@ const PIT_STD_CFG  = {
 // Track which mode each leaderboard is in
 let hitMode = 'advanced'; // 'standard' | 'advanced'
 let pitMode = 'advanced';
+let hitPage = 1;
+let pitPage = 1;
+const LEADER_PAGE_SIZE = 100;
 
 // Standard sort state
 let hitStdSort = { col: 'HR', asc: false };
@@ -73,12 +76,14 @@ let pitStdSort = { col: 'K',  asc: false };
 function setHitStdSort(col) {
   if (hitStdSort.col === col) hitStdSort.asc = !hitStdSort.asc;
   else hitStdSort = { col, asc: HIT_STD_CFG[col]?.lowerBetter ?? false };
+  hitPage = 1;
   renderHitTable();
 }
 
 function setPitStdSort(col) {
   if (pitStdSort.col === col) pitStdSort.asc = !pitStdSort.asc;
   else pitStdSort = { col, asc: PIT_STD_CFG[col]?.lowerBetter ?? false };
+  pitPage = 1;
   renderPitchTable();
 }
 
@@ -129,6 +134,41 @@ function calcPct(vals, v, lowerBetter) {
   const e = sorted.filter(x => x === v).length;
   const raw = sorted.length ? Math.round(((b + e * 0.5) / sorted.length) * 100) : 50;
   return lowerBetter ? 100 - raw : raw;
+}
+
+function resetHitPage() { hitPage = 1; renderHitTable(); }
+function resetPitPage() { pitPage = 1; renderPitchTable(); }
+
+function setLeaderPage(kind, page) {
+  if (kind === 'hit') {
+    hitPage = page;
+    renderHitTable();
+  } else {
+    pitPage = page;
+    renderPitchTable();
+  }
+}
+
+function renderPagination(kind, total, page, pageSize) {
+  const el = document.getElementById(kind === 'hit' ? 'hitPagination' : 'pitPagination');
+  if (!el) return;
+  if (!total) {
+    el.innerHTML = '';
+    return;
+  }
+
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(total, page * pageSize);
+  el.innerHTML = `
+    <div class="pagination-info">Showing <span>${start}-${end}</span> of <span>${total}</span></div>
+    <div class="pagination-actions">
+      <button class="pagination-btn" onclick="setLeaderPage('${kind}', 1)" ${page <= 1 ? 'disabled' : ''}>First</button>
+      <button class="pagination-btn" onclick="setLeaderPage('${kind}', ${page - 1})" ${page <= 1 ? 'disabled' : ''}>Previous</button>
+      <span>Page ${page} of ${pages}</span>
+      <button class="pagination-btn" onclick="setLeaderPage('${kind}', ${page + 1})" ${page >= pages ? 'disabled' : ''}>Next</button>
+      <button class="pagination-btn" onclick="setLeaderPage('${kind}', ${pages})" ${page >= pages ? 'disabled' : ''}>Last</button>
+    </div>`;
 }
 
 function teamLogo(team, size = 16) {
@@ -239,6 +279,12 @@ function renderHitTable() {
   document.getElementById('hitResultsInfo').innerHTML =
     `Showing <span>${pl.length}</span> player${pl.length !== 1 ? 's' : ''}`;
 
+  const hitPages = Math.max(1, Math.ceil(pl.length / LEADER_PAGE_SIZE));
+  hitPage = Math.min(Math.max(hitPage, 1), hitPages);
+  const pageStart = (hitPage - 1) * LEADER_PAGE_SIZE;
+  const pagePlayers = pl.slice(pageStart, pageStart + LEADER_PAGE_SIZE);
+  renderPagination('hit', pl.length, hitPage, LEADER_PAGE_SIZE);
+
   if (isStd) {
     const arrow = hitStdSort.asc ? ' ▴' : ' ▾';
     document.getElementById('hitLbHead').innerHTML =
@@ -251,8 +297,8 @@ function renderHitTable() {
         }).join('')}
       </tr>`;
     if (!pl.length) { document.getElementById('hitLbBody').innerHTML = `<tr><td colspan="20" class="empty">No players match your filters.</td></tr>`; return; }
-    document.getElementById('hitLbBody').innerHTML = pl.map((p, i) => {
-      const r = i + 1;
+    document.getElementById('hitLbBody').innerHTML = pagePlayers.map((p, i) => {
+      const r = pageStart + i + 1;
       const cells = HIT_STD_COLS.map(s => {
         const v = p[s] ?? 0;
         const isSorted = hitStdSort.col === s;
@@ -271,8 +317,8 @@ function renderHitTable() {
           </th>`).join('')}
       </tr>`;
     if (!pl.length) { document.getElementById('hitLbBody').innerHTML = `<tr><td colspan="20" class="empty">No players match your filters.</td></tr>`; return; }
-    document.getElementById('hitLbBody').innerHTML = pl.map((p, i) => {
-      const r = i + 1;
+    document.getElementById('hitLbBody').innerHTML = pagePlayers.map((p, i) => {
+      const r = pageStart + i + 1;
       const cells = HIT_TABLE_COLS.map(s => {
         const v = p[s], pt = pf[s](v), clr = pc(pt), f = HSC[s].fmt(v), isSorted = s === ss;
         return `<td class="num" style="color:${clr};font-weight:${isSorted?'700':'500'}">${f}</td>`;
@@ -322,6 +368,12 @@ function renderPitchTable() {
   document.getElementById('pitResultsInfo').innerHTML =
     `Showing <span>${pl.length}</span> pitcher${pl.length !== 1 ? 's' : ''}`;
 
+  const pitPages = Math.max(1, Math.ceil(pl.length / LEADER_PAGE_SIZE));
+  pitPage = Math.min(Math.max(pitPage, 1), pitPages);
+  const pageStart = (pitPage - 1) * LEADER_PAGE_SIZE;
+  const pagePitchers = pl.slice(pageStart, pageStart + LEADER_PAGE_SIZE);
+  renderPagination('pit', pl.length, pitPage, LEADER_PAGE_SIZE);
+
   if (isStd) {
     const arrow = pitStdSort.asc ? ' ▴' : ' ▾';
     document.getElementById('pitLbHead').innerHTML =
@@ -333,8 +385,8 @@ function renderPitchTable() {
         }).join('')}
       </tr>`;
     if (!pl.length) { document.getElementById('pitLbBody').innerHTML = `<tr><td colspan="20" class="empty">No pitchers match your filters.</td></tr>`; return; }
-    document.getElementById('pitLbBody').innerHTML = pl.map((p, i) => {
-      const r = i + 1;
+    document.getElementById('pitLbBody').innerHTML = pagePitchers.map((p, i) => {
+      const r = pageStart + i + 1;
       const opacity = p.IP < 15 ? 'opacity:0.45' : '';
       const cells = PIT_STD_COLS.map(s => {
         const v = p[s] ?? 0;
@@ -354,8 +406,8 @@ function renderPitchTable() {
           </th>`).join('')}
       </tr>`;
     if (!pl.length) { document.getElementById('pitLbBody').innerHTML = `<tr><td colspan="20" class="empty">No pitchers match your filters.</td></tr>`; return; }
-    document.getElementById('pitLbBody').innerHTML = pl.map((p, i) => {
-      const r = i + 1;
+    document.getElementById('pitLbBody').innerHTML = pagePitchers.map((p, i) => {
+      const r = pageStart + i + 1;
       const opacity = p.IP < 15 ? 'opacity:0.45' : '';
       const cells = PIT_TABLE_COLS.map(s => {
         const v = p[s];
@@ -786,8 +838,8 @@ function toggleDivFilter(id) {
 function toggleDiv(el, id, e) {
   el.classList.toggle('checked');
   updateDivFilterBtn(id);
-  if (id.startsWith('hit'))  renderHitTable();
-  else if (id.startsWith('pit')) renderPitchTable();
+  if (id.startsWith('hit'))  resetHitPage();
+  else if (id.startsWith('pit')) resetPitPage();
   else renderTeamRankings();
   if (e) e.stopPropagation();
 }
@@ -796,8 +848,8 @@ function selectAllDivs(id) {
   const menu = document.getElementById(id + 'Options') || document.getElementById(id + 'Menu');
   menu.querySelectorAll('.div-filter-option').forEach(el => el.classList.add('checked'));
   updateDivFilterBtn(id);
-  if (id.startsWith('hit'))  renderHitTable();
-  else if (id.startsWith('pit')) renderPitchTable();
+  if (id.startsWith('hit'))  resetHitPage();
+  else if (id.startsWith('pit')) resetPitPage();
   else renderTeamRankings();
 }
 
