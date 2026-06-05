@@ -99,7 +99,7 @@ const HIT_TIPS = {
 };
 
 const PIT_TIPS = {
-  ERA:       'Earned Run Average',
+  ERA:       'Earned Run Average — per 7 innings (high school standard)',
   FIP:       'Fielding Independent Pitching — strikeouts, walks, HBP only',
   WHIP:      'Walks + Hits per Inning Pitched',
   K7:        'Strikeouts per 7 innings',
@@ -752,13 +752,26 @@ function goBack() {
   else                                               showView('leaderboard');
 }
 
-// ── DIVISION MULTI-SELECT FILTER ──────────────────────────────────────────────
+// ── CONFERENCE MULTI-SELECT FILTER ────────────────────────────────────────────
+function buildDivFilters() {
+  const confs = [...new Set(Object.values(TM).map(m => m.div).filter(Boolean))].sort();
+  ['hitDiv','pitDiv','rankDiv'].forEach(id => {
+    const container = document.getElementById(id + 'Options');
+    if (!container || container.children.length > 0) return;
+    container.innerHTML = confs.map(c =>
+      `<div class="div-filter-option checked" data-div="${c}" onclick="toggleDiv(this,'${id}',event)">
+        <div class="div-filter-checkbox"></div>${c}
+      </div>`
+    ).join('');
+  });
+}
+
 function getSelectedDivs(id) {
-  const menu = document.getElementById(id + 'Menu');
-  if (!menu) return null;
-  const checked = [...menu.querySelectorAll('.div-filter-option.checked')].map(el => el.dataset.div);
-  const all = [...menu.querySelectorAll('.div-filter-option')].map(el => el.dataset.div);
-  return checked.length === all.length ? null : checked; // null = all selected
+  const container = document.getElementById(id + 'Options');
+  if (!container) return null;
+  const checked = [...container.querySelectorAll('.div-filter-option.checked')].map(el => el.dataset.div);
+  const all     = [...container.querySelectorAll('.div-filter-option')].map(el => el.dataset.div);
+  return checked.length === all.length ? null : checked;
 }
 
 function toggleDivFilter(id) {
@@ -780,7 +793,7 @@ function toggleDiv(el, id, e) {
 }
 
 function selectAllDivs(id) {
-  const menu = document.getElementById(id + 'Menu');
+  const menu = document.getElementById(id + 'Options') || document.getElementById(id + 'Menu');
   menu.querySelectorAll('.div-filter-option').forEach(el => el.classList.add('checked'));
   updateDivFilterBtn(id);
   if (id.startsWith('hit'))  renderHitTable();
@@ -789,11 +802,11 @@ function selectAllDivs(id) {
 }
 
 function updateDivFilterBtn(id) {
-  const menu  = document.getElementById(id + 'Menu');
+  const container = document.getElementById(id + 'Options') || document.getElementById(id + 'Menu');
   const btn   = document.getElementById(id + 'Btn');
-  if (!menu || !btn) return;
-  const checked = menu.querySelectorAll('.div-filter-option.checked').length;
-  const total   = menu.querySelectorAll('.div-filter-option').length;
+  if (!container || !btn) return;
+  const checked = container.querySelectorAll('.div-filter-option.checked').length;
+  const total   = container.querySelectorAll('.div-filter-option').length;
   const isAll   = checked === total;
   btn.classList.toggle('active', !isAll);
   // Update label
@@ -892,7 +905,7 @@ function renderHome() {
     const twRCplus = Math.round(((twOBA - 0.353) / 1.12 + 0.177) / 0.177 * 100);
     const pitchers = PP.filter(p => p.team === team);
     const tIP  = pitchers.reduce((s,p)=>s+p.IP,0);
-    const tERA = tIP > 0 ? (pitchers.reduce((s,p)=>s+p.ER,0) / tIP)*9 : 0;
+    const tERA = tIP > 0 ? (pitchers.reduce((s,p)=>s+p.ER,0) / tIP)*7 : 0;
     const m = TM[team];
     return { team, twRCplus, tERA, m, tPA };
   }).sort((a,b) => b.twRCplus - a.twRCplus);
@@ -941,7 +954,7 @@ function renderTeamRankings() {
     const wavg = (k) => tPA > 0 ? tp.reduce((s,p)=>s+(p[k]*p.PA),0)/tPA : 0;
     const pitchers = PP.filter(p => p.team === team);
     const tIP   = pitchers.reduce((s,p)=>s+p.IP,0);
-    const tERA  = tIP > 0 ? (pitchers.reduce((s,p)=>s+p.ER,0)/tIP)*9 : 0;
+    const tERA  = tIP > 0 ? (pitchers.reduce((s,p)=>s+p.ER,0)/tIP)*7 : 0;
     const tFIP  = tIP > 0 ? ((3*(pitchers.reduce((s,p)=>s+p.BB+p.HB,0)) - 2*(pitchers.reduce((s,p)=>s+p.K,0)))/tIP)+3.10 : 0;
     const tWHIP = tIP > 0 ? (pitchers.reduce((s,p)=>s+p.BB+p.H,0))/tIP : 0;
     const tK7   = tIP > 0 ? (pitchers.reduce((s,p)=>s+p.K,0)/tIP)*7 : 0;
@@ -1136,6 +1149,7 @@ function renderStandings() {
 
 // ── INIT ───────────────────────────────────────────────────────────────────────
 showLastUpdated();
+buildDivFilters();
 buildTeamFilters();
 renderHitTable();
 renderPitchTable();

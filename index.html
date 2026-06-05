@@ -50,6 +50,10 @@
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 7L9 10L13 4"/></svg>
           Team Rankings
         </button>
+        <button class="nav-dropdown-item nav-dropdown-item--highlight" onclick="showView('teams');closeDropdowns()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
+          All Teams
+        </button>
         <div class="nav-dropdown-divider"></div>
         <div id="teamsNavList">
           <!-- Populated dynamically by buildTeamsNav() -->
@@ -80,9 +84,9 @@
     </div>
     <div class="home-hero-inner">
       <div class="home-hero-text">
-        <div class="home-hero-eyebrow">Super Essex Conference · 2025–26</div>
+        <div class="home-hero-eyebrow">New Jersey High School Baseball · 2025–26</div>
         <h1 class="home-hero-title">DIAMOND<br>INDEX</h1>
-        <div class="home-hero-tagline">Measure the Game.</div><p class="home-hero-sub">The definitive source for New Jersey high school baseball analytics — wRC+, FIP, wOBA, WAR, and more. Five divisions, 30 teams, 488 players.</p>
+        <div class="home-hero-tagline">Measure the Game.</div><p class="home-hero-sub">The definitive source for New Jersey high school baseball analytics — wRC+, FIP, wOBA, WAR, and more. 15 conferences, 368 teams statewide.</p>
         <div class="home-hero-actions">
           <button class="home-btn-primary" onclick="showView('leaderboard')">Hitting Leaders</button>
           <button class="home-btn-secondary" onclick="showView('pitching')">Pitching Leaders</button>
@@ -105,7 +109,7 @@
     <!-- Articles -->
     <div class="home-section">
       <div class="home-section-header">
-        <div class="home-section-title">Around the Conference</div>
+        <div class="home-section-title">Around New Jersey</div>
       </div>
       <div class="home-articles-grid" id="homeArticles"></div>
     </div>
@@ -129,11 +133,7 @@
       <div>
         <div class="page-title">Hitting <span>Leaders</span></div>
         <div class="page-meta">
-          Super Essex Conference
-          <span class="page-meta-dot"></span>
-          Essex County, NJ
-          <span class="page-meta-dot"></span>
-          Liberty · American · National Divisions
+          New Jersey High School Baseball
           <span class="page-meta-dot"></span>
           2025–26 Season
           <span class="page-meta-dot"></span>
@@ -158,28 +158,14 @@
       <div class="div-filter-wrap" id="hitDivWrap">
         <button class="div-filter-btn" id="hitDivBtn" onclick="toggleDivFilter('hitDiv')">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
-          Division
+          Conference
         </button>
         <div class="div-filter-menu" id="hitDivMenu">
           <div class="div-filter-menu-header">
-            <span class="div-filter-menu-label">Filter by Division</span>
+            <span class="div-filter-menu-label">Filter by Conference</span>
             <button class="div-filter-all-btn" onclick="selectAllDivs('hitDiv')">All</button>
           </div>
-          <div class="div-filter-option checked" data-div="Liberty" onclick="toggleDiv(this,'hitDiv',event)">
-            <div class="div-filter-checkbox"></div>Liberty
-          </div>
-          <div class="div-filter-option checked" data-div="American" onclick="toggleDiv(this,'hitDiv',event)">
-            <div class="div-filter-checkbox"></div>American
-          </div>
-          <div class="div-filter-option checked" data-div="Colonial" onclick="toggleDiv(this,'hitDiv',event)">
-            <div class="div-filter-checkbox"></div>Colonial
-          </div>
-          <div class="div-filter-option checked" data-div="Freedom" onclick="toggleDiv(this,'hitDiv',event)">
-            <div class="div-filter-checkbox"></div>Freedom
-          </div>
-          <div class="div-filter-option checked" data-div="Independence" onclick="toggleDiv(this,'hitDiv',event)">
-            <div class="div-filter-checkbox"></div>Independence
-          </div>
+          <div id="hitDivOptions" style="max-height:260px;overflow-y:auto"></div>
         </div>
       </div>
       <select class="ctrl-select" id="hitTeamFilter" onchange="renderHitTable()">
@@ -218,11 +204,7 @@
       <div>
         <div class="page-title">Pitching <span>Leaders</span></div>
         <div class="page-meta">
-          Super Essex Conference
-          <span class="page-meta-dot"></span>
-          Essex County, NJ
-          <span class="page-meta-dot"></span>
-          Liberty · American · National Divisions
+          New Jersey High School Baseball
           <span class="page-meta-dot"></span>
           2025–26 Season
           <span class="page-meta-dot"></span>
@@ -247,28 +229,14 @@
       <div class="div-filter-wrap" id="pitDivWrap">
         <button class="div-filter-btn" id="pitDivBtn" onclick="toggleDivFilter('pitDiv')">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
-          Division
+          Conference
         </button>
         <div class="div-filter-menu" id="pitDivMenu">
           <div class="div-filter-menu-header">
-            <span class="div-filter-menu-label">Filter by Division</span>
+            <span class="div-filter-menu-label">Filter by Conference</span>
             <button class="div-filter-all-btn" onclick="selectAllDivs('pitDiv')">All</button>
           </div>
-          <div class="div-filter-option checked" data-div="Liberty" onclick="toggleDiv(this,'pitDiv',event)">
-            <div class="div-filter-checkbox"></div>Liberty
-          </div>
-          <div class="div-filter-option checked" data-div="American" onclick="toggleDiv(this,'pitDiv',event)">
-            <div class="div-filter-checkbox"></div>American
-          </div>
-          <div class="div-filter-option checked" data-div="Colonial" onclick="toggleDiv(this,'pitDiv',event)">
-            <div class="div-filter-checkbox"></div>Colonial
-          </div>
-          <div class="div-filter-option checked" data-div="Freedom" onclick="toggleDiv(this,'pitDiv',event)">
-            <div class="div-filter-checkbox"></div>Freedom
-          </div>
-          <div class="div-filter-option checked" data-div="Independence" onclick="toggleDiv(this,'pitDiv',event)">
-            <div class="div-filter-checkbox"></div>Independence
-          </div>
+          <div id="pitDivOptions" style="max-height:260px;overflow-y:auto"></div>
         </div>
       </div>
       <select class="ctrl-select" id="pitTeamFilter" onchange="renderPitchTable()">
@@ -312,7 +280,7 @@
       <div>
         <div class="page-title">Team <span>Rankings</span></div>
         <div class="page-meta">
-          Super Essex Conference
+          New Jersey High School Baseball
           <span class="page-meta-dot"></span>
           2025–26 Season
           <span class="page-meta-dot"></span>
@@ -330,28 +298,14 @@
       <div class="div-filter-wrap" id="rankDivWrap">
         <button class="div-filter-btn" id="rankDivBtn" onclick="toggleDivFilter('rankDiv')">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
-          Division
+          Conference
         </button>
         <div class="div-filter-menu" id="rankDivMenu">
           <div class="div-filter-menu-header">
-            <span class="div-filter-menu-label">Filter by Division</span>
+            <span class="div-filter-menu-label">Filter by Conference</span>
             <button class="div-filter-all-btn" onclick="selectAllDivs('rankDiv')">All</button>
           </div>
-          <div class="div-filter-option checked" data-div="Liberty" onclick="toggleDiv(this,'rankDiv',event)">
-            <div class="div-filter-checkbox"></div>Liberty
-          </div>
-          <div class="div-filter-option checked" data-div="American" onclick="toggleDiv(this,'rankDiv',event)">
-            <div class="div-filter-checkbox"></div>American
-          </div>
-          <div class="div-filter-option checked" data-div="Colonial" onclick="toggleDiv(this,'rankDiv',event)">
-            <div class="div-filter-checkbox"></div>Colonial
-          </div>
-          <div class="div-filter-option checked" data-div="Freedom" onclick="toggleDiv(this,'rankDiv',event)">
-            <div class="div-filter-checkbox"></div>Freedom
-          </div>
-          <div class="div-filter-option checked" data-div="Independence" onclick="toggleDiv(this,'rankDiv',event)">
-            <div class="div-filter-checkbox"></div>Independence
-          </div>
+          <div id="rankDivOptions" style="max-height:260px;overflow-y:auto"></div>
         </div>
       </div>
     </div>
@@ -366,9 +320,9 @@
   <div class="page-banner">
     <div class="page-banner-inner">
       <div>
-        <div class="page-title">Conference <span>Teams</span></div>
+        <div class="page-title">Team <span>Directory</span></div>
         <div class="page-meta">
-          Super Essex Conference
+          All NJ.com Conferences
           <span class="page-meta-dot"></span>
           Click a team to view roster and stats
         </div>
@@ -404,9 +358,9 @@
   <div class="page-banner">
     <div class="page-banner-inner">
       <div>
-        <div class="page-title">Division <span>Standings</span></div>
+        <div class="page-title">Conference <span>Standings</span></div>
         <div class="page-meta">
-          Super Essex Conference
+          New Jersey High School Baseball
           <span class="page-meta-dot"></span>
           2025–26 Season
           <span class="page-meta-dot"></span>
@@ -469,7 +423,7 @@
       <div class="glossary-section-title">Pitching</div>
       <div class="glossary-grid">
         <div class="glossary-card"><div class="gc-stat">IP</div><div class="gc-name">Innings Pitched</div><div class="gc-def">Total innings pitched. Partial innings shown as decimals (e.g. 6.1 = 6⅓ innings).</div></div>
-        <div class="glossary-card"><div class="gc-stat">ERA</div><div class="gc-name">Earned Run Average</div><div class="gc-def">(ER / IP) × 9. Earned runs allowed per nine innings. Lower is better.</div></div>
+        <div class="glossary-card"><div class="gc-stat">ERA</div><div class="gc-name">Earned Run Average</div><div class="gc-def">(ER / IP) × 7. Earned runs allowed per seven innings (high school game length). Lower is better.</div></div>
         <div class="glossary-card gc-highlight"><div class="gc-stat">FIP</div><div class="gc-name">Fielding Independent Pitching</div><div class="gc-def">((3×(BB+HB) − 2×K) / IP) + 3.10. Estimates ERA based only on outcomes the pitcher controls: strikeouts, walks, and hit batters. Removes defense and luck.</div></div>
         <div class="glossary-card"><div class="gc-stat">WHIP</div><div class="gc-name">Walks + Hits per IP</div><div class="gc-def">(BB + H) / IP. Measures baserunners allowed per inning. League average ≈ 1.30.</div></div>
         <div class="glossary-card"><div class="gc-stat">K/7</div><div class="gc-name">Strikeouts per 7 Innings</div><div class="gc-def">(K / IP) × 7. Strikeout rate normalized to a standard high school game length.</div></div>
