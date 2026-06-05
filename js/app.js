@@ -1015,7 +1015,14 @@ function teamStandingsRow(team) {
 }
 
 function renderStandings() {
-  const DIVISIONS = ['Liberty','American','Colonial','Freedom','Independence'];
+  // SEC has named divisions; all other conferences group by conference name
+  const SEC_DIVS  = ['Liberty','American','Colonial','Freedom','Independence'];
+  const ALL_DIVS  = [...new Set(Object.values(TM).map(m => m.div).filter(Boolean))].sort();
+  // Put SEC divisions first, then other conferences
+  const DIVISIONS = [
+    ...SEC_DIVS.filter(d => ALL_DIVS.includes(d)),
+    ...ALL_DIVS.filter(d => !SEC_DIVS.includes(d))
+  ];
 
   const el = document.getElementById('standingsContent');
   if (!el) return;
@@ -1062,7 +1069,7 @@ function renderStandings() {
 
     return `<div class="standings-division">
       <div class="standings-division-header">
-        <span class="standings-division-name">${div} Division</span>
+        <span class="standings-division-name">${SEC_DIVS.includes(div) ? `Super Essex — ${div}` : div}</span>
         <span class="standings-division-sub">${rows.length} teams</span>
       </div>
       <table class="standings-table">
