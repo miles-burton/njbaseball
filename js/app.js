@@ -1714,23 +1714,31 @@ function calculateTeamPowerRatings() {
     r.adjRun = adjRun;
     r.sosComp = sosComp;
 
-    // Schedule strength has to affect the underlying stat components, not just
-    // sit beside them. Otherwise teams can inflate offense, pitching, and run
-    // differential against weak schedules and still rank too highly.
-    r.runAdjusted = adjRun * 0.60 + sosComp * 0.40;
-    r.offenseAdjusted = r.offense * 0.55 + sosComp * 0.45;
-    r.pitchingAdjusted = r.pitching * 0.65 + sosComp * 0.35;
+    // Power rating is performance-first. SOS is a controlled modifier, not free
+    // credit, so a strong schedule only helps when a team actually performs.
+    r.runAdjusted = adjRun;
+    r.offenseAdjusted = r.offense;
+    r.pitchingAdjusted = r.pitching;
+    r.performanceScore =
+      adjRun * 0.42 +
+      r.offense * 0.20 +
+      r.pitching * 0.20 +
+      r.recent * 0.04 +
+      (r.wpct * 100) * 0.14;
+    r.sosGate =
+      clamp((r.rdiffPG + 0.5) / 4.5, 0, 1) *
+      clamp((r.wpct - 0.45) / 0.35, 0, 1);
+    r.sosModifier = (sosComp - 50) * 0.14 * r.sosGate;
     r.weakSchedulePenalty =
-      (sosComp < 35 ? (35 - sosComp) * 0.35 : 0) +
-      (sosComp < 20 ? (20 - sosComp) * 0.25 : 0);
+      (sosComp < 40 ? (40 - sosComp) * 0.55 : 0) +
+      (sosComp < 35 && r.wpct < 0.80 ? (0.80 - r.wpct) * 45 : 0);
+    r.lossPenalty = r.wpct < 0.62 ? (0.62 - r.wpct) * 25 : 0;
 
     r.score = clamp(
-      r.runAdjusted * 0.35 +
-      sosComp * 0.25 +
-      r.offenseAdjusted * 0.20 +
-      r.pitchingAdjusted * 0.15 +
-      r.recent * 0.05 -
-      r.weakSchedulePenalty
+      r.performanceScore +
+      r.sosModifier -
+      r.weakSchedulePenalty -
+      r.lossPenalty
     );
   });
 
