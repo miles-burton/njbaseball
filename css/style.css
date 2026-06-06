@@ -714,6 +714,50 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   margin-top: 2px;
 }
 
+/* ── COUNTING STATS ──────────────────────────────────────────────────────── */
+.counting-section {
+  margin-bottom: 1.5rem;
+}
+
+.counting-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.counting-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 8px;
+}
+
+.counting-card {
+  background: rgba(15,36,64,0.72);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 9px 10px;
+}
+
+.counting-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.counting-value {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+  line-height: 1.05;
+  margin-top: 2px;
+}
+
 /* ── PERCENTILE BARS ──────────────────────────────────────────────────────── */
 .pct-section { margin-bottom: 1.5rem; }
 

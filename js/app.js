@@ -348,6 +348,18 @@ function renderPlayerGameLogs(name, team) {
   return html || `<div class="game-log-section"><div class="game-log-empty">No game log is available for this player yet.</div></div>`;
 }
 
+function renderCountingStats(title, stats) {
+  return `<div class="counting-section">
+    <div class="counting-title">${title}</div>
+    <div class="counting-grid">
+      ${stats.map(([label, value]) => `<div class="counting-card">
+        <div class="counting-label">${label}</div>
+        <div class="counting-value">${value}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
 function ensurePlayerLogsLoaded() {
   if (typeof PLAYER_LOGS !== 'undefined') return Promise.resolve();
   if (playerLogsLoadPromise) return playerLogsLoadPromise;
@@ -634,7 +646,12 @@ function showPlayer(enc, team, from) {
     ).join('');
     const paTag   = `<span class="p-tag pa">${hitter.PA} PA</span>`;
     const nonqTag = !hitter.qualified ? `<span class="p-tag nonq">Non-Qualified</span>` : '';
-    hitPanel = `<div class="stat-mini-grid">${miniCards}</div>${sects}`;
+    const countingStats = renderCountingStats('Season Counting Stats', [
+      ['PA', hitter.PA], ['AB', hitter.AB], ['R', hitter.R], ['H', hitter.H],
+      ['RBI', hitter.RBI], ['2B', hitter.B2], ['3B', hitter.B3], ['HR', hitter.HR],
+      ['BB', hitter.BB], ['HBP', hitter.HBP], ['SB', hitter.SB],
+    ]);
+    hitPanel = `<div class="stat-mini-grid">${miniCards}</div>${countingStats}${sects}`;
     if (!isTwoWay) hitPanel = `<div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap">${paTag}${nonqTag}</div>` + hitPanel;
   }
 
@@ -668,8 +685,12 @@ function showPlayer(enc, team, from) {
     ).join('');
     const ipTag   = `<span class="p-tag pa">${pitcher.IP.toFixed(1)} IP · ${pitcher.W}W-${pitcher.L}L</span>`;
     const nonqTag = !pitcher.qualPitch ? `<span class="p-tag nonq">Non-Qualified (&lt;15 IP)</span>` : '';
+    const countingStats = renderCountingStats('Season Counting Stats', [
+      ['W-L', `${pitcher.W}-${pitcher.L}`], ['IP', pitcher.IP.toFixed(1)], ['H', pitcher.H],
+      ['R', pitcher.R], ['ER', pitcher.ER], ['BB', pitcher.BB], ['K', pitcher.K], ['HBP', pitcher.HB],
+    ]);
     pitPanel = `<div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap">${ipTag}${nonqTag}</div>
-      <div class="stat-mini-grid">${miniCards}</div>${sects}`;
+      <div class="stat-mini-grid">${miniCards}</div>${countingStats}${sects}`;
   }
 
   // Two-way tabs
