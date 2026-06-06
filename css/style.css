@@ -49,11 +49,11 @@ body {
 .site-logo {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 22px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.055em;
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
   text-decoration: none;
   color: var(--text);
@@ -63,9 +63,18 @@ body {
   width: 32px;
   height: 38px;
   flex-shrink: 0;
-  object-fit: contain;
   display: block;
+  background: var(--accent);
+  -webkit-mask: url('../assets/diamond-index-logo.png') center / contain no-repeat;
+  mask: url('../assets/diamond-index-logo.png') center / contain no-repeat;
 }
+
+.logo-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
 .logo-accent { color: var(--accent); }
 
 .nav-tabs { display: flex; align-items: stretch; }
