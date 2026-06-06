@@ -2123,15 +2123,9 @@ function predictMatchup(teamA, teamB, venue = 'neutral', pitcherA = '', pitcherB
   const expB = Math.max(0.1, (b.adjO * aDefense / Math.max(0.1, leagueRPG)) + bHome);
   const EXP = 1.83;
   const winProbA = Math.pow(expA, EXP) / (Math.pow(expA, EXP) + Math.pow(expB, EXP));
-  let scoreA = Math.max(0, Math.round(expA));
-  let scoreB = Math.max(0, Math.round(expB));
-  if (scoreA === scoreB) {
-    if (winProbA >= 0.5) scoreA += 1;
-    else scoreB += 1;
-  }
   const winner = winProbA >= 0.5 ? teamA : teamB;
   const winnerProb = winProbA >= 0.5 ? winProbA : 1 - winProbA;
-  return { a, b, teamA, teamB, expA, expB, scoreA, scoreB, winProbA, winner, winnerProb, aDefense, bDefense };
+  return { a, b, teamA, teamB, expA, expB, winProbA, winner, winnerProb, aDefense, bDefense };
 }
 
 function renderMatchupPrediction() {
@@ -2147,12 +2141,12 @@ function renderMatchupPrediction() {
     el.innerHTML = `<div class="predictor-empty">Search and choose two different teams to generate a prediction.</div>`;
     return;
   }
-  const { a, b, expA, expB, scoreA, scoreB, winProbA, winner, winnerProb, aDefense, bDefense } = result;
+  const { a, b, expA, expB, winProbA, winner, winnerProb, aDefense, bDefense } = result;
   const aPct = Math.round(winProbA * 100);
   const bPct = 100 - aPct;
   const confidence = winnerProb >= 0.75 ? 'Strong edge' : winnerProb >= 0.62 ? 'Clear edge' : 'Toss-up range';
-  const winnerScore = winner === teamA ? scoreA : scoreB;
-  const loserScore = winner === teamA ? scoreB : scoreA;
+  const winnerScore = winner === teamA ? expA : expB;
+  const loserScore = winner === teamA ? expB : expA;
   const venueText = venueSel?.selectedOptions?.[0]?.textContent || 'Neutral';
   const starterA = pitcherA ? PP.find(p => pitcherKey(p) === decodeURIComponent(pitcherA)) : null;
   const starterB = pitcherB ? PP.find(p => pitcherKey(p) === decodeURIComponent(pitcherB)) : null;
@@ -2181,7 +2175,7 @@ function renderMatchupPrediction() {
       <div class="prediction-main">
         <div class="prediction-pick-label">Projected Winner</div>
         <div class="prediction-pick">${winner}</div>
-        <div class="prediction-score">${winnerScore}-${loserScore}</div>
+        <div class="prediction-score">${winnerScore.toFixed(1)}-${loserScore.toFixed(1)}</div>
         <div class="prediction-confidence">${confidence} · ${(winnerProb * 100).toFixed(1)}% win probability · ${venueText}</div>
         ${starterText ? `<div class="prediction-starters">${starterText}</div>` : ''}
       </div>
@@ -2203,7 +2197,7 @@ function renderMatchupPrediction() {
         ${predictionMetric('AdjO', a.adjO.toFixed(2), b.adjO.toFixed(2))}
         ${predictionMetric('Game AdjD', aDefense.toFixed(2), bDefense.toFixed(2))}
         ${predictionMetric('SOS', a.sos.toFixed(1), b.sos.toFixed(1))}
-        ${predictionMetric('Expected Runs', expA.toFixed(2), expB.toFixed(2))}
+        ${predictionMetric('Expected Runs', expA.toFixed(1), expB.toFixed(1))}
       </div>
     </div>
   `;
