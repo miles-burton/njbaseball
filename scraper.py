@@ -938,6 +938,8 @@ def parse_player_game_logs(profile_html):
             for row in rows[1:]:
                 if len(row) < len(header):
                     row += [''] * (len(header) - len(row))
+                if 'total' in row[0].lower():
+                    continue
                 parsed.append({
                     "date": row[0],
                     "opp": row[1],
@@ -963,6 +965,8 @@ def parse_player_game_logs(profile_html):
             for row in rows[1:]:
                 if len(row) < len(header):
                     row += [''] * (len(header) - len(row))
+                if 'total' in row[0].lower():
+                    continue
                 parsed.append({
                     "date": row[0],
                     "opp": row[1],
