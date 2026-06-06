@@ -1516,8 +1516,8 @@ function renderHome() {
         <th style="width:28px">#</th>
         <th>Team</th>
         <th class="num">Score</th>
-        <th class="num">SOS</th>
-        <th class="num">Adj RD/G</th>
+        <th class="num">AdjO</th>
+        <th class="num">AdjD</th>
       </tr></thead>
       <tbody>
         ${teams.slice(0,10).map((t,i) => `
@@ -1531,8 +1531,8 @@ function renderHome() {
               </div>
             </td>
             <td class="num" style="font-family:'Outfit',sans-serif;font-weight:700;color:var(--accent)">${t.score.toFixed(1)}</td>
-            <td class="num" style="color:var(--muted2)">${t.sos.toFixed(1)}</td>
-            <td class="num" style="color:${t.adjRDiffPG > 0 ? '#4ade80' : t.adjRDiffPG < 0 ? '#60a5fa' : 'var(--muted2)'}">${fmtSigned(t.adjRDiffPG, 2)}</td>
+            <td class="num" style="color:var(--muted2)">${t.adjO.toFixed(2)}</td>
+            <td class="num" style="color:var(--muted2)">${t.adjD.toFixed(2)}</td>
           </tr>`).join('')}
       </tbody>
     </table>`;
@@ -1592,6 +1592,24 @@ function percentileFromRows(rows, key, value, lowerBetter = false, predicate = n
   return vals.length ? calcPct(vals, value, lowerBetter) : 50;
 }
 
+function dampenRunMargin(rs, ra) {
+  const margin = rs - ra;
+  const absMargin = Math.abs(margin);
+  if (absMargin <= 6) return { ratingRs: rs, ratingRa: ra, dampedMargin: margin, blowoutRuns: 0 };
+
+  const dampedAbs = 6 + Math.sqrt(absMargin - 6) * 1.25;
+  const dampedMargin = Math.sign(margin) * dampedAbs;
+  const ratingRs = margin > 0 ? ra + dampedAbs : rs;
+  const ratingRa = margin > 0 ? ra : rs + dampedAbs;
+
+  return {
+    ratingRs,
+    ratingRa,
+    dampedMargin,
+    blowoutRuns: absMargin - dampedAbs,
+  };
+}
+
 function buildTeamPowerRaw() {
   return Object.keys(TM).map(team => {
     const standing = teamStandingsRow(team);
@@ -1631,7 +1649,8 @@ function buildTeamPowerRaw() {
       const opponent = matchOpponentTeam(g.opponent);
       const rs = g.outcome === 'W' ? parts[0] : parts[1];
       const ra = g.outcome === 'W' ? parts[1] : parts[0];
-      gameResults.push({ opponent, rs, ra });
+      const dampened = dampenRunMargin(rs, ra);
+      gameResults.push({ opponent, rs, ra, ...dampened });
     });
     last5.forEach(g => {
       const parts = g.score.split('-').map(Number);
@@ -1670,6 +1689,7 @@ function buildTeamPowerRaw() {
       last5RDiffPG: last5.length ? (last5RS - last5RA) / last5.length : 0,
       opponents: gameResults.map(g => g.opponent).filter(Boolean),
       gameResults,
+      blowoutMargin: gameResults.length ? avgNums(gameResults.map(g => g.blowoutRuns)) : 0,
     };
   });
 }
@@ -1679,7 +1699,7 @@ function calculateTeamPowerRatings() {
   const rowByTeam = Object.fromEntries(rows.map(r => [r.team, r]));
   const allGameResults = rows.flatMap(r => r.gameResults);
   const leagueRPG = allGameResults.length
-    ? allGameResults.reduce((s, g) => s + g.rs, 0) / allGameResults.length
+    ? allGameResults.reduce((s, g) => s + g.ratingRs, 0) / allGameResults.length
     : 5;
   const EXP = 1.83;
   const pyth = (off, def) => {
@@ -1741,8 +1761,8 @@ function calculateTeamPowerRatings() {
       r.gameResults.forEach((g, i) => {
         const opp = rowByTeam[g.opponent] || { adjO: leagueRPG, adjD: leagueRPG };
         const recentWeight = 1 + (i / Math.max(1, r.gameResults.length - 1)) * 0.12;
-        offTotal += (g.rs * leagueRPG / Math.max(1, opp.adjD)) * recentWeight;
-        defTotal += (g.ra * leagueRPG / Math.max(1, opp.adjO)) * recentWeight;
+        offTotal += (g.ratingRs * leagueRPG / Math.max(1, opp.adjD)) * recentWeight;
+        defTotal += (g.ratingRa * leagueRPG / Math.max(1, opp.adjO)) * recentWeight;
         weightTotal += recentWeight;
       });
       next[r.team] = {
@@ -1786,6 +1806,7 @@ function renderTeamRankings() {
     { key:'adjD',       label:'AdjD',     fmt:v=>v.toFixed(2), lowerBetter:true },
     { key:'sos',        label:'SOS',      fmt:v=>v.toFixed(1), lowerBetter:false },
     { key:'luck',       label:'Luck',     fmt:v=>fmtSigned(v, 3).replace(/^([-+])0/, '$1'), lowerBetter:true },
+    { key:'blowoutMargin', label:'BLOW',  fmt:v=>v.toFixed(2), lowerBetter:true },
     { key:'wpct',       label:'PCT',      fmt:v=>v.toFixed(3).replace(/^0/,''), lowerBetter:false },
     { key:'rsPG',       label:'RS/G',     fmt:v=>v.toFixed(2), lowerBetter:false },
     { key:'raPG',       label:'RA/G',     fmt:v=>v.toFixed(2), lowerBetter:true },
