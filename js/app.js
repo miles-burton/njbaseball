@@ -1931,7 +1931,7 @@ function calculateTeamPowerRatings() {
     r.adjD = hasGames ? r.raPG : leagueRPG;
   });
 
-  // KenPom-style adjusted efficiency loop for baseball:
+  // Diamond Index adjusted efficiency loop for baseball:
   // AdjO = runs scored per game adjusted for opponent defense.
   // AdjD = runs allowed per game adjusted for opponent offense.
   // Both are normalized to an average opponent on a neutral field.
