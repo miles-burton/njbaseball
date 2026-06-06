@@ -766,6 +766,29 @@ function buildTeamFilters() {
   });
 }
 
+function buildPredictorTeams() {
+  const selects = ['predictTeamA', 'predictTeamB'].map(id => document.getElementById(id)).filter(Boolean);
+  if (!selects.length || selects[0].options.length) return;
+  const confs = [...new Set(Object.values(TM).map(m => m.div).filter(Boolean))].sort();
+  selects.forEach(sel => {
+    confs.forEach(conf => {
+      const teams = Object.keys(TM).filter(t => TM[t].div === conf).sort();
+      const grp = document.createElement('optgroup');
+      grp.label = conf;
+      teams.forEach(t => {
+        const o = document.createElement('option');
+        o.value = t;
+        o.textContent = t;
+        grp.appendChild(o);
+      });
+      sel.appendChild(grp);
+    });
+  });
+  const top = TEAM_POWER_RATINGS.length ? TEAM_POWER_RATINGS : [];
+  if (top[0]) selects[0].value = top[0].team;
+  if (top[1]) selects[1].value = top[1].team;
+}
+
 // ── HITTING LEADERBOARD ────────────────────────────────────────────────────────
 function renderHitTable() {
   const isStd = hitMode === 'standard';
@@ -1363,8 +1386,10 @@ function showView(v, from) {
   if (['leaderboard','pitching'].includes(v))       document.getElementById('tab-leaders')?.classList.add('active');
   if (['teams','team'].includes(v))                 document.getElementById('tab-teams-dd')?.classList.add('active');
   if (v === 'team-rankings')                        document.getElementById('tab-team-rankings')?.classList.add('active');
+  if (v === 'predictor')                            document.getElementById('tab-predictor')?.classList.add('active');
   if (v === 'standings')                            document.getElementById('tab-standings')?.classList.add('active');
   if (v === 'glossary')                             document.getElementById('tab-glossary')?.classList.add('active');
+  if (v === 'predictor')                            renderMatchupPrediction();
 }
 
 function goBack() {
@@ -2027,6 +2052,128 @@ function sortRankings(col, lowerBetter) {
   renderTeamRankings();
 }
 
+function teamLogoImg(team, cls = '') {
+  const m = TM[team] || {};
+  return m.logo ? `<img class="${cls}" src="${m.logo}" alt="" aria-hidden="true">` : '';
+}
+
+function leagueRunEnvironment() {
+  if (!TEAM_POWER_RATINGS.length) calculateTeamPowerRatings();
+  const rows = TEAM_POWER_RATINGS.filter(t => t.G > 0 && Number.isFinite(t.adjO));
+  return rows.length ? avgNums(rows.map(t => t.adjO)) : 5;
+}
+
+function predictMatchup(teamA, teamB, venue = 'neutral') {
+  if (!TEAM_POWER_RATINGS.length) calculateTeamPowerRatings();
+  const a = TEAM_POWER_BY_TEAM[teamA];
+  const b = TEAM_POWER_BY_TEAM[teamB];
+  if (!a || !b || teamA === teamB) return null;
+
+  const leagueRPG = leagueRunEnvironment();
+  const homeRuns = 0.25;
+  const aHome = venue === 'a-home' ? homeRuns : 0;
+  const bHome = venue === 'b-home' ? homeRuns : 0;
+  const expA = Math.max(0.1, (a.adjO * b.adjD / Math.max(0.1, leagueRPG)) + aHome);
+  const expB = Math.max(0.1, (b.adjO * a.adjD / Math.max(0.1, leagueRPG)) + bHome);
+  const EXP = 1.83;
+  const winProbA = Math.pow(expA, EXP) / (Math.pow(expA, EXP) + Math.pow(expB, EXP));
+  let scoreA = Math.max(0, Math.round(expA));
+  let scoreB = Math.max(0, Math.round(expB));
+  if (scoreA === scoreB) {
+    if (winProbA >= 0.5) scoreA += 1;
+    else scoreB += 1;
+  }
+  const winner = winProbA >= 0.5 ? teamA : teamB;
+  const winnerProb = winProbA >= 0.5 ? winProbA : 1 - winProbA;
+  return { a, b, teamA, teamB, expA, expB, scoreA, scoreB, winProbA, winner, winnerProb };
+}
+
+function renderMatchupPrediction() {
+  const aSel = document.getElementById('predictTeamA');
+  const bSel = document.getElementById('predictTeamB');
+  const venueSel = document.getElementById('predictVenue');
+  const el = document.getElementById('matchupPrediction');
+  if (!aSel || !bSel || !el) return;
+  const result = predictMatchup(aSel.value, bSel.value, venueSel?.value || 'neutral');
+  if (!result) {
+    el.innerHTML = `<div class="predictor-empty">Choose two different teams to generate a prediction.</div>`;
+    return;
+  }
+  const { a, b, teamA, teamB, expA, expB, scoreA, scoreB, winProbA, winner, winnerProb } = result;
+  const aPct = Math.round(winProbA * 100);
+  const bPct = 100 - aPct;
+  const confidence = winnerProb >= 0.75 ? 'Strong edge' : winnerProb >= 0.62 ? 'Clear edge' : 'Toss-up range';
+  const winnerScore = winner === teamA ? scoreA : scoreB;
+  const loserScore = winner === teamA ? scoreB : scoreA;
+  const venueText = venueSel?.selectedOptions?.[0]?.textContent || 'Neutral';
+
+  el.innerHTML = `
+    <div class="prediction-card">
+      <div class="prediction-head">
+        <div class="prediction-team">
+          ${teamLogoImg(teamA, 'prediction-logo')}
+          <div>
+            <div class="prediction-team-name">${teamA}</div>
+            <div class="prediction-team-meta">#${a.rank} · DI ${a.score.toFixed(1)} · ${a.W}-${a.L}</div>
+          </div>
+        </div>
+        <div class="prediction-vs">vs</div>
+        <div class="prediction-team prediction-team-right">
+          ${teamLogoImg(teamB, 'prediction-logo')}
+          <div>
+            <div class="prediction-team-name">${teamB}</div>
+            <div class="prediction-team-meta">#${b.rank} · DI ${b.score.toFixed(1)} · ${b.W}-${b.L}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="prediction-main">
+        <div class="prediction-pick-label">Projected Winner</div>
+        <div class="prediction-pick">${winner}</div>
+        <div class="prediction-score">${winnerScore}-${loserScore}</div>
+        <div class="prediction-confidence">${confidence} · ${(winnerProb * 100).toFixed(1)}% win probability · ${venueText}</div>
+      </div>
+
+      <div class="prediction-prob">
+        <div class="prediction-prob-row">
+          <span>${teamA}</span><strong>${aPct}%</strong>
+        </div>
+        <div class="prediction-bar">
+          <div class="prediction-bar-a" style="width:${aPct}%"></div>
+          <div class="prediction-bar-b" style="width:${bPct}%"></div>
+        </div>
+        <div class="prediction-prob-row">
+          <span>${teamB}</span><strong>${bPct}%</strong>
+        </div>
+      </div>
+
+      <div class="prediction-metrics">
+        ${predictionMetric('AdjO', a.adjO.toFixed(2), b.adjO.toFixed(2))}
+        ${predictionMetric('AdjD', a.adjD.toFixed(2), b.adjD.toFixed(2))}
+        ${predictionMetric('SOS', a.sos.toFixed(1), b.sos.toFixed(1))}
+        ${predictionMetric('Expected Runs', expA.toFixed(2), expB.toFixed(2))}
+      </div>
+    </div>
+  `;
+}
+
+function predictionMetric(label, aVal, bVal) {
+  return `<div class="prediction-metric">
+    <div class="prediction-metric-label">${label}</div>
+    <div class="prediction-metric-values"><span>${aVal}</span><span>${bVal}</span></div>
+  </div>`;
+}
+
+function swapPredictorTeams() {
+  const aSel = document.getElementById('predictTeamA');
+  const bSel = document.getElementById('predictTeamB');
+  if (!aSel || !bSel) return;
+  const a = aSel.value;
+  aSel.value = bSel.value;
+  bSel.value = a;
+  renderMatchupPrediction();
+}
+
 // ── STANDINGS ─────────────────────────────────────────────────────────────────
 function teamStandingsRow(team) {
   const sched    = (typeof SCHEDULES !== 'undefined' && SCHEDULES[team]) || {};
@@ -2144,10 +2291,12 @@ buildGlobalPlayerSearchIndex();
 showLastUpdated();
 buildDivFilters();
 buildTeamFilters();
+buildPredictorTeams();
 renderHitTable();
 renderPitchTable();
 renderTeamsGrid();
 buildTeamsNav();
 renderHome();
 renderTeamRankings();
+renderMatchupPrediction();
 renderStandings();

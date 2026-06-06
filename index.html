@@ -59,6 +59,7 @@
 
     <!-- Direct links -->
     <button class="nav-tab" id="tab-team-rankings" onclick="showView('team-rankings')">Power Rankings</button>
+    <button class="nav-tab" id="tab-predictor" onclick="showView('predictor')">Predictor</button>
     <button class="nav-tab" id="tab-standings" onclick="showView('standings')">Standings</button>
     <button class="nav-tab" id="tab-glossary" onclick="showView('glossary')">Glossary</button>
 
@@ -356,6 +357,52 @@
     </div>
     <div class="lb-table-wrap">
       <table><thead id="rankingsHead"></thead><tbody id="rankingsBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- MATCHUP PREDICTOR -->
+<div id="view-predictor" class="view">
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Matchup <span>Predictor</span></div>
+        <div class="page-meta">
+          Projected score and win probability
+          <span class="page-meta-dot"></span>
+          Uses Diamond Index adjusted team ratings
+          <span class="page-meta-dot"></span>
+          2025-26 Season
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="predictor-wrap">
+    <div class="predictor-panel">
+      <div class="predictor-controls">
+        <label class="predictor-field">
+          <span>Team A</span>
+          <select class="ctrl-select" id="predictTeamA" onchange="renderMatchupPrediction()"></select>
+        </label>
+        <button class="predictor-swap" onclick="swapPredictorTeams()" title="Swap teams">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M3 5h10M10 2l3 3-3 3M13 11H3M6 8l-3 3 3 3"/>
+          </svg>
+        </button>
+        <label class="predictor-field">
+          <span>Team B</span>
+          <select class="ctrl-select" id="predictTeamB" onchange="renderMatchupPrediction()"></select>
+        </label>
+        <label class="predictor-field predictor-field-small">
+          <span>Venue</span>
+          <select class="ctrl-select" id="predictVenue" onchange="renderMatchupPrediction()">
+            <option value="neutral">Neutral</option>
+            <option value="a-home">Team A home</option>
+            <option value="b-home">Team B home</option>
+          </select>
+        </label>
+      </div>
+      <div id="matchupPrediction"></div>
     </div>
   </div>
 </div>
