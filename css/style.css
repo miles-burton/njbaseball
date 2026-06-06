@@ -1081,6 +1081,223 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .team-panel { display: none; }
 .team-panel.active { display: block; }
 
+.game-row-clickable {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.game-row-clickable:hover {
+  background: rgba(200, 155, 60, 0.08);
+}
+
+.schedule-team-link,
+.game-team-link,
+.game-player-link {
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.schedule-team-link,
+.game-team-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.schedule-team-link:hover,
+.game-team-link:hover,
+.game-player-link:hover {
+  color: var(--accent);
+}
+
+.game-player-link {
+  text-align: left;
+  font-weight: 700;
+}
+
+.game-detail-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border2);
+}
+
+.game-detail-kicker {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.game-detail-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 34px;
+  letter-spacing: 0.03em;
+  color: var(--text);
+  line-height: 1;
+}
+
+.game-detail-meta {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.game-scoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.game-team-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 12px;
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.game-team-card.disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.game-team-card:hover:not(.disabled) {
+  border-color: rgba(200, 155, 60, 0.45);
+  background: rgba(200, 155, 60, 0.08);
+}
+
+.game-team-card.winner {
+  box-shadow: inset 3px 0 0 rgba(74, 222, 128, 0.75);
+}
+
+.game-team-card.loser {
+  box-shadow: inset 3px 0 0 rgba(248, 113, 113, 0.65);
+}
+
+.game-team-logo {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.game-team-logo img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.game-team-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.game-team-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.game-team-sub {
+  color: var(--muted2);
+  font-size: 12px;
+  min-height: 14px;
+}
+
+.game-team-score {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 30px;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.game-score-divider {
+  align-self: center;
+  color: var(--muted);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+}
+
+.game-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.game-team-section {
+  min-width: 0;
+}
+
+.game-section-heading {
+  margin-bottom: 0.75rem;
+}
+
+.game-stat-block {
+  margin-bottom: 1.5rem;
+}
+
+.game-stat-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.game-empty {
+  color: var(--muted2);
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  border-radius: 4px;
+  padding: 0.85rem;
+  font-size: 13px;
+}
+
+@media (max-width: 820px) {
+  .game-scoreboard,
+  .game-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-score-divider {
+    text-align: center;
+  }
+
+  .game-detail-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 /* ── TEAMS OVERVIEW ───────────────────────────────────────────────────────── */
 .teams-wrap { max-width: 1200px; margin: 0 auto; padding: 2rem; }
 

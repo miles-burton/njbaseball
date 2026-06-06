@@ -328,6 +328,15 @@ function playerKey(name, team) {
   return `${team}::${name}`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function renderGameLogTable(title, rows, cols) {
   if (!rows || !rows.length) return '';
   return `<div class="game-log-section">
@@ -339,6 +348,96 @@ function renderGameLogTable(title, rows, cols) {
       </table>
     </div>
   </div>`;
+}
+
+function scheduleDateKey(value) {
+  const full = parseLogDate(value);
+  if (full) return full;
+  const m = String(value || '').match(/(\d{1,2})\/(\d{1,2})/);
+  if (!m) return '';
+  return `2026-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+}
+
+function normalizeOpponentText(value) {
+  return teamSearchKey(String(value || '').replace(/\([^)]*\)/g, ' '));
+}
+
+function rowMatchesGame(row, game) {
+  if (!row || !game) return false;
+  if (parseLogDate(row.date) !== scheduleDateKey(game.date)) return false;
+
+  const rowOpp = normalizeOpponentText(row.opp);
+  const gameOpp = normalizeOpponentText(game.opponent);
+  if (!rowOpp || !gameOpp) return true;
+  return rowOpp === gameOpp || rowOpp.includes(gameOpp) || gameOpp.includes(rowOpp);
+}
+
+function collectTeamGameLogs(team, game) {
+  const hitPlayers = AP.filter(p => p.team === team);
+  const pitPlayers = PP.filter(p => p.team === team);
+  const hitters = hitPlayers.flatMap(p => {
+    const rows = ((PLAYER_LOGS[playerKey(p.name, team)] || {}).hitting || []).filter(row => rowMatchesGame(row, game));
+    return rows.map(row => ({ ...row, player: p.name, team }));
+  });
+  const pitchers = pitPlayers.flatMap(p => {
+    const rows = ((PLAYER_LOGS[playerKey(p.name, team)] || {}).pitching || []).filter(row => rowMatchesGame(row, game));
+    return rows.map(row => ({ ...row, player: p.name, team }));
+  });
+  return { hitters, pitchers };
+}
+
+function findOpponentGame(team, game, opponentTeam) {
+  if (!opponentTeam || !SCHEDULES[opponentTeam]) return null;
+  const targetDate = scheduleDateKey(game.date);
+  const teamKey = normalizeOpponentText(team);
+  return (SCHEDULES[opponentTeam].games || []).find(g =>
+    scheduleDateKey(g.date) === targetDate && normalizeOpponentText(g.opponent).includes(teamKey)
+  ) || null;
+}
+
+function linkedTeamLabel(team, fallback = '') {
+  if (!team) return escapeHtml(fallback || 'Opponent');
+  const enc = encodeURIComponent(team);
+  return `<button class="game-team-link" onclick="event.stopPropagation();showTeam(decodeURIComponent('${enc}'),'game')">
+    ${teamLogo(team, 16)}<span>${escapeHtml(team)}</span>
+  </button>`;
+}
+
+function renderGameStatTable(title, rows, cols, team) {
+  if (!rows.length) {
+    return `<div class="game-stat-block">
+      <div class="game-stat-title">${title}</div>
+      <div class="game-empty">No player game-log stats found for this side.</div>
+    </div>`;
+  }
+  const encTeam = encodeURIComponent(team);
+  return `<div class="game-stat-block">
+    <div class="game-stat-title">${title}</div>
+    <div class="lb-table-wrap game-log-table-wrap">
+      <table>
+        <thead><tr>${cols.map(c => `<th class="${c.num ? 'num' : ''}">${c.label}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(r => `<tr>
+          <td class="player-cell">
+            <button class="game-player-link" onclick="showPlayer('${encodeURIComponent(r.player)}',decodeURIComponent('${encTeam}'),'game')">${escapeHtml(r.player)}</button>
+          </td>
+          ${cols.slice(1).map(c => `<td class="${c.num ? 'num' : ''}">${escapeHtml(r[c.key] ?? '—')}</td>`).join('')}
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function parseScoreParts(score) {
+  const m = String(score || '').match(/(\d+)\s*-\s*(\d+)/);
+  return m ? [Number(m[1]), Number(m[2])] : [null, null];
+}
+
+function gameScoreForTeam(game) {
+  const [a, b] = parseScoreParts(game.score);
+  if (a === null || b === null) return { team: null, opponent: null };
+  if (game.outcome === 'W') return { team: Math.max(a, b), opponent: Math.min(a, b) };
+  if (game.outcome === 'L') return { team: Math.min(a, b), opponent: Math.max(a, b) };
+  return { team: a, opponent: b };
 }
 
 function renderPlayerGameLogs(name, team, range = { active:false }) {
@@ -1210,6 +1309,107 @@ function renderTeamsGrid() {
 }
 
 // ── TEAM PAGE ──────────────────────────────────────────────────────────────────
+function showGame(team, gameIndex) {
+  prevView = `team-${team}`;
+  const target = document.getElementById('gameContent');
+  if (!target) return;
+  target.innerHTML = `
+    <div class="game-detail-hero">
+      <div>
+        <div class="game-detail-kicker">Game Detail</div>
+        <div class="game-detail-title">${escapeHtml(team)}</div>
+      </div>
+    </div>
+    <div class="game-log-section"><div class="game-log-empty">Loading game stats...</div></div>`;
+  showView('game', `team-${team}`);
+  ensurePlayerLogsLoaded()
+    .then(() => renderGameDetail(team, gameIndex))
+    .catch(() => {
+      const current = document.getElementById('gameContent');
+      if (current) current.innerHTML = `<div class="game-log-section"><div class="game-log-empty">Game stats could not be loaded.</div></div>`;
+    });
+}
+
+function renderGameDetail(team, gameIndex) {
+  const sched = (typeof SCHEDULES !== 'undefined' && SCHEDULES[team]) || {};
+  const game = (sched.games || [])[gameIndex];
+  const target = document.getElementById('gameContent');
+  if (!target || !game) return;
+
+  const opponentTeam = matchOpponentTeam(game.opponent);
+  const opponentGame = findOpponentGame(team, game, opponentTeam);
+  const teamData = collectTeamGameLogs(team, game);
+  const oppData = opponentTeam && opponentGame ? collectTeamGameLogs(opponentTeam, opponentGame) : { hitters: [], pitchers: [] };
+  const m = TM[team] || { bg:'#111', s:'#333', t:'#aaa', mascot:'', logo:'' };
+  const om = opponentTeam ? (TM[opponentTeam] || { bg:'#111', s:'#333', t:'#aaa', mascot:'', logo:'' }) : null;
+  const loc = game.home ? 'vs' : '@';
+  const score = gameScoreForTeam(game);
+  const teamScore = score.team ?? '—';
+  const oppScore = score.opponent ?? '—';
+  const teamResultClass = game.outcome === 'W' ? 'winner' : game.outcome === 'L' ? 'loser' : '';
+  const oppResultClass = game.outcome === 'L' ? 'winner' : game.outcome === 'W' ? 'loser' : '';
+  const hitCols = [
+    {key:'player', label:'Player'}, {key:'AB', label:'AB', num:true}, {key:'R', label:'R', num:true},
+    {key:'H', label:'H', num:true}, {key:'RBI', label:'RBI', num:true}, {key:'B2', label:'2B', num:true},
+    {key:'B3', label:'3B', num:true}, {key:'HR', label:'HR', num:true}, {key:'BB', label:'BB', num:true},
+    {key:'HBP', label:'HBP', num:true}, {key:'SB', label:'SB', num:true},
+  ];
+  const pitCols = [
+    {key:'player', label:'Pitcher'}, {key:'IP', label:'IP', num:true}, {key:'H', label:'H', num:true},
+    {key:'R', label:'R', num:true}, {key:'ER', label:'ER', num:true}, {key:'BB', label:'BB', num:true},
+    {key:'K', label:'K', num:true}, {key:'HB', label:'HBP', num:true}, {key:'PIT', label:'PIT', num:true},
+  ];
+
+  target.innerHTML = `
+    <div class="game-detail-hero">
+      <div>
+        <div class="game-detail-kicker">${escapeHtml(game.date)} · ${escapeHtml(loc)} ${escapeHtml(game.opponent)}</div>
+        <div class="game-detail-title">Game Detail</div>
+      </div>
+      <div class="game-detail-meta">${game.score ? escapeHtml(game.score) : 'Score unavailable'}</div>
+    </div>
+    <div class="game-scoreboard">
+      <button class="game-team-card ${teamResultClass}" onclick="showTeam(decodeURIComponent('${encodeURIComponent(team)}'),'game')" style="border-color:${m.s}55">
+        <span class="game-team-logo" style="background:${m.bg};border-color:${m.s}55">${m.logo ? `<img src="${m.logo}" alt="">` : ''}</span>
+        <span class="game-team-info">
+          <span class="game-team-name" style="color:${m.t}">${escapeHtml(team)}</span>
+          <span class="game-team-sub">${escapeHtml(m.mascot || '')}</span>
+        </span>
+        <span class="game-team-score">${teamScore}</span>
+      </button>
+      <div class="game-score-divider">${escapeHtml(loc)}</div>
+      ${opponentTeam ? `
+        <button class="game-team-card ${oppResultClass}" onclick="showTeam(decodeURIComponent('${encodeURIComponent(opponentTeam)}'),'game')" style="border-color:${om.s}55">
+          <span class="game-team-logo" style="background:${om.bg};border-color:${om.s}55">${om.logo ? `<img src="${om.logo}" alt="">` : ''}</span>
+          <span class="game-team-info">
+            <span class="game-team-name" style="color:${om.t}">${escapeHtml(opponentTeam)}</span>
+            <span class="game-team-sub">${escapeHtml(om.mascot || '')}</span>
+          </span>
+          <span class="game-team-score">${oppScore}</span>
+        </button>` : `
+        <div class="game-team-card disabled">
+          <span class="game-team-info">
+            <span class="game-team-name">${escapeHtml(game.opponent)}</span>
+            <span class="game-team-sub">Opponent not matched in team directory</span>
+          </span>
+          <span class="game-team-score">${oppScore}</span>
+        </div>`}
+    </div>
+    <div class="game-detail-grid">
+      <section class="game-team-section">
+        <div class="game-section-heading">${linkedTeamLabel(team)}</div>
+        ${renderGameStatTable('Hitting', teamData.hitters, hitCols, team)}
+        ${renderGameStatTable('Pitching', teamData.pitchers, pitCols, team)}
+      </section>
+      <section class="game-team-section">
+        <div class="game-section-heading">${opponentTeam ? linkedTeamLabel(opponentTeam) : escapeHtml(game.opponent)}</div>
+        ${opponentTeam && opponentGame
+          ? `${renderGameStatTable('Hitting', oppData.hitters, hitCols, opponentTeam)}${renderGameStatTable('Pitching', oppData.pitchers, pitCols, opponentTeam)}`
+          : `<div class="game-empty">This opponent is not connected to a team page for this game yet.</div>`}
+      </section>
+    </div>`;
+}
+
 function showTeam(team, from) {
   prevView = from || 'teams';
   const m  = TM[team] || { p:'#222', s:'#444', t:'#aaa', bg:'#111', mascot:'', svg:'' };
@@ -1267,13 +1467,17 @@ function showTeam(team, from) {
   const games   = sched.games  || [];
   const record  = (wins !== '' && losses !== '') ? `${wins}-${losses}` : '';
 
-  const gameRows = games.map(g => {
+  const gameRows = games.map((g, idx) => {
     const loc     = g.home ? 'vs' : '@';
     const wl      = g.outcome === 'W' ? `<span style="color:#4ade80;font-weight:700">W</span>` :
                     g.outcome === 'L' ? `<span style="color:#f87171;font-weight:700">L</span>` : '—';
-    return `<tr>
+    const oppTeam = matchOpponentTeam(g.opponent);
+    const oppHtml = oppTeam
+      ? `<button class="schedule-team-link" onclick="event.stopPropagation();showTeam(decodeURIComponent('${encodeURIComponent(oppTeam)}'),'team-' + decodeURIComponent('${encodeURIComponent(team)}'))">${teamLogo(oppTeam, 14)}${escapeHtml(oppTeam)}</button>`
+      : escapeHtml(g.opponent);
+    return `<tr class="game-row-clickable" onclick="showGame(decodeURIComponent('${encodeURIComponent(team)}'),${idx})">
       <td style="color:var(--muted2);font-size:12px;white-space:nowrap">${g.date}</td>
-      <td style="font-size:13px"><span style="color:var(--muted);font-size:11px;margin-right:4px">${loc}</span>${g.opponent}</td>
+      <td style="font-size:13px"><span style="color:var(--muted);font-size:11px;margin-right:4px">${loc}</span>${oppHtml}</td>
       <td class="num" style="font-size:13px">${wl}</td>
       <td class="num" style="font-size:13px;font-variant-numeric:tabular-nums">${g.score || '—'}</td>
     </tr>`;
@@ -1360,7 +1564,7 @@ function showView(v, from) {
   const back = document.getElementById('backBtn');
   const nav  = document.getElementById('navTabs');
 
-  if (v === 'player' || v === 'team') {
+  if (v === 'player' || v === 'team' || v === 'game') {
     back.style.display = 'flex';
     nav.style.display  = 'flex';
     let lbl = 'Back';
@@ -1378,7 +1582,7 @@ function showView(v, from) {
   }
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   if (['leaderboard','pitching'].includes(v))       document.getElementById('tab-leaders')?.classList.add('active');
-  if (['teams','team'].includes(v))                 document.getElementById('tab-teams-dd')?.classList.add('active');
+  if (['teams','team','game'].includes(v))          document.getElementById('tab-teams-dd')?.classList.add('active');
   if (v === 'team-rankings')                        document.getElementById('tab-team-rankings')?.classList.add('active');
   if (v === 'predictor')                            document.getElementById('tab-predictor')?.classList.add('active');
   if (v === 'standings')                            document.getElementById('tab-standings')?.classList.add('active');
