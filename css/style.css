@@ -1013,7 +1013,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 
 .team-stat-cards {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin-bottom: 1.5rem;
 }
@@ -1039,6 +1039,13 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   line-height: 1.1;
   margin-top: 2px;
 }
+
+.team-score-card {
+  border-color: rgba(200, 155, 60, 0.45);
+  background: rgba(200, 155, 60, 0.08);
+}
+
+.team-score-card .team-stat-card-val { color: var(--accent); }
 
 .team-section-tabs {
   display: flex;

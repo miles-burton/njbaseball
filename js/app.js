@@ -72,6 +72,9 @@ const GRADE_VALUES = ['Freshman', 'Sophomore', 'Junior', 'Senior'];
 let playerLogsLoadPromise = null;
 let globalPlayerSearchIndex = [];
 let globalSearchActiveIndex = 0;
+let TEAM_POWER_RATINGS = [];
+let TEAM_POWER_BY_TEAM = {};
+let TEAM_MATCH_LIST = null;
 
 // Standard sort state
 let hitStdSort = { col: 'HR', asc: false };
@@ -1177,6 +1180,7 @@ function renderTeamsGrid() {
 function showTeam(team, from) {
   prevView = from || 'teams';
   const m  = TM[team] || { p:'#222', s:'#444', t:'#aaa', bg:'#111', mascot:'', svg:'' };
+  const power = TEAM_POWER_BY_TEAM[team] || null;
   const tp = AP.filter(p => p.team === team);
   const qp = tp.filter(p => p.qualified);
 
@@ -1267,6 +1271,8 @@ function showTeam(team, from) {
       </div>
     </div>
     <div class="team-stat-cards">
+      <div class="team-stat-card team-score-card"><div class="team-stat-card-label">DI Score</div><div class="team-stat-card-val">${power ? power.score.toFixed(1) : '—'}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">State Rank</div><div class="team-stat-card-val" style="color:${m.t}">${power ? `#${power.rank}` : '—'}</div></div>
       <div class="team-stat-card"><div class="team-stat-card-label">AVG</div><div class="team-stat-card-val" style="color:${m.t}">${teamAVG.toFixed(3).replace(/^0/,'')}</div></div>
       <div class="team-stat-card"><div class="team-stat-card-label">OPS</div><div class="team-stat-card-val" style="color:${m.t}">${teamOPS.toFixed(3)}</div></div>
       <div class="team-stat-card"><div class="team-stat-card-label">wOBA</div><div class="team-stat-card-val" style="color:${m.t}">${teamwOBA.toFixed(3).replace(/^0/,'')}</div></div>
@@ -1339,7 +1345,8 @@ function showView(v, from) {
   }
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   if (['leaderboard','pitching'].includes(v))       document.getElementById('tab-leaders')?.classList.add('active');
-  if (['teams','team','team-rankings'].includes(v)) document.getElementById('tab-teams-dd')?.classList.add('active');
+  if (['teams','team'].includes(v))                 document.getElementById('tab-teams-dd')?.classList.add('active');
+  if (v === 'team-rankings')                        document.getElementById('tab-team-rankings')?.classList.add('active');
   if (v === 'standings')                            document.getElementById('tab-standings')?.classList.add('active');
   if (v === 'glossary')                             document.getElementById('tab-glossary')?.classList.add('active');
 }
@@ -1500,33 +1507,21 @@ function renderHome() {
       </div>
     </a>`).join('');
 
-  // Team wRC+ rankings preview (top 10)
-  const teams = Object.keys(TM).map(team => {
-    const tp  = AP.filter(p => p.team === team);
-    const tPA = tp.reduce((s,p) => s+p.PA, 0);
-    const twOBA = tPA > 0
-      ? (0.7*(tp.reduce((s,p)=>s+p.BB+p.HBP,0)) + 0.9*(tp.reduce((s,p)=>s+p.B1,0)) + 1.3*(tp.reduce((s,p)=>s+p.B2,0)) + 1.6*(tp.reduce((s,p)=>s+p.B3,0)) + 2*(tp.reduce((s,p)=>s+p.HR,0))) / tPA
-      : 0;
-    const twRCplus = Math.round(((twOBA - 0.353) / 1.12 + 0.177) / 0.177 * 100);
-    const pitchers = PP.filter(p => p.team === team);
-    const tIP  = pitchers.reduce((s,p)=>s+p.IP,0);
-    const tERA = tIP > 0 ? (pitchers.reduce((s,p)=>s+p.ER,0) / tIP)*7 : 0;
-    const m = TM[team];
-    return { team, twRCplus, tERA, m, tPA };
-  }).sort((a,b) => b.twRCplus - a.twRCplus);
+  // Power rankings preview (top 10)
+  const teams = TEAM_POWER_RATINGS.length ? TEAM_POWER_RATINGS.slice(0, 10) : [];
 
   document.getElementById('homeTeamRankings').innerHTML =
     `<table class="home-rankings-table">
       <thead><tr>
         <th style="width:28px">#</th>
         <th>Team</th>
-        <th class="num">wRC+</th>
-        <th class="num">ERA</th>
-        <th class="num">PA</th>
+        <th class="num">Score</th>
+        <th class="num">SOS</th>
+        <th class="num">Adj RD/G</th>
       </tr></thead>
       <tbody>
         ${teams.slice(0,10).map((t,i) => `
-          <tr onclick="showTeam('${t.team}','home')">
+          <tr onclick="showTeam(decodeURIComponent('${encodeURIComponent(t.team)}'),'home')">
             <td style="font-family:'Outfit',sans-serif;font-weight:700;color:${i<3?'var(--accent)':'var(--muted)'}">${i+1}</td>
             <td>
               <div style="display:flex;align-items:center;gap:8px">
@@ -1535,90 +1530,235 @@ function renderHome() {
                 <span style="font-size:11px;color:var(--muted)">${t.m?.mascot||''}</span>
               </div>
             </td>
-            <td class="num" style="font-family:'Outfit',sans-serif;font-weight:700;color:var(--accent)">${t.twRCplus}</td>
-            <td class="num" style="color:var(--muted2)">${t.tERA.toFixed(2)}</td>
-            <td class="num" style="color:var(--muted2)">${t.tPA}</td>
+            <td class="num" style="font-family:'Outfit',sans-serif;font-weight:700;color:var(--accent)">${t.score.toFixed(1)}</td>
+            <td class="num" style="color:var(--muted2)">${t.sos.toFixed(1)}</td>
+            <td class="num" style="color:${t.adjRDiffPG > 0 ? '#4ade80' : t.adjRDiffPG < 0 ? '#60a5fa' : 'var(--muted2)'}">${fmtSigned(t.adjRDiffPG, 2)}</td>
           </tr>`).join('')}
       </tbody>
     </table>`;
 }
 
 // ── TEAM RANKINGS PAGE ─────────────────────────────────────────────────────────
-let rankingsSort = { col: 'wRC_plus', asc: false };
+let rankingsSort = { col: 'score', asc: false };
 
-function renderTeamRankings() {
-  const type = document.getElementById('rankingTypeFilter').value;
-  const selDivs = getSelectedDivs('rankDiv');
+function clamp(n, lo = 0, hi = 100) {
+  return Math.max(lo, Math.min(hi, n));
+}
 
-  const teams = Object.keys(TM).filter(team => !selDivs || selDivs.includes(TM[team]?.div)).map(team => {
-    const tp  = AP.filter(p => p.team === team);
-    const tPA = tp.reduce((s,p) => s+p.PA, 0);
-    const twOBA = tPA > 0
-      ? (0.7*(tp.reduce((s,p)=>s+p.BB+p.HBP,0)) + 0.9*(tp.reduce((s,p)=>s+p.B1,0)) + 1.3*(tp.reduce((s,p)=>s+p.B2,0)) + 1.6*(tp.reduce((s,p)=>s+p.B3,0)) + 2*(tp.reduce((s,p)=>s+p.HR,0))) / tPA
-      : 0;
-    const wavg = (k) => tPA > 0 ? tp.reduce((s,p)=>s+(p[k]*p.PA),0)/tPA : 0;
+function avgNums(vals) {
+  const nums = vals.filter(v => Number.isFinite(v));
+  return nums.length ? nums.reduce((s, v) => s + v, 0) / nums.length : 0;
+}
+
+function fmtSigned(v, digits = 1) {
+  if (!Number.isFinite(v)) return '—';
+  return `${v > 0 ? '+' : ''}${v.toFixed(digits)}`;
+}
+
+function teamSearchKey(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .replace(/\b(high|school|baseball|prep|preparatory|academy|regional|the)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function matchOpponentTeam(opponent) {
+  const oppKey = teamSearchKey(opponent);
+  if (!oppKey) return null;
+  if (!TEAM_MATCH_LIST) {
+    TEAM_MATCH_LIST = Object.keys(TM)
+      .map(team => ({ team, key: teamSearchKey(team) }))
+      .filter(x => x.key)
+      .sort((a, b) => b.key.length - a.key.length);
+  }
+  for (const { team, key } of TEAM_MATCH_LIST) {
+    if (!key) continue;
+    if (oppKey === key || oppKey.startsWith(`${key} `) || key.startsWith(`${oppKey} `) || oppKey.includes(` ${key} `)) {
+      return team;
+    }
+  }
+  return null;
+}
+
+function percentileFromRows(rows, key, value, lowerBetter = false, predicate = null) {
+  if (!Number.isFinite(value)) return 50;
+  const vals = rows
+    .filter(r => !predicate || predicate(r))
+    .map(r => r[key])
+    .filter(v => Number.isFinite(v));
+  return vals.length ? calcPct(vals, value, lowerBetter) : 50;
+}
+
+function buildTeamPowerRaw() {
+  return Object.keys(TM).map(team => {
+    const standing = teamStandingsRow(team);
+    const tp = AP.filter(p => p.team === team);
     const pitchers = PP.filter(p => p.team === team);
-    const tIP   = pitchers.reduce((s,p)=>s+p.IP,0);
-    const tERA  = tIP > 0 ? (pitchers.reduce((s,p)=>s+p.ER,0)/tIP)*7 : 0;
-    const tFIP  = tIP > 0 ? ((3*(pitchers.reduce((s,p)=>s+p.BB+p.HB,0)) - 2*(pitchers.reduce((s,p)=>s+p.K,0)))/tIP)+3.10 : 0;
-    const tWHIP = tIP > 0 ? (pitchers.reduce((s,p)=>s+p.BB+p.H,0))/tIP : 0;
-    const tK7   = tIP > 0 ? (pitchers.reduce((s,p)=>s+p.K,0)/tIP)*7 : 0;
-    const tBB7  = tIP > 0 ? (pitchers.reduce((s,p)=>s+p.BB,0)/tIP)*7 : 0;
-    const tWAR  = pitchers.reduce((s,p)=>s+p.WAR,0);
+
+    const teamPA = tp.reduce((s, p) => s + p.PA, 0);
+    const wavg = k => teamPA ? tp.reduce((s, p) => s + (p[k] || 0) * p.PA, 0) / teamPA : 0;
+    const wOBA = teamPA > 0
+      ? (0.7 * tp.reduce((s, p) => s + p.BB + p.HBP, 0) +
+         0.9 * tp.reduce((s, p) => s + p.B1, 0) +
+         1.3 * tp.reduce((s, p) => s + p.B2, 0) +
+         1.6 * tp.reduce((s, p) => s + p.B3, 0) +
+         2.0 * tp.reduce((s, p) => s + p.HR, 0)) / teamPA
+      : 0;
+    const wRC_plus = Math.round(((wOBA - 0.353) / 1.12 + 0.177) / 0.177 * 100);
+
+    const IP = pitchers.reduce((s, p) => s + p.IP, 0);
+    const ER = pitchers.reduce((s, p) => s + p.ER, 0);
+    const BB = pitchers.reduce((s, p) => s + p.BB, 0);
+    const H = pitchers.reduce((s, p) => s + p.H, 0);
+    const K = pitchers.reduce((s, p) => s + p.K, 0);
+    const HB = pitchers.reduce((s, p) => s + (p.HB || p.HBP || 0), 0);
+    const ERA = IP > 0 ? (ER / IP) * 7 : 0;
+    const WHIP = IP > 0 ? (BB + H) / IP : 0;
+    const FIP = IP > 0 ? ((3 * (BB + HB) - 2 * K) / IP) + 3.10 : 0;
+    const K7 = IP > 0 ? (K / IP) * 7 : 0;
+
+    const sched = (typeof SCHEDULES !== 'undefined' && SCHEDULES[team]) || {};
+    const completedGames = (sched.games || []).filter(g => g.score && (g.outcome === 'W' || g.outcome === 'L'));
+    const last5 = completedGames.slice(-5);
+    let last5RS = 0, last5RA = 0, last5W = 0;
+    last5.forEach(g => {
+      const parts = g.score.split('-').map(Number);
+      if (parts.length !== 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return;
+      if (g.outcome === 'W') { last5RS += parts[0]; last5RA += parts[1]; last5W++; }
+      else { last5RS += parts[1]; last5RA += parts[0]; }
+    });
+
     return {
       team,
       m: TM[team],
-      wRC_plus: Math.round(((twOBA-0.353)/1.12+0.177)/0.177*100),
-      wOBA: twOBA,
-      AVG: wavg('AVG'),
-      OBP: wavg('OBP'),
-      SLG: wavg('SLG'),
+      conf: TM[team]?.div || '',
+      W: standing.W,
+      L: standing.L,
+      G: standing.G,
+      wpct: standing.wpct,
+      RS: standing.RS,
+      RA: standing.RA,
+      rdiff: standing.rdiff,
+      rdiffPG: standing.G > 0 ? standing.rdiff / standing.G : 0,
+      rsPG: standing.rsPG,
+      raPG: standing.raPG,
+      pythWpct: standing.pythWpct,
+      teamPA,
+      wOBA,
       OPS: wavg('OPS'),
-      ERA: tERA, FIP: tFIP, WHIP: tWHIP,
-      K7: tK7, BB7: tBB7, WAR: tWAR, IP: tIP,
+      wRC_plus,
+      IP,
+      ERA,
+      FIP,
+      WHIP,
+      K7,
+      last5G: last5.length,
+      last5W,
+      last5Pct: last5.length ? last5W / last5.length : 0.5,
+      last5RDiffPG: last5.length ? (last5RS - last5RA) / last5.length : 0,
+      opponents: completedGames.map(g => matchOpponentTeam(g.opponent)).filter(Boolean),
     };
   });
+}
 
-  const hitCols = [
-    { key:'wRC_plus', label:'wRC+',  fmt:v=>Math.round(v),    lowerBetter:false },
-    { key:'wOBA',     label:'wOBA',  fmt:v=>v.toFixed(3).replace(/^0/,''), lowerBetter:false },
-    { key:'OPS',      label:'OPS',   fmt:v=>v.toFixed(3),     lowerBetter:false },
-    { key:'AVG',      label:'AVG',   fmt:v=>v.toFixed(3).replace(/^0/,''), lowerBetter:false },
-    { key:'OBP',      label:'OBP',   fmt:v=>v.toFixed(3).replace(/^0/,''), lowerBetter:false },
-    { key:'SLG',      label:'SLG',   fmt:v=>v.toFixed(3).replace(/^0/,''), lowerBetter:false },
+function calculateTeamPowerRatings() {
+  const rows = buildTeamPowerRaw();
+  rows.forEach(r => {
+    const hasGames = r.G > 0;
+    const hasHit = r.teamPA > 0;
+    const hasPit = r.IP > 0;
+    const runBase = hasGames ? (
+      percentileFromRows(rows, 'rdiffPG', r.rdiffPG, false, x => x.G > 0) * 0.45 +
+      percentileFromRows(rows, 'pythWpct', r.pythWpct, false, x => x.G > 0) * 0.35 +
+      percentileFromRows(rows, 'wpct', r.wpct, false, x => x.G > 0) * 0.20
+    ) : 50;
+    const offense = hasHit ? (
+      percentileFromRows(rows, 'wRC_plus', r.wRC_plus, false, x => x.teamPA > 0) * 0.40 +
+      percentileFromRows(rows, 'wOBA', r.wOBA, false, x => x.teamPA > 0) * 0.25 +
+      percentileFromRows(rows, 'OPS', r.OPS, false, x => x.teamPA > 0) * 0.20 +
+      percentileFromRows(rows, 'rsPG', r.rsPG, false, x => x.G > 0) * 0.15
+    ) : 50;
+    const pitching = hasPit ? (
+      percentileFromRows(rows, 'ERA', r.ERA, true, x => x.IP > 0) * 0.30 +
+      percentileFromRows(rows, 'WHIP', r.WHIP, true, x => x.IP > 0) * 0.20 +
+      percentileFromRows(rows, 'FIP', r.FIP, true, x => x.IP > 0) * 0.20 +
+      percentileFromRows(rows, 'K7', r.K7, false, x => x.IP > 0) * 0.15 +
+      percentileFromRows(rows, 'raPG', r.raPG, true, x => x.G > 0) * 0.15
+    ) : 50;
+    const recent = r.last5G ? (
+      percentileFromRows(rows, 'last5Pct', r.last5Pct, false, x => x.last5G > 0) * 0.55 +
+      percentileFromRows(rows, 'last5RDiffPG', r.last5RDiffPG, false, x => x.last5G > 0) * 0.45
+    ) : 50;
+
+    r.runBase = runBase;
+    r.offense = offense;
+    r.pitching = pitching;
+    r.recent = recent;
+    r.baseRating = clamp(runBase * 0.45 + offense * 0.25 + pitching * 0.20 + recent * 0.10);
+  });
+
+  const avgBase = avgNums(rows.map(r => r.baseRating)) || 50;
+  const baseByTeam = Object.fromEntries(rows.map(r => [r.team, r.baseRating]));
+  rows.forEach(r => {
+    const oppRatings = r.opponents.map(t => baseByTeam[t]).filter(v => Number.isFinite(v));
+    r.sos = oppRatings.length ? avgNums(oppRatings) : avgBase;
+    r.adjRDiffPG = r.rdiffPG + ((r.sos - avgBase) / 20);
+  });
+
+  rows.forEach(r => {
+    const adjRun = r.G > 0 ? percentileFromRows(rows, 'adjRDiffPG', r.adjRDiffPG, false, x => x.G > 0) : 50;
+    const sosComp = percentileFromRows(rows, 'sos', r.sos, false);
+    r.adjRun = adjRun;
+    r.sosComp = sosComp;
+    r.score = clamp(adjRun * 0.35 + sosComp * 0.25 + r.offense * 0.20 + r.pitching * 0.15 + r.recent * 0.05);
+  });
+
+  TEAM_POWER_RATINGS = rows.sort((a, b) => b.score - a.score || b.adjRDiffPG - a.adjRDiffPG);
+  TEAM_POWER_RATINGS.forEach((r, i) => { r.rank = i + 1; });
+  TEAM_POWER_BY_TEAM = Object.fromEntries(TEAM_POWER_RATINGS.map(r => [r.team, r]));
+}
+
+function renderTeamRankings() {
+  if (!TEAM_POWER_RATINGS.length) calculateTeamPowerRatings();
+  const selDivs = getSelectedDivs('rankDiv');
+  const teams = TEAM_POWER_RATINGS.filter(t => !selDivs || selDivs.includes(t.conf));
+
+  const cols = [
+    { key:'score',      label:'DI Score', fmt:v=>v.toFixed(1), lowerBetter:false },
+    { key:'sos',        label:'SOS',      fmt:v=>v.toFixed(1), lowerBetter:false },
+    { key:'adjRDiffPG', label:'Adj RD/G', fmt:v=>fmtSigned(v, 2), lowerBetter:false },
+    { key:'wpct',       label:'PCT',      fmt:v=>v.toFixed(3).replace(/^0/,''), lowerBetter:false },
+    { key:'rsPG',       label:'RS/G',     fmt:v=>v.toFixed(2), lowerBetter:false },
+    { key:'raPG',       label:'RA/G',     fmt:v=>v.toFixed(2), lowerBetter:true },
+    { key:'wRC_plus',   label:'wRC+',     fmt:v=>Math.round(v), lowerBetter:false },
+    { key:'ERA',        label:'ERA',      fmt:v=>v.toFixed(2), lowerBetter:true },
+    { key:'recent',     label:'Recent',   fmt:v=>v.toFixed(0), lowerBetter:false },
   ];
-  const pitCols = [
-    { key:'ERA',  label:'ERA',  fmt:v=>v.toFixed(2), lowerBetter:true  },
-    { key:'FIP',  label:'FIP',  fmt:v=>v.toFixed(2), lowerBetter:true  },
-    { key:'WHIP', label:'WHIP', fmt:v=>v.toFixed(2), lowerBetter:true  },
-    { key:'K7',   label:'K/7',  fmt:v=>v.toFixed(2), lowerBetter:false },
-    { key:'BB7',  label:'BB/7', fmt:v=>v.toFixed(2), lowerBetter:true  },
-    { key:'WAR',  label:'WAR',  fmt:v=>v.toFixed(1), lowerBetter:false },
-    { key:'IP',   label:'IP',   fmt:v=>v.toFixed(1), lowerBetter:false },
-  ];
+  if (!cols.find(c => c.key === rankingsSort.col)) rankingsSort = { col:'score', asc:false };
 
-  const cols = type === 'hitting' ? hitCols : pitCols;
-  const defaultSort = type === 'hitting' ? 'wRC_plus' : 'ERA';
-  if (!cols.find(c=>c.key===rankingsSort.col)) {
-    rankingsSort = { col: defaultSort, asc: type !== 'hitting' };
-  }
-
-  const sortCol = cols.find(c=>c.key===rankingsSort.col) || cols[0];
-  const sorted = [...teams].sort((a,b) =>
-    rankingsSort.asc ? a[rankingsSort.col]-b[rankingsSort.col] : b[rankingsSort.col]-a[rankingsSort.col]
-  );
+  const sorted = [...teams].sort((a, b) => {
+    const av = a[rankingsSort.col];
+    const bv = b[rankingsSort.col];
+    if (av === bv) return b.score - a.score;
+    return rankingsSort.asc ? av - bv : bv - av;
+  });
 
   const sortArrow = rankingsSort.asc ? ' ▴' : ' ▾';
 
   document.getElementById('rankingsHead').innerHTML = `<tr>
     <th style="width:28px">#</th>
     <th>Team</th>
+    <th>Conf</th>
+    <th class="num">Record</th>
     ${cols.map(c => `<th class="num${c.key===rankingsSort.col?' rankings-sort-active':''}" style="cursor:pointer" onclick="sortRankings('${c.key}',${c.lowerBetter})">${c.label}${c.key===rankingsSort.col?sortArrow:''}</th>`).join('')}
   </tr>`;
 
   document.getElementById('rankingsBody').innerHTML = sorted.map((t,i) => `
-    <tr onclick="showTeam('${t.team}','team-rankings')">
-      <td style="font-family:'Outfit',sans-serif;font-weight:700;color:${i<3?'var(--accent)':'var(--muted)'}">${i+1}</td>
+    <tr onclick="showTeam(decodeURIComponent('${encodeURIComponent(t.team)}'),'team-rankings')">
+      <td style="font-family:'Outfit',sans-serif;font-weight:700;color:${t.rank<=3?'var(--accent)':'var(--muted)'}">${t.rank}</td>
       <td>
         <div style="display:flex;align-items:center;gap:8px">
           ${t.m?.logo ? `<img src="${t.m.logo}" width="22" height="22" style="object-fit:contain;border-radius:2px">` : ''}
@@ -1626,10 +1766,12 @@ function renderTeamRankings() {
           <span style="font-size:11px;color:var(--muted)">${t.m?.mascot||''}</span>
         </div>
       </td>
+      <td style="font-size:11px;color:var(--muted2);max-width:170px">${t.conf}</td>
+      <td class="num"><span class="standings-record ${t.wpct > 0.5 ? 'over-500' : t.wpct < 0.5 ? 'under-500' : 'even-500'}">${t.W}-${t.L}</span></td>
       ${cols.map(c => {
         const v = t[c.key];
         const isSort = c.key === rankingsSort.col;
-        return `<td class="num" style="${isSort?'font-weight:700;color:var(--accent)':''}">${isFinite(v)?c.fmt(v):'—'}</td>`;
+        return `<td class="num" style="${isSort?'font-weight:700;color:var(--accent)':''}">${Number.isFinite(v)?c.fmt(v):'—'}</td>`;
       }).join('')}
     </tr>`).join('');
 }
@@ -1755,6 +1897,7 @@ function renderStandings() {
 // ── INIT ───────────────────────────────────────────────────────────────────────
 normalizePlayers();
 setupPlayerScore();
+calculateTeamPowerRatings();
 buildGlobalPlayerSearchIndex();
 showLastUpdated();
 buildDivFilters();

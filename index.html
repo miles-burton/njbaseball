@@ -44,7 +44,7 @@
       <div class="nav-dropdown-menu nav-dropdown-menu--wide" id="menu-teams">
         <button class="nav-dropdown-item nav-dropdown-item--highlight" onclick="showView('team-rankings');closeDropdowns()">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 7L9 10L13 4"/></svg>
-          Team Rankings
+          Power Rankings
         </button>
         <button class="nav-dropdown-item nav-dropdown-item--highlight" onclick="showView('teams');closeDropdowns()">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
@@ -57,7 +57,8 @@
       </div>
     </div>
 
-    <!-- Standings direct link -->
+    <!-- Direct links -->
+    <button class="nav-tab" id="tab-team-rankings" onclick="showView('team-rankings')">Power Rankings</button>
     <button class="nav-tab" id="tab-standings" onclick="showView('standings')">Standings</button>
     <button class="nav-tab" id="tab-glossary" onclick="showView('glossary')">Glossary</button>
 
@@ -124,7 +125,7 @@
     <!-- Team Rankings Preview -->
     <div class="home-section">
       <div class="home-section-header">
-        <div class="home-section-title">Team wRC+ Rankings</div>
+        <div class="home-section-title">Power Rankings</div>
         <button class="home-section-link" onclick="showView('team-rankings')">Full Rankings →</button>
       </div>
       <div id="homeTeamRankings"></div>
@@ -310,28 +311,24 @@
   <div class="player-wrap" id="playerContent"></div>
 </div>
 
-<!-- TEAM RANKINGS -->
+<!-- POWER RANKINGS -->
 <div id="view-team-rankings" class="view">
   <div class="page-banner">
     <div class="page-banner-inner">
       <div>
-        <div class="page-title">Team <span>Rankings</span></div>
+        <div class="page-title">Power <span>Rankings</span></div>
         <div class="page-meta">
-          New Jersey High School Baseball
+          Diamond Index Team Score
           <span class="page-meta-dot"></span>
-          2025–26 Season
+          0-100 scale
           <span class="page-meta-dot"></span>
-          Click a column to sort · Click a team to view roster
+          SOS-adjusted run differential, offense, pitching, and recent form
         </div>
       </div>
     </div>
   </div>
   <div class="leaderboard-wrap">
     <div class="controls-row">
-      <select class="ctrl-select" id="rankingTypeFilter" onchange="renderTeamRankings()">
-        <option value="hitting">Hitting</option>
-        <option value="pitching">Pitching</option>
-      </select>
       <div class="div-filter-wrap" id="rankDivWrap">
         <button class="div-filter-btn" id="rankDivBtn" onclick="toggleDivFilter('rankDiv')">
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
@@ -482,6 +479,18 @@
         <div class="glossary-card"><div class="gc-stat">RA/G</div><div class="gc-name">Runs Allowed per Game</div><div class="gc-def">Total runs allowed divided by games played. Measures pitching and defensive performance.</div></div>
         <div class="glossary-card gc-highlight"><div class="gc-stat">PYTH</div><div class="gc-name">Pythagorean Expected Record</div><div class="gc-def">RS^1.83 / (RS^1.83 + RA^1.83) × G. Estimates the win total a team deserves based on runs scored and allowed. Teams significantly above their Pythagorean record have likely been lucky in close games.</div></div>
         
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Power Rankings</div>
+      <div class="glossary-grid">
+        <div class="glossary-card gc-highlight"><div class="gc-stat">DI SCORE</div><div class="gc-name">Diamond Index Team Score</div><div class="gc-def">0-100 team rating. The formula weights Adjusted RDiff/G 35%, SOS 25%, team hitting 20%, team pitching 15%, and recent form 5%.</div></div>
+        <div class="glossary-card"><div class="gc-stat">SOS</div><div class="gc-name">Strength of Schedule</div><div class="gc-def">Average base rating of matched opponents on a 0-100 scale. Opponents are matched from available NJ.com schedule data.</div></div>
+        <div class="glossary-card"><div class="gc-stat">ADJ RD/G</div><div class="gc-name">Adjusted Run Differential per Game</div><div class="gc-def">Run differential per game with a schedule-strength adjustment. Beating strong opponents is rewarded more than beating weak opponents.</div></div>
+        <div class="glossary-card"><div class="gc-stat">OFF</div><div class="gc-name">Team Offense Component</div><div class="gc-def">Percentile blend of team wRC+, wOBA, OPS, and runs scored per game.</div></div>
+        <div class="glossary-card"><div class="gc-stat">PITCH</div><div class="gc-name">Team Pitching Component</div><div class="gc-def">Percentile blend of ERA, WHIP, FIP, K/7, and runs allowed per game. Lower run prevention stats are better.</div></div>
+        <div class="glossary-card"><div class="gc-stat">RECENT</div><div class="gc-name">Recent Form</div><div class="gc-def">Last five completed games, using win percentage and run differential over that stretch.</div></div>
       </div>
     </div>
 
