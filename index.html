@@ -203,6 +203,13 @@
         <span>Min PA:</span>
         <input type="number" id="hitMinPA" value="50" min="0" max="200" oninput="resetHitPage()">
       </div>
+      <div class="date-filter-wrap">
+        <span>Date:</span>
+        <input type="date" id="hitDateStart" onchange="resetHitPage()">
+        <span>to</span>
+        <input type="date" id="hitDateEnd" onchange="resetHitPage()">
+        <button class="date-clear-btn" onclick="clearLeaderboardDates('hit')">Clear</button>
+      </div>
     </div>
     <div class="results-info" id="hitResultsInfo"></div>
     <div class="lb-table-wrap">
@@ -281,6 +288,13 @@
       <div class="pa-filter-wrap">
         <span>Min IP:</span>
         <input type="number" id="pitMinIP" value="15" min="0" max="200" oninput="resetPitPage()">
+      </div>
+      <div class="date-filter-wrap">
+        <span>Date:</span>
+        <input type="date" id="pitDateStart" onchange="resetPitPage()">
+        <span>to</span>
+        <input type="date" id="pitDateEnd" onchange="resetPitPage()">
+        <button class="date-clear-btn" onclick="clearLeaderboardDates('pit')">Clear</button>
       </div>
     </div>
     <div class="results-info" id="pitResultsInfo"></div>

@@ -326,8 +326,10 @@ function renderGameLogTable(title, rows, cols) {
   </div>`;
 }
 
-function renderPlayerGameLogs(name, team) {
+function renderPlayerGameLogs(name, team, range = { active:false }) {
   const logs = (typeof PLAYER_LOGS !== 'undefined' ? PLAYER_LOGS[playerKey(name, team)] : null) || {};
+  const hitRows = filterLogRows(logs.hitting, range);
+  const pitRows = filterLogRows(logs.pitching, range);
   const hitCols = [
     {key:'date', label:'Date'}, {key:'opp', label:'Opponent'}, {key:'res', label:'Result'},
     {key:'AB', label:'AB', num:true}, {key:'R', label:'R', num:true}, {key:'H', label:'H', num:true},
@@ -343,11 +345,24 @@ function renderPlayerGameLogs(name, team) {
     {key:'ER', label:'ER', num:true}, {key:'BB', label:'BB', num:true}, {key:'K', label:'K', num:true},
     {key:'HB', label:'HBP', num:true}, {key:'ERA', label:'ERA', num:true},
   ];
+  const hitter = AP.find(p => p.name === name && p.team === team);
+  const pitcher = PP.find(p => p.name === name && p.team === team);
+  const filteredStats = range.active ? [
+    hitter && hitRows.length ? renderCountingStats('Filtered Hitting Stats', (() => {
+      const p = calculateHitStats(hitter, hitRows);
+      return [['PA', p.PA], ['AB', p.AB], ['R', p.R], ['H', p.H], ['RBI', p.RBI], ['2B', p.B2], ['3B', p.B3], ['HR', p.HR], ['BB', p.BB], ['HBP', p.HBP], ['SB', p.SB]];
+    })()) : '',
+    pitcher && pitRows.length ? renderCountingStats('Filtered Pitching Stats', (() => {
+      const p = calculatePitchStats(pitcher, pitRows);
+      return [['W-L', `${p.W}-${p.L}`], ['IP', formatBaseballIP(p.IP)], ['H', p.H], ['R', p.R], ['ER', p.ER], ['BB', p.BB], ['K', p.K], ['HBP', p.HB]];
+    })()) : '',
+  ].filter(Boolean).join('') : '';
   const html = [
-    renderGameLogTable('Hitting Game Log', logs.hitting, hitCols),
-    renderGameLogTable('Pitching Game Log', logs.pitching, pitCols),
+    filteredStats,
+    renderGameLogTable('Hitting Game Log', hitRows, hitCols),
+    renderGameLogTable('Pitching Game Log', pitRows, pitCols),
   ].filter(Boolean).join('');
-  return html || `<div class="game-log-section"><div class="game-log-empty">No game log is available for this player yet.</div></div>`;
+  return html || `<div class="game-log-section"><div class="game-log-empty">${range.active ? 'No game log rows in this date range.' : 'No game log is available for this player yet.'}</div></div>`;
 }
 
 function renderCountingStats(title, stats) {
@@ -360,6 +375,196 @@ function renderCountingStats(title, stats) {
       </div>`).join('')}
     </div>
   </div>`;
+}
+
+function parseStatNumber(value) {
+  return Number(String(value ?? '0').replace(/[^0-9.-]/g, '')) || 0;
+}
+
+function parseBaseballIP(value) {
+  const parts = String(value ?? '0').split('.');
+  return (parseInt(parts[0], 10) || 0) + ((parseInt(parts[1], 10) || 0) / 3);
+}
+
+function formatBaseballIP(value) {
+  const whole = Math.floor(value);
+  const thirds = Math.round((value - whole) * 3);
+  if (thirds >= 3) return `${whole + 1}.0`;
+  return `${whole}.${thirds}`;
+}
+
+function parseLogDate(value) {
+  const m = String(value || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? `${m[3]}-${m[1]}-${m[2]}` : '';
+}
+
+function dateRangeFromInputs(prefix) {
+  const start = document.getElementById(`${prefix}DateStart`)?.value || '';
+  const end = document.getElementById(`${prefix}DateEnd`)?.value || '';
+  return { start, end, active: !!(start || end) };
+}
+
+function rowInDateRange(row, range) {
+  if (!range?.active) return true;
+  const date = parseLogDate(row.date);
+  if (!date) return false;
+  return (!range.start || date >= range.start) && (!range.end || date <= range.end);
+}
+
+function filterLogRows(rows, range) {
+  return (rows || []).filter(row => rowInDateRange(row, range));
+}
+
+function clearLeaderboardDates(kind) {
+  const ids = kind === 'hit' ? ['hitDateStart', 'hitDateEnd'] : ['pitDateStart', 'pitDateEnd'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  kind === 'hit' ? resetHitPage() : resetPitPage();
+}
+
+function playerDateRange() {
+  return {
+    start: document.getElementById('playerDateStart')?.value || '',
+    end: document.getElementById('playerDateEnd')?.value || '',
+    active: !!(document.getElementById('playerDateStart')?.value || document.getElementById('playerDateEnd')?.value),
+  };
+}
+
+function applyPlayerDateRange(encName, encTeam) {
+  const name = decodeURIComponent(encName);
+  const team = decodeURIComponent(encTeam);
+  const target = document.getElementById('playerGameLogs');
+  if (!target) return;
+  ensurePlayerLogsLoaded().then(() => {
+    const current = document.getElementById('playerGameLogs');
+    if (current) current.innerHTML = renderPlayerGameLogs(name, team, playerDateRange());
+  });
+}
+
+function clearPlayerDates(encName, encTeam) {
+  ['playerDateStart', 'playerDateEnd'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  applyPlayerDateRange(encName, encTeam);
+}
+
+function calculateHitStats(base, rows) {
+  const totals = { AB:0, R:0, H:0, RBI:0, B1:0, B2:0, B3:0, HR:0, BB:0, HBP:0, SB:0, SF:0, SH:0 };
+  rows.forEach(row => {
+    Object.keys(totals).forEach(k => totals[k] += parseStatNumber(row[k]));
+  });
+  const PA = totals.AB + totals.BB + totals.HBP + totals.SF + totals.SH;
+  const AVG = totals.AB > 0 ? totals.H / totals.AB : 0;
+  const SLG = totals.AB > 0 ? (totals.B1 + 2 * totals.B2 + 3 * totals.B3 + 4 * totals.HR) / totals.AB : 0;
+  const OBP = (totals.AB + totals.BB + totals.HBP + totals.SF) > 0
+    ? (totals.H + totals.BB + totals.HBP) / (totals.AB + totals.BB + totals.HBP + totals.SF)
+    : 0;
+  const OPS = OBP + SLG;
+  const ISO = SLG - AVG;
+  const BB_pct = PA > 0 ? (totals.BB / PA) * 100 : 0;
+  const BsR = (totals.SB * 0.2) + (totals.B3 * 0.1);
+  const wOBA = PA > 0
+    ? ((0.7 * (totals.BB + totals.HBP)) + (0.9 * totals.B1) + (1.3 * totals.B2) + (1.6 * totals.B3) + (2 * totals.HR)) / PA
+    : 0;
+  const wRAA = ((wOBA - 0.353) / 1.12) * PA;
+  const wRC = wRAA + (PA * 0.177);
+  const wRC_plus = Math.round(((wOBA - 0.353) / 1.12 + 0.177) / 0.177 * 100);
+  const OFF = wRAA + BsR;
+  return {
+    ...base,
+    PA: Math.round(PA), AB: totals.AB, R: totals.R, H: totals.H, RBI: totals.RBI,
+    B1: totals.B1, B2: totals.B2, B3: totals.B3, HR: totals.HR, BB: totals.BB,
+    HBP: totals.HBP, SB: totals.SB,
+    AVG: +AVG.toFixed(3), SLG: +SLG.toFixed(3), OBP: +OBP.toFixed(3), OPS: +OPS.toFixed(3),
+    ISO: +ISO.toFixed(3), BB_pct: +BB_pct.toFixed(1), BsR: +BsR.toFixed(2),
+    wOBA: +wOBA.toFixed(3), wRAA: +wRAA.toFixed(2), wRC: +wRC.toFixed(1),
+    wRC_plus, OFF: +OFF.toFixed(2), qualified: PA >= 50,
+  };
+}
+
+function calculatePitchStats(base, rows) {
+  const totals = { W:0, L:0, IP:0, H:0, R:0, ER:0, BB:0, K:0, HB:0, PIT:0 };
+  rows.forEach(row => {
+    totals.W += parseStatNumber(row.W);
+    totals.L += parseStatNumber(row.L);
+    totals.IP += parseBaseballIP(row.IP);
+    ['H','R','ER','BB','K','HB','PIT'].forEach(k => totals[k] += parseStatNumber(row[k]));
+  });
+  const IP = totals.IP;
+  const ERA = IP > 0 ? (totals.ER / IP) * 7 : 0;
+  const WHIP = IP > 0 ? (totals.BB + totals.H) / IP : 0;
+  const K7 = IP > 0 ? (totals.K / IP) * 7 : 0;
+  const BB7 = IP > 0 ? (totals.BB / IP) * 7 : 0;
+  const KBB = totals.BB > 0 ? totals.K / totals.BB : (totals.K > 0 ? 999 : 0);
+  const FIP = IP > 0 ? ((3 * (totals.BB + totals.HB) - 2 * totals.K) / IP) + 3.10 : 0;
+  const RAA = ((3.00 - ERA) / 7) * IP;
+  return {
+    ...base,
+    W: totals.W, L: totals.L, IP: +IP.toFixed(2), H: totals.H, R: totals.R, ER: totals.ER,
+    BB: totals.BB, K: totals.K, HB: totals.HB, ERA: +ERA.toFixed(2),
+    ERA_minus: Math.round((ERA / 3.00) * 100), FIP: +FIP.toFixed(2),
+    FIP_minus: Math.round((FIP / 4.31) * 100), WHIP: +WHIP.toFixed(2),
+    K7: +K7.toFixed(2), BB7: +BB7.toFixed(2), KBB: KBB === 999 ? 999 : +KBB.toFixed(2),
+    RAA: +RAA.toFixed(1), WAR: +(RAA / 10).toFixed(1), PIP: IP > 0 ? +(totals.PIT / IP).toFixed(1) : 0,
+    qualPitch: IP >= 15,
+  };
+}
+
+function applyHitRangeScores(players) {
+  const pool = players.filter(p => p.PA > 0);
+  const vals = stat => pool.map(p => p[stat]).filter(Number.isFinite);
+  const v = {
+    wRC_plus: vals('wRC_plus'), wOBA: vals('wOBA'), OPS: vals('OPS'),
+    ISO: vals('ISO'), BB_pct: vals('BB_pct'), BsR: vals('BsR'),
+  };
+  players.forEach(p => {
+    p.PS =
+      calcPct(v.wRC_plus, p.wRC_plus, false) * 0.45 +
+      calcPct(v.wOBA, p.wOBA, false) * 0.20 +
+      calcPct(v.OPS, p.OPS, false) * 0.15 +
+      calcPct(v.ISO, p.ISO, false) * 0.10 +
+      calcPct(v.BB_pct, p.BB_pct, false) * 0.05 +
+      calcPct(v.BsR, p.BsR, false) * 0.05;
+  });
+}
+
+function applyPitchRangeScores(players) {
+  const pool = players.filter(p => p.IP > 0);
+  const vals = stat => pool.map(p => p[stat]).filter(Number.isFinite);
+  const v = {
+    ERA_minus: vals('ERA_minus'), FIP_minus: vals('FIP_minus'), WHIP: vals('WHIP'),
+    K7: vals('K7'), KBB: vals('KBB'), IP: vals('IP'),
+  };
+  players.forEach(p => {
+    p.PS =
+      calcPct(v.ERA_minus, p.ERA_minus, true) * 0.30 +
+      calcPct(v.FIP_minus, p.FIP_minus, true) * 0.25 +
+      calcPct(v.WHIP, p.WHIP, true) * 0.15 +
+      calcPct(v.K7, p.K7, false) * 0.15 +
+      calcPct(v.KBB, p.KBB, false) * 0.10 +
+      calcPct(v.IP, p.IP, false) * 0.05;
+  });
+}
+
+function rangeHitters(range) {
+  const players = AP.map(p => {
+    const rows = filterLogRows((PLAYER_LOGS[playerKey(p.name, p.team)] || {}).hitting, range);
+    return calculateHitStats(p, rows);
+  }).filter(p => p.PA > 0);
+  applyHitRangeScores(players);
+  return players;
+}
+
+function rangePitchers(range) {
+  const players = PP.map(p => {
+    const rows = filterLogRows((PLAYER_LOGS[playerKey(p.name, p.team)] || {}).pitching, range);
+    return calculatePitchStats(p, rows);
+  }).filter(p => p.IP > 0);
+  applyPitchRangeScores(players);
+  return players;
 }
 
 function ensurePlayerLogsLoaded() {
@@ -381,7 +586,7 @@ function loadPlayerGameLogs(name, team) {
   ensurePlayerLogsLoaded()
     .then(() => {
       const current = document.getElementById('playerGameLogs');
-      if (current) current.innerHTML = renderPlayerGameLogs(name, team);
+      if (current) current.innerHTML = renderPlayerGameLogs(name, team, playerDateRange());
     })
     .catch(() => {
       const current = document.getElementById('playerGameLogs');
@@ -536,6 +741,7 @@ function renderHitTable() {
   const gf    = document.getElementById('hitGradeFilter').value;
   const minPA = parseInt(document.getElementById('hitMinPA').value) || 0;
   const q     = document.getElementById('hitSearchInput').value.trim().toLowerCase();
+  const range = dateRangeFromInputs('hit');
 
   // Update tab UI
   document.getElementById('hitTabStd')?.classList.toggle('lb-tab-active', isStd);
@@ -544,15 +750,22 @@ function renderHitTable() {
   const sf = document.getElementById('hitStatFilterWrap');
   if (sf) sf.style.display = isStd ? 'none' : '';
 
-  const qualP = AP.filter(p => p.qualified);
+  if (range.active && typeof PLAYER_LOGS === 'undefined') {
+    document.getElementById('hitResultsInfo').innerHTML = 'Loading date range stats...';
+    document.getElementById('hitLbBody').innerHTML = `<tr><td colspan="20" class="empty">Loading player game logs.</td></tr>`;
+    ensurePlayerLogsLoaded().then(renderHitTable);
+    return;
+  }
+
+  let pl = range.active ? rangeHitters(range) : AP;
+  const qualP = pl.filter(p => p.qualified);
   const pf    = {};
   HIT_TABLE_COLS.forEach(s => {
-    const vs = qualP.map(p => p[s]);
+    const vs = qualP.map(p => p[s]).filter(v => isFinite(v));
     pf[s] = v => calcPct(vs, v, false);
   });
 
   const selDivs = getSelectedDivs('hitDiv');
-  let pl = AP;
   if (selDivs) pl = pl.filter(p => selDivs.includes(TM[p.team]?.div));
   if (tf !== 'all') pl = pl.filter(p => p.team === tf);
   if (gf !== 'all') pl = pl.filter(p => p.year === gf);
@@ -568,7 +781,7 @@ function renderHitTable() {
   }
 
   document.getElementById('hitResultsInfo').innerHTML =
-    `Showing <span>${pl.length}</span> player${pl.length !== 1 ? 's' : ''}`;
+    `Showing <span>${pl.length}</span> player${pl.length !== 1 ? 's' : ''}${range.active ? ' in selected date range' : ''}`;
 
   const hitPages = Math.max(1, Math.ceil(pl.length / LEADER_PAGE_SIZE));
   hitPage = Math.min(Math.max(hitPage, 1), hitPages);
@@ -628,13 +841,22 @@ function renderPitchTable() {
   const gf    = document.getElementById('pitGradeFilter').value;
   const minIP = parseFloat(document.getElementById('pitMinIP').value) || 0;
   const q     = document.getElementById('pitSearchInput').value.trim().toLowerCase();
+  const range = dateRangeFromInputs('pit');
 
   document.getElementById('pitTabStd')?.classList.toggle('lb-tab-active', isStd);
   document.getElementById('pitTabAdv')?.classList.toggle('lb-tab-active', !isStd);
   const sf = document.getElementById('pitStatFilterWrap');
   if (sf) sf.style.display = isStd ? 'none' : '';
 
-  const qualP = PP.filter(p => p.qualPitch);
+  if (range.active && typeof PLAYER_LOGS === 'undefined') {
+    document.getElementById('pitResultsInfo').innerHTML = 'Loading date range stats...';
+    document.getElementById('pitLbBody').innerHTML = `<tr><td colspan="20" class="empty">Loading player game logs.</td></tr>`;
+    ensurePlayerLogsLoaded().then(renderPitchTable);
+    return;
+  }
+
+  let pl = range.active ? rangePitchers(range) : PP;
+  const qualP = pl.filter(p => p.qualPitch);
   const pf    = {};
   PIT_TABLE_COLS.forEach(s => {
     const vs = qualP.map(p => p[s]).filter(v => isFinite(v));
@@ -643,7 +865,6 @@ function renderPitchTable() {
 
   const lb = PSC[ss] && PSC[ss].lowerBetter;
   const selDivs = getSelectedDivs('pitDiv');
-  let pl = PP;
   if (selDivs) pl = pl.filter(p => selDivs.includes(TM[p.team]?.div));
   if (tf !== 'all') pl = pl.filter(p => p.team === tf);
   if (gf !== 'all') pl = pl.filter(p => p.year === gf);
@@ -659,7 +880,7 @@ function renderPitchTable() {
   }
 
   document.getElementById('pitResultsInfo').innerHTML =
-    `Showing <span>${pl.length}</span> pitcher${pl.length !== 1 ? 's' : ''}`;
+    `Showing <span>${pl.length}</span> pitcher${pl.length !== 1 ? 's' : ''}${range.active ? ' in selected date range' : ''}`;
 
   const pitPages = Math.max(1, Math.ceil(pl.length / LEADER_PAGE_SIZE));
   pitPage = Math.min(Math.max(pitPage, 1), pitPages);
@@ -843,6 +1064,15 @@ function showPlayer(enc, team, from) {
       </div>
     </div>
     ${bodyHTML}
+    <div class="player-date-filter">
+      <div class="date-filter-wrap">
+        <span>Game Log Date:</span>
+        <input type="date" id="playerDateStart" onchange="applyPlayerDateRange('${encodeURIComponent(playerName)}','${encodeURIComponent(team)}')">
+        <span>to</span>
+        <input type="date" id="playerDateEnd" onchange="applyPlayerDateRange('${encodeURIComponent(playerName)}','${encodeURIComponent(team)}')">
+        <button class="date-clear-btn" onclick="clearPlayerDates('${encodeURIComponent(playerName)}','${encodeURIComponent(team)}')">Clear</button>
+      </div>
+    </div>
     <div id="playerGameLogs">
       <div class="game-log-section"><div class="game-log-empty">Loading game log...</div></div>
     </div>`;
