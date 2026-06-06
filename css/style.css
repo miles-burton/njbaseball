@@ -1121,6 +1121,36 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   font-weight: 700;
 }
 
+.schedule-opponent-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tournament-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid rgba(200, 155, 60, 0.34);
+  background: rgba(200, 155, 60, 0.1);
+  color: var(--accent);
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.schedule-tournament-badge {
+  color: var(--muted2);
+  background: rgba(248, 249, 250, 0.05);
+  border-color: var(--border2);
+}
+
 .game-detail-hero {
   display: flex;
   justify-content: space-between;
