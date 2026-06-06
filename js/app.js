@@ -386,6 +386,57 @@ function collectTeamGameLogs(team, game) {
   return { hitters, pitchers };
 }
 
+function totalBaseballIP(rows) {
+  return rows.reduce((sum, row) => sum + parseBaseballIP(row.IP), 0);
+}
+
+function gameTeamTotals(data) {
+  const hit = data.hitters.reduce((tot, row) => {
+    ['AB','R','H','RBI','B2','B3','HR','BB','HBP','SB'].forEach(k => tot[k] += parseStatNumber(row[k]));
+    return tot;
+  }, { AB:0, R:0, H:0, RBI:0, B2:0, B3:0, HR:0, BB:0, HBP:0, SB:0 });
+  hit.B1 = Math.max(0, hit.H - hit.B2 - hit.B3 - hit.HR);
+  hit.PA = hit.AB + hit.BB + hit.HBP;
+  hit.AVG = hit.AB ? hit.H / hit.AB : 0;
+  hit.OBP = (hit.AB + hit.BB + hit.HBP) ? (hit.H + hit.BB + hit.HBP) / (hit.AB + hit.BB + hit.HBP) : 0;
+  hit.SLG = hit.AB ? (hit.B1 + 2 * hit.B2 + 3 * hit.B3 + 4 * hit.HR) / hit.AB : 0;
+  hit.OPS = hit.OBP + hit.SLG;
+
+  const pit = data.pitchers.reduce((tot, row) => {
+    ['H','R','ER','BB','K','HB','PIT'].forEach(k => tot[k] += parseStatNumber(row[k]));
+    return tot;
+  }, { H:0, R:0, ER:0, BB:0, K:0, HB:0, PIT:0 });
+  pit.IP = totalBaseballIP(data.pitchers);
+  pit.ERA = pit.IP ? (pit.ER / pit.IP) * 7 : 0;
+  pit.WHIP = pit.IP ? (pit.BB + pit.H) / pit.IP : 0;
+
+  return { hit, pit };
+}
+
+function renderGameTeamTotals(data) {
+  const totals = gameTeamTotals(data);
+  const cards = [
+    ['R', totals.hit.R],
+    ['H', totals.hit.H],
+    ['2B', totals.hit.B2],
+    ['HR', totals.hit.HR],
+    ['BB', totals.hit.BB],
+    ['K', totals.pit.K],
+    ['IP', formatBaseballIP(totals.pit.IP)],
+    ['ER', totals.pit.ER],
+    ['ERA', totals.pit.IP ? totals.pit.ERA.toFixed(2) : '—'],
+    ['WHIP', totals.pit.IP ? totals.pit.WHIP.toFixed(2) : '—'],
+    ['AVG', totals.hit.AVG.toFixed(3).replace(/^0/, '')],
+    ['OPS', totals.hit.OPS.toFixed(3).replace(/^0/, '')],
+  ];
+  return `<div class="game-total-grid">
+    ${cards.map(([label, value]) => `<div class="game-total-card">
+      <div class="game-total-label">${label}</div>
+      <div class="game-total-value">${value}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
 function findOpponentGame(team, game, opponentTeam) {
   if (!opponentTeam || !SCHEDULES[opponentTeam]) return null;
   const targetDate = scheduleDateKey(game.date);
@@ -1398,13 +1449,14 @@ function renderGameDetail(team, gameIndex) {
     <div class="game-detail-grid">
       <section class="game-team-section">
         <div class="game-section-heading">${linkedTeamLabel(team)}</div>
+        ${renderGameTeamTotals(teamData)}
         ${renderGameStatTable('Hitting', teamData.hitters, hitCols, team)}
         ${renderGameStatTable('Pitching', teamData.pitchers, pitCols, team)}
       </section>
       <section class="game-team-section">
         <div class="game-section-heading">${opponentTeam ? linkedTeamLabel(opponentTeam) : escapeHtml(game.opponent)}</div>
         ${opponentTeam && opponentGame
-          ? `${renderGameStatTable('Hitting', oppData.hitters, hitCols, opponentTeam)}${renderGameStatTable('Pitching', oppData.pitchers, pitCols, opponentTeam)}`
+          ? `${renderGameTeamTotals(oppData)}${renderGameStatTable('Hitting', oppData.hitters, hitCols, opponentTeam)}${renderGameStatTable('Pitching', oppData.pitchers, pitCols, opponentTeam)}`
           : `<div class="game-empty">This opponent is not connected to a team page for this game yet.</div>`}
       </section>
     </div>`;
@@ -2332,6 +2384,56 @@ function predictMatchup(teamA, teamB, venue = 'neutral', pitcherA = '', pitcherB
   return { a, b, teamA, teamB, expA, expB, winProbA, winner, winnerProb, aDefense, bDefense };
 }
 
+function poissonRunDistribution(mean, maxRuns = 12) {
+  const probs = [];
+  let p = Math.exp(-mean);
+  let total = p;
+  probs.push({ runs: '0', prob: p });
+  for (let runs = 1; runs <= maxRuns; runs++) {
+    p = p * mean / runs;
+    total += p;
+    probs.push({ runs: String(runs), prob: p });
+  }
+  probs.push({ runs: `${maxRuns + 1}+`, prob: Math.max(0, 1 - total) });
+  return probs;
+}
+
+function renderRunDistribution(teamA, expA, teamB, expB) {
+  const aDist = poissonRunDistribution(expA);
+  const bDist = poissonRunDistribution(expB);
+  const maxProb = Math.max(...aDist.map(x => x.prob), ...bDist.map(x => x.prob), 0.01);
+  const rows = aDist.map((aRow, i) => {
+    const bRow = bDist[i];
+    const aPct = aRow.prob * 100;
+    const bPct = bRow.prob * 100;
+    return `<div class="run-dist-row">
+      <div class="run-dist-cell run-dist-left">
+        <span>${aPct.toFixed(1)}%</span>
+        <div class="run-dist-track"><div class="run-dist-fill run-dist-fill-a" style="width:${(aRow.prob / maxProb) * 100}%"></div></div>
+      </div>
+      <div class="run-dist-runs">${aRow.runs}</div>
+      <div class="run-dist-cell">
+        <div class="run-dist-track"><div class="run-dist-fill run-dist-fill-b" style="width:${(bRow.prob / maxProb) * 100}%"></div></div>
+        <span>${bPct.toFixed(1)}%</span>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="run-dist-card">
+    <div class="run-dist-head">
+      <div>
+        <div class="run-dist-title">Projected Run Distribution</div>
+        <div class="run-dist-sub">Estimated share of simulations by runs scored</div>
+      </div>
+    </div>
+    <div class="run-dist-labels">
+      <span>${escapeHtml(teamA)}</span>
+      <span>Runs</span>
+      <span>${escapeHtml(teamB)}</span>
+    </div>
+    ${rows}
+  </div>`;
+}
+
 function renderMatchupPrediction() {
   const teamA = getPredictorTeamValue('A');
   const teamB = getPredictorTeamValue('B');
@@ -2403,6 +2505,8 @@ function renderMatchupPrediction() {
         ${predictionMetric('SOS', a.sos.toFixed(1), b.sos.toFixed(1))}
         ${predictionMetric('Expected Runs', expA.toFixed(1), expB.toFixed(1))}
       </div>
+
+      ${renderRunDistribution(teamA, expA, teamB, expB)}
     </div>
   `;
 }
