@@ -1622,8 +1622,17 @@ function buildTeamPowerRaw() {
 
     const sched = (typeof SCHEDULES !== 'undefined' && SCHEDULES[team]) || {};
     const completedGames = (sched.games || []).filter(g => g.score && (g.outcome === 'W' || g.outcome === 'L'));
+    const gameResults = [];
     const last5 = completedGames.slice(-5);
     let last5RS = 0, last5RA = 0, last5W = 0;
+    completedGames.forEach(g => {
+      const parts = g.score.split('-').map(Number);
+      if (parts.length !== 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return;
+      const opponent = matchOpponentTeam(g.opponent);
+      const rs = g.outcome === 'W' ? parts[0] : parts[1];
+      const ra = g.outcome === 'W' ? parts[1] : parts[0];
+      gameResults.push({ opponent, rs, ra });
+    });
     last5.forEach(g => {
       const parts = g.score.split('-').map(Number);
       if (parts.length !== 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return;
@@ -1659,13 +1668,26 @@ function buildTeamPowerRaw() {
       last5W,
       last5Pct: last5.length ? last5W / last5.length : 0.5,
       last5RDiffPG: last5.length ? (last5RS - last5RA) / last5.length : 0,
-      opponents: completedGames.map(g => matchOpponentTeam(g.opponent)).filter(Boolean),
+      opponents: gameResults.map(g => g.opponent).filter(Boolean),
+      gameResults,
     };
   });
 }
 
 function calculateTeamPowerRatings() {
   const rows = buildTeamPowerRaw();
+  const rowByTeam = Object.fromEntries(rows.map(r => [r.team, r]));
+  const allGameResults = rows.flatMap(r => r.gameResults);
+  const leagueRPG = allGameResults.length
+    ? allGameResults.reduce((s, g) => s + g.rs, 0) / allGameResults.length
+    : 5;
+  const EXP = 1.83;
+  const pyth = (off, def) => {
+    const o = Math.max(0.1, off);
+    const d = Math.max(0.1, def);
+    return Math.pow(o, EXP) / (Math.pow(o, EXP) + Math.pow(d, EXP));
+  };
+
   rows.forEach(r => {
     const hasGames = r.G > 0;
     const hasHit = r.teamPA > 0;
@@ -1698,48 +1720,54 @@ function calculateTeamPowerRatings() {
     r.pitching = pitching;
     r.recent = recent;
     r.baseRating = clamp(runBase * 0.45 + offense * 0.25 + pitching * 0.20 + recent * 0.10);
+    r.adjO = hasGames ? r.rsPG : leagueRPG;
+    r.adjD = hasGames ? r.raPG : leagueRPG;
   });
 
-  const avgBase = avgNums(rows.map(r => r.baseRating)) || 50;
-  const baseByTeam = Object.fromEntries(rows.map(r => [r.team, r.baseRating]));
-  rows.forEach(r => {
-    const oppRatings = r.opponents.map(t => baseByTeam[t]).filter(v => Number.isFinite(v));
-    r.sos = oppRatings.length ? avgNums(oppRatings) : avgBase;
-    r.adjRDiffPG = r.rdiffPG + ((r.sos - avgBase) / 20);
-  });
+  // KenPom-style adjusted efficiency loop for baseball:
+  // AdjO = runs scored per game adjusted for opponent defense.
+  // AdjD = runs allowed per game adjusted for opponent offense.
+  // Both are normalized to an average opponent on a neutral field.
+  for (let iter = 0; iter < 14; iter++) {
+    const next = {};
+    rows.forEach(r => {
+      if (!r.gameResults.length) {
+        next[r.team] = { adjO: r.adjO, adjD: r.adjD };
+        return;
+      }
+      let weightTotal = 0;
+      let offTotal = 0;
+      let defTotal = 0;
+      r.gameResults.forEach((g, i) => {
+        const opp = rowByTeam[g.opponent] || { adjO: leagueRPG, adjD: leagueRPG };
+        const recentWeight = 1 + (i / Math.max(1, r.gameResults.length - 1)) * 0.12;
+        offTotal += (g.rs * leagueRPG / Math.max(1, opp.adjD)) * recentWeight;
+        defTotal += (g.ra * leagueRPG / Math.max(1, opp.adjO)) * recentWeight;
+        weightTotal += recentWeight;
+      });
+      next[r.team] = {
+        adjO: offTotal / weightTotal,
+        adjD: defTotal / weightTotal,
+      };
+    });
+    rows.forEach(r => {
+      r.adjO = next[r.team].adjO;
+      r.adjD = next[r.team].adjD;
+    });
+  }
 
   rows.forEach(r => {
-    const adjRun = r.G > 0 ? percentileFromRows(rows, 'adjRDiffPG', r.adjRDiffPG, false, x => x.G > 0) : 50;
-    const sosComp = percentileFromRows(rows, 'sos', r.sos, false);
-    r.adjRun = adjRun;
-    r.sosComp = sosComp;
-
-    // Power rating is performance-first. SOS is a controlled modifier, not free
-    // credit, so a strong schedule only helps when a team actually performs.
-    r.runAdjusted = adjRun;
-    r.offenseAdjusted = r.offense;
-    r.pitchingAdjusted = r.pitching;
-    r.performanceScore =
-      adjRun * 0.42 +
-      r.offense * 0.20 +
-      r.pitching * 0.20 +
-      r.recent * 0.04 +
-      (r.wpct * 100) * 0.14;
-    r.sosGate =
-      clamp((r.rdiffPG + 0.5) / 4.5, 0, 1) *
-      clamp((r.wpct - 0.45) / 0.35, 0, 1);
-    r.sosModifier = (sosComp - 50) * 0.14 * r.sosGate;
-    r.weakSchedulePenalty =
-      (sosComp < 40 ? (40 - sosComp) * 0.55 : 0) +
-      (sosComp < 35 && r.wpct < 0.80 ? (0.80 - r.wpct) * 45 : 0);
-    r.lossPenalty = r.wpct < 0.62 ? (0.62 - r.wpct) * 25 : 0;
-
-    r.score = clamp(
-      r.performanceScore +
-      r.sosModifier -
-      r.weakSchedulePenalty -
-      r.lossPenalty
-    );
+    const oppRows = r.opponents.map(t => rowByTeam[t]).filter(Boolean);
+    r.oppAdjO = oppRows.length ? avgNums(oppRows.map(o => o.adjO)) : leagueRPG;
+    r.oppAdjD = oppRows.length ? avgNums(oppRows.map(o => o.adjD)) : leagueRPG;
+    r.sosPyth = pyth(r.oppAdjO, r.oppAdjD);
+    r.sos = r.sosPyth * 100;
+    r.sosComp = percentileFromRows(rows, 'sos', r.sos, false);
+    r.adjRDiffPG = r.adjO - r.adjD;
+    r.adjRun = r.G > 0 ? percentileFromRows(rows, 'adjRDiffPG', r.adjRDiffPG, false, x => x.G > 0) : 50;
+    r.pywp = pyth(r.adjO, r.adjD);
+    r.luck = r.wpct - r.pywp;
+    r.score = clamp(r.pywp * 100);
   });
 
   TEAM_POWER_RATINGS = rows.sort((a, b) => b.score - a.score || b.adjRDiffPG - a.adjRDiffPG);
@@ -1754,14 +1782,13 @@ function renderTeamRankings() {
 
   const cols = [
     { key:'score',      label:'DI Score', fmt:v=>v.toFixed(1), lowerBetter:false },
+    { key:'adjO',       label:'AdjO',     fmt:v=>v.toFixed(2), lowerBetter:false },
+    { key:'adjD',       label:'AdjD',     fmt:v=>v.toFixed(2), lowerBetter:true },
     { key:'sos',        label:'SOS',      fmt:v=>v.toFixed(1), lowerBetter:false },
-    { key:'adjRDiffPG', label:'Adj RD/G', fmt:v=>fmtSigned(v, 2), lowerBetter:false },
+    { key:'luck',       label:'Luck',     fmt:v=>fmtSigned(v, 3).replace(/^([-+])0/, '$1'), lowerBetter:true },
     { key:'wpct',       label:'PCT',      fmt:v=>v.toFixed(3).replace(/^0/,''), lowerBetter:false },
     { key:'rsPG',       label:'RS/G',     fmt:v=>v.toFixed(2), lowerBetter:false },
     { key:'raPG',       label:'RA/G',     fmt:v=>v.toFixed(2), lowerBetter:true },
-    { key:'wRC_plus',   label:'wRC+',     fmt:v=>Math.round(v), lowerBetter:false },
-    { key:'ERA',        label:'ERA',      fmt:v=>v.toFixed(2), lowerBetter:true },
-    { key:'recent',     label:'Recent',   fmt:v=>v.toFixed(0), lowerBetter:false },
   ];
   if (!cols.find(c => c.key === rankingsSort.col)) rankingsSort = { col:'score', asc:false };
 
