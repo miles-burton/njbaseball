@@ -485,11 +485,11 @@
     <div class="glossary-section">
       <div class="glossary-section-title">Power Rankings</div>
       <div class="glossary-grid">
-        <div class="glossary-card gc-highlight"><div class="gc-stat">DI SCORE</div><div class="gc-name">Diamond Index Team Score</div><div class="gc-def">0-100 team rating. The formula weights Adjusted RDiff/G 35%, SOS 25%, team hitting 20%, team pitching 15%, and recent form 5%.</div></div>
+        <div class="glossary-card gc-highlight"><div class="gc-stat">DI SCORE</div><div class="gc-name">Diamond Index Team Score</div><div class="gc-def">0-100 team rating. The formula weights schedule-adjusted run differential 35%, SOS 25%, schedule-adjusted hitting 20%, schedule-adjusted pitching 15%, and recent form 5%.</div></div>
         <div class="glossary-card"><div class="gc-stat">SOS</div><div class="gc-name">Strength of Schedule</div><div class="gc-def">Average base rating of matched opponents on a 0-100 scale. Opponents are matched from available NJ.com schedule data.</div></div>
         <div class="glossary-card"><div class="gc-stat">ADJ RD/G</div><div class="gc-name">Adjusted Run Differential per Game</div><div class="gc-def">Run differential per game with a schedule-strength adjustment. Beating strong opponents is rewarded more than beating weak opponents.</div></div>
-        <div class="glossary-card"><div class="gc-stat">OFF</div><div class="gc-name">Team Offense Component</div><div class="gc-def">Percentile blend of team wRC+, wOBA, OPS, and runs scored per game.</div></div>
-        <div class="glossary-card"><div class="gc-stat">PITCH</div><div class="gc-name">Team Pitching Component</div><div class="gc-def">Percentile blend of ERA, WHIP, FIP, K/7, and runs allowed per game. Lower run prevention stats are better.</div></div>
+        <div class="glossary-card"><div class="gc-stat">OFF</div><div class="gc-name">Team Offense Component</div><div class="gc-def">Percentile blend of team wRC+, wOBA, OPS, and runs scored per game, discounted by schedule strength so weak-schedule production is not overvalued.</div></div>
+        <div class="glossary-card"><div class="gc-stat">PITCH</div><div class="gc-name">Team Pitching Component</div><div class="gc-def">Percentile blend of ERA, WHIP, FIP, K/7, and runs allowed per game, discounted by schedule strength. Lower run prevention stats are better.</div></div>
         <div class="glossary-card"><div class="gc-stat">RECENT</div><div class="gc-name">Recent Form</div><div class="gc-def">Last five completed games, using win percentage and run differential over that stretch.</div></div>
       </div>
     </div>

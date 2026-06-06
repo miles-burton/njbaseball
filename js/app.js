@@ -1713,7 +1713,25 @@ function calculateTeamPowerRatings() {
     const sosComp = percentileFromRows(rows, 'sos', r.sos, false);
     r.adjRun = adjRun;
     r.sosComp = sosComp;
-    r.score = clamp(adjRun * 0.35 + sosComp * 0.25 + r.offense * 0.20 + r.pitching * 0.15 + r.recent * 0.05);
+
+    // Schedule strength has to affect the underlying stat components, not just
+    // sit beside them. Otherwise teams can inflate offense, pitching, and run
+    // differential against weak schedules and still rank too highly.
+    r.runAdjusted = adjRun * 0.60 + sosComp * 0.40;
+    r.offenseAdjusted = r.offense * 0.55 + sosComp * 0.45;
+    r.pitchingAdjusted = r.pitching * 0.65 + sosComp * 0.35;
+    r.weakSchedulePenalty =
+      (sosComp < 35 ? (35 - sosComp) * 0.35 : 0) +
+      (sosComp < 20 ? (20 - sosComp) * 0.25 : 0);
+
+    r.score = clamp(
+      r.runAdjusted * 0.35 +
+      sosComp * 0.25 +
+      r.offenseAdjusted * 0.20 +
+      r.pitchingAdjusted * 0.15 +
+      r.recent * 0.05 -
+      r.weakSchedulePenalty
+    );
   });
 
   TEAM_POWER_RATINGS = rows.sort((a, b) => b.score - a.score || b.adjRDiffPG - a.adjRDiffPG);
