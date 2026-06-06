@@ -348,14 +348,28 @@ function renderPlayerGameLogs(name, team, range = { active:false }) {
   const hitter = AP.find(p => p.name === name && p.team === team);
   const pitcher = PP.find(p => p.name === name && p.team === team);
   const filteredStats = range.active ? [
-    hitter && hitRows.length ? renderCountingStats('Filtered Hitting Stats', (() => {
+    hitter && hitRows.length ? (() => {
       const p = calculateHitStats(hitter, hitRows);
-      return [['PA', p.PA], ['AB', p.AB], ['R', p.R], ['H', p.H], ['RBI', p.RBI], ['2B', p.B2], ['3B', p.B3], ['HR', p.HR], ['BB', p.BB], ['HBP', p.HBP], ['SB', p.SB]];
-    })()) : '',
-    pitcher && pitRows.length ? renderCountingStats('Filtered Pitching Stats', (() => {
+      return [
+        renderCountingStats('Filtered Hitting Counting Stats', [['PA', p.PA], ['AB', p.AB], ['R', p.R], ['H', p.H], ['RBI', p.RBI], ['2B', p.B2], ['3B', p.B3], ['HR', p.HR], ['BB', p.BB], ['HBP', p.HBP], ['SB', p.SB]]),
+        renderCountingStats('Filtered Hitting Rate Stats', [
+          ['AVG', HSC.AVG.fmt(p.AVG)], ['OBP', HSC.OBP.fmt(p.OBP)], ['SLG', HSC.SLG.fmt(p.SLG)],
+          ['OPS', HSC.OPS.fmt(p.OPS)], ['ISO', HSC.ISO.fmt(p.ISO)], ['BB%', HSC.BB_pct.fmt(p.BB_pct)],
+          ['wOBA', HSC.wOBA.fmt(p.wOBA)], ['wRC+', HSC.wRC_plus.fmt(p.wRC_plus)], ['wRC', HSC.wRC.fmt(p.wRC)],
+        ]),
+      ].join('');
+    })() : '',
+    pitcher && pitRows.length ? (() => {
       const p = calculatePitchStats(pitcher, pitRows);
-      return [['W-L', `${p.W}-${p.L}`], ['IP', formatBaseballIP(p.IP)], ['H', p.H], ['R', p.R], ['ER', p.ER], ['BB', p.BB], ['K', p.K], ['HBP', p.HB]];
-    })()) : '',
+      return [
+        renderCountingStats('Filtered Pitching Counting Stats', [['W-L', `${p.W}-${p.L}`], ['IP', formatBaseballIP(p.IP)], ['H', p.H], ['R', p.R], ['ER', p.ER], ['BB', p.BB], ['K', p.K], ['HBP', p.HB]]),
+        renderCountingStats('Filtered Pitching Rate Stats', [
+          ['ERA', PSC.ERA.fmt(p.ERA)], ['FIP', PSC.FIP.fmt(p.FIP)], ['WHIP', PSC.WHIP.fmt(p.WHIP)],
+          ['K/7', PSC.K7.fmt(p.K7)], ['BB/7', PSC.BB7.fmt(p.BB7)], ['K/BB', p.KBB === 999 ? '∞' : PSC.KBB.fmt(p.KBB)],
+          ['ERA-', PSC.ERA_minus.fmt(p.ERA_minus)], ['FIP-', PSC.FIP_minus.fmt(p.FIP_minus)], ['P/IP', PSC.PIP.fmt(p.PIP)],
+        ]),
+      ].join('');
+    })() : '',
   ].filter(Boolean).join('') : '';
   const html = [
     filteredStats,
