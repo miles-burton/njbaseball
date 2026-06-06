@@ -767,26 +767,20 @@ function buildTeamFilters() {
 }
 
 function buildPredictorTeams() {
-  const selects = ['predictTeamA', 'predictTeamB'].map(id => document.getElementById(id)).filter(Boolean);
-  if (!selects.length || selects[0].options.length) return;
-  const confs = [...new Set(Object.values(TM).map(m => m.div).filter(Boolean))].sort();
-  selects.forEach(sel => {
-    confs.forEach(conf => {
-      const teams = Object.keys(TM).filter(t => TM[t].div === conf).sort();
-      const grp = document.createElement('optgroup');
-      grp.label = conf;
-      teams.forEach(t => {
-        const o = document.createElement('option');
-        o.value = t;
-        o.textContent = t;
-        grp.appendChild(o);
-      });
-      sel.appendChild(grp);
-    });
+  const list = document.getElementById('predictTeamList');
+  const inputs = ['predictTeamA', 'predictTeamB'].map(id => document.getElementById(id)).filter(Boolean);
+  if (!list || !inputs.length || list.children.length) return;
+  Object.keys(TM).sort().forEach(team => {
+    const o = document.createElement('option');
+    o.value = team;
+    o.label = TM[team]?.div ? `${team} · ${TM[team].div}` : team;
+    list.appendChild(o);
   });
   const top = TEAM_POWER_RATINGS.length ? TEAM_POWER_RATINGS : [];
-  if (top[0]) selects[0].value = top[0].team;
-  if (top[1]) selects[1].value = top[1].team;
+  if (top[0]) inputs[0].value = top[0].team;
+  if (top[1]) inputs[1].value = top[1].team;
+  updatePredictorPitchers('A');
+  updatePredictorPitchers('B');
 }
 
 // ── HITTING LEADERBOARD ────────────────────────────────────────────────────────
@@ -2063,7 +2057,57 @@ function leagueRunEnvironment() {
   return rows.length ? avgNums(rows.map(t => t.adjO)) : 5;
 }
 
-function predictMatchup(teamA, teamB, venue = 'neutral') {
+function getPredictorTeamValue(side) {
+  const raw = document.getElementById('predictTeam' + side)?.value?.trim() || '';
+  if (TM[raw]) return raw;
+  const lower = raw.toLowerCase();
+  return Object.keys(TM).find(t => t.toLowerCase() === lower) || raw;
+}
+
+function pitcherKey(p) {
+  return `${p.name}||${p.team}`;
+}
+
+function pitcherRunEstimate(p) {
+  if (!p || !Number.isFinite(p.IP) || p.IP <= 0) return null;
+  const era = Number.isFinite(p.ERA) ? p.ERA : null;
+  const fip = Number.isFinite(p.FIP) ? p.FIP : null;
+  if (era === null && fip === null) return null;
+  const estimate = era !== null && fip !== null ? (era * 0.4 + fip * 0.6) : (era ?? fip);
+  return clamp(estimate, 0.5, 12);
+}
+
+function effectiveDefenseWithStarter(teamRow, pitcherId) {
+  if (!pitcherId) return teamRow.adjD;
+  const starterKey = decodeURIComponent(pitcherId);
+  const starter = PP.find(p => pitcherKey(p) === starterKey);
+  const starterRA = pitcherRunEstimate(starter);
+  if (!starter || starterRA === null) return teamRow.adjD;
+  const reliability = clamp(starter.IP / 25, 0, 1);
+  const starterShare = 0.68 * reliability;
+  return (starterRA * starterShare) + (teamRow.adjD * (1 - starterShare));
+}
+
+function updatePredictorPitchers(side) {
+  const team = getPredictorTeamValue(side);
+  const sel = document.getElementById('predictPitcher' + side);
+  if (!sel) return;
+  const previous = sel.value;
+  const pitchers = PP
+    .filter(p => p.team === team && p.IP > 0)
+    .sort((a, b) => b.IP - a.IP || a.ERA - b.ERA);
+  sel.innerHTML = `<option value="">Team pitching staff</option>` + pitchers.map(p =>
+    `<option value="${encodeURIComponent(pitcherKey(p))}">${p.name} · ${p.IP.toFixed(1)} IP · ${p.ERA.toFixed(2)} ERA · ${p.FIP.toFixed(2)} FIP</option>`
+  ).join('');
+  if ([...sel.options].some(o => o.value === previous)) sel.value = previous;
+}
+
+function handlePredictorTeamChange(side) {
+  updatePredictorPitchers(side);
+  renderMatchupPrediction();
+}
+
+function predictMatchup(teamA, teamB, venue = 'neutral', pitcherA = '', pitcherB = '') {
   if (!TEAM_POWER_RATINGS.length) calculateTeamPowerRatings();
   const a = TEAM_POWER_BY_TEAM[teamA];
   const b = TEAM_POWER_BY_TEAM[teamB];
@@ -2073,8 +2117,10 @@ function predictMatchup(teamA, teamB, venue = 'neutral') {
   const homeRuns = 0.25;
   const aHome = venue === 'a-home' ? homeRuns : 0;
   const bHome = venue === 'b-home' ? homeRuns : 0;
-  const expA = Math.max(0.1, (a.adjO * b.adjD / Math.max(0.1, leagueRPG)) + aHome);
-  const expB = Math.max(0.1, (b.adjO * a.adjD / Math.max(0.1, leagueRPG)) + bHome);
+  const aDefense = effectiveDefenseWithStarter(a, pitcherA);
+  const bDefense = effectiveDefenseWithStarter(b, pitcherB);
+  const expA = Math.max(0.1, (a.adjO * bDefense / Math.max(0.1, leagueRPG)) + aHome);
+  const expB = Math.max(0.1, (b.adjO * aDefense / Math.max(0.1, leagueRPG)) + bHome);
   const EXP = 1.83;
   const winProbA = Math.pow(expA, EXP) / (Math.pow(expA, EXP) + Math.pow(expB, EXP));
   let scoreA = Math.max(0, Math.round(expA));
@@ -2085,27 +2131,32 @@ function predictMatchup(teamA, teamB, venue = 'neutral') {
   }
   const winner = winProbA >= 0.5 ? teamA : teamB;
   const winnerProb = winProbA >= 0.5 ? winProbA : 1 - winProbA;
-  return { a, b, teamA, teamB, expA, expB, scoreA, scoreB, winProbA, winner, winnerProb };
+  return { a, b, teamA, teamB, expA, expB, scoreA, scoreB, winProbA, winner, winnerProb, aDefense, bDefense };
 }
 
 function renderMatchupPrediction() {
-  const aSel = document.getElementById('predictTeamA');
-  const bSel = document.getElementById('predictTeamB');
+  const teamA = getPredictorTeamValue('A');
+  const teamB = getPredictorTeamValue('B');
   const venueSel = document.getElementById('predictVenue');
+  const pitcherA = document.getElementById('predictPitcherA')?.value || '';
+  const pitcherB = document.getElementById('predictPitcherB')?.value || '';
   const el = document.getElementById('matchupPrediction');
-  if (!aSel || !bSel || !el) return;
-  const result = predictMatchup(aSel.value, bSel.value, venueSel?.value || 'neutral');
+  if (!el) return;
+  const result = predictMatchup(teamA, teamB, venueSel?.value || 'neutral', pitcherA, pitcherB);
   if (!result) {
-    el.innerHTML = `<div class="predictor-empty">Choose two different teams to generate a prediction.</div>`;
+    el.innerHTML = `<div class="predictor-empty">Search and choose two different teams to generate a prediction.</div>`;
     return;
   }
-  const { a, b, teamA, teamB, expA, expB, scoreA, scoreB, winProbA, winner, winnerProb } = result;
+  const { a, b, expA, expB, scoreA, scoreB, winProbA, winner, winnerProb, aDefense, bDefense } = result;
   const aPct = Math.round(winProbA * 100);
   const bPct = 100 - aPct;
   const confidence = winnerProb >= 0.75 ? 'Strong edge' : winnerProb >= 0.62 ? 'Clear edge' : 'Toss-up range';
   const winnerScore = winner === teamA ? scoreA : scoreB;
   const loserScore = winner === teamA ? scoreB : scoreA;
   const venueText = venueSel?.selectedOptions?.[0]?.textContent || 'Neutral';
+  const starterA = pitcherA ? PP.find(p => pitcherKey(p) === decodeURIComponent(pitcherA)) : null;
+  const starterB = pitcherB ? PP.find(p => pitcherKey(p) === decodeURIComponent(pitcherB)) : null;
+  const starterText = [starterA ? `${teamA}: ${starterA.name}` : '', starterB ? `${teamB}: ${starterB.name}` : ''].filter(Boolean).join(' · ');
 
   el.innerHTML = `
     <div class="prediction-card">
@@ -2132,6 +2183,7 @@ function renderMatchupPrediction() {
         <div class="prediction-pick">${winner}</div>
         <div class="prediction-score">${winnerScore}-${loserScore}</div>
         <div class="prediction-confidence">${confidence} · ${(winnerProb * 100).toFixed(1)}% win probability · ${venueText}</div>
+        ${starterText ? `<div class="prediction-starters">${starterText}</div>` : ''}
       </div>
 
       <div class="prediction-prob">
@@ -2149,7 +2201,7 @@ function renderMatchupPrediction() {
 
       <div class="prediction-metrics">
         ${predictionMetric('AdjO', a.adjO.toFixed(2), b.adjO.toFixed(2))}
-        ${predictionMetric('AdjD', a.adjD.toFixed(2), b.adjD.toFixed(2))}
+        ${predictionMetric('Game AdjD', aDefense.toFixed(2), bDefense.toFixed(2))}
         ${predictionMetric('SOS', a.sos.toFixed(1), b.sos.toFixed(1))}
         ${predictionMetric('Expected Runs', expA.toFixed(2), expB.toFixed(2))}
       </div>
@@ -2167,10 +2219,20 @@ function predictionMetric(label, aVal, bVal) {
 function swapPredictorTeams() {
   const aSel = document.getElementById('predictTeamA');
   const bSel = document.getElementById('predictTeamB');
+  const aPit = document.getElementById('predictPitcherA');
+  const bPit = document.getElementById('predictPitcherB');
   if (!aSel || !bSel) return;
   const a = aSel.value;
+  const pitA = aPit?.value || '';
+  const pitB = bPit?.value || '';
   aSel.value = bSel.value;
   bSel.value = a;
+  updatePredictorPitchers('A');
+  updatePredictorPitchers('B');
+  if (aPit && bPit) {
+    aPit.value = pitB;
+    bPit.value = pitA;
+  }
   renderMatchupPrediction();
 }
 

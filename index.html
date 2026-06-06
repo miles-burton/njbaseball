@@ -382,7 +382,8 @@
       <div class="predictor-controls">
         <label class="predictor-field">
           <span>Team A</span>
-          <select class="ctrl-select" id="predictTeamA" onchange="renderMatchupPrediction()"></select>
+          <input class="ctrl-select predictor-team-input" id="predictTeamA" list="predictTeamList"
+            autocomplete="off" oninput="handlePredictorTeamChange('A')" onchange="handlePredictorTeamChange('A')">
         </label>
         <button class="predictor-swap" onclick="swapPredictorTeams()" title="Swap teams">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -391,7 +392,8 @@
         </button>
         <label class="predictor-field">
           <span>Team B</span>
-          <select class="ctrl-select" id="predictTeamB" onchange="renderMatchupPrediction()"></select>
+          <input class="ctrl-select predictor-team-input" id="predictTeamB" list="predictTeamList"
+            autocomplete="off" oninput="handlePredictorTeamChange('B')" onchange="handlePredictorTeamChange('B')">
         </label>
         <label class="predictor-field predictor-field-small">
           <span>Venue</span>
@@ -399,6 +401,21 @@
             <option value="neutral">Neutral</option>
             <option value="a-home">Team A home</option>
             <option value="b-home">Team B home</option>
+          </select>
+        </label>
+      </div>
+      <datalist id="predictTeamList"></datalist>
+      <div class="predictor-pitcher-controls">
+        <label class="predictor-field">
+          <span>Team A starter</span>
+          <select class="ctrl-select" id="predictPitcherA" onchange="renderMatchupPrediction()">
+            <option value="">Team pitching staff</option>
+          </select>
+        </label>
+        <label class="predictor-field">
+          <span>Team B starter</span>
+          <select class="ctrl-select" id="predictPitcherB" onchange="renderMatchupPrediction()">
+            <option value="">Team pitching staff</option>
           </select>
         </label>
       </div>

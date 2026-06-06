@@ -1601,6 +1601,18 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 
 .predictor-field .ctrl-select { width: 100%; }
 
+.predictor-team-input {
+  height: 38px;
+}
+
+.predictor-pitcher-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0 18px 18px;
+  border-bottom: 1px solid var(--border2);
+}
+
 .predictor-swap {
   width: 42px;
   height: 38px;
@@ -1705,6 +1717,12 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   font-size: 13px;
   color: var(--muted2);
   margin-top: 6px;
+}
+
+.prediction-starters {
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 8px;
 }
 
 .prediction-prob { margin-bottom: 18px; }
@@ -2002,6 +2020,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   .home-articles-grid { grid-template-columns: 1fr; }
   .predictor-wrap { padding: 1rem; }
   .predictor-controls { grid-template-columns: 1fr; }
+  .predictor-pitcher-controls { grid-template-columns: 1fr; }
   .predictor-swap { width: 100%; }
   .prediction-head { grid-template-columns: 1fr; }
   .prediction-team,
