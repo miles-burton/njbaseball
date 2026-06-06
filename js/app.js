@@ -1463,6 +1463,156 @@ document.addEventListener('click', e => {
 });
 
 // ── HOME PAGE ──────────────────────────────────────────────────────────────────
+function parseScheduleDate(dateStr) {
+  const m = String(dateStr || '').match(/(\d{1,2})\/(\d{1,2})/);
+  if (!m) return null;
+  const month = Number(m[1]);
+  const day = Number(m[2]);
+  const year = month >= 9 ? 2025 : 2026;
+  return new Date(year, month - 1, day);
+}
+
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function displayScoreDate(d) {
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function cleanOpponentLabel(opponent) {
+  return String(opponent || '')
+    .replace(/\s+2026\s+.*$/i, '')
+    .replace(/\s+52nd\s+annual.*$/i, '')
+    .replace(/\s+Joe\s+(Lang|Hartmann).*$/i, '')
+    .replace(/\s+Diamond\s+Classic.*$/i, '')
+    .replace(/\s+Tournament.*$/i, '')
+    .trim();
+}
+
+function buildCompletedScoreGames() {
+  if (typeof SCHEDULES === 'undefined') return [];
+  const seen = new Set();
+  const games = [];
+
+  Object.keys(SCHEDULES).forEach(team => {
+    (SCHEDULES[team].games || []).forEach(g => {
+      if (!g.score || !['W', 'L'].includes(g.outcome)) return;
+      const d = parseScheduleDate(g.date);
+      if (!d) return;
+      const parts = g.score.split('-').map(Number);
+      if (parts.length !== 2 || parts.some(Number.isNaN)) return;
+
+      const oppMatch = matchOpponentTeam(g.opponent);
+      const oppLabel = oppMatch || cleanOpponentLabel(g.opponent);
+      const teamScore = g.outcome === 'W' ? parts[0] : parts[1];
+      const oppScore = g.outcome === 'W' ? parts[1] : parts[0];
+      const names = [team, oppMatch || oppLabel].sort();
+      const key = `${dateKey(d)}|${names[0]}|${names[1]}|${Math.min(teamScore, oppScore)}|${Math.max(teamScore, oppScore)}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      const winner = teamScore > oppScore ? team : oppLabel;
+      const loser = teamScore > oppScore ? oppLabel : team;
+      const winnerScore = Math.max(teamScore, oppScore);
+      const loserScore = Math.min(teamScore, oppScore);
+      const tPower = TEAM_POWER_BY_TEAM[team]?.score || 50;
+      const oPower = oppMatch ? (TEAM_POWER_BY_TEAM[oppMatch]?.score || 50) : 50;
+      const avgPower = (tPower + oPower) / 2;
+      const margin = Math.abs(teamScore - oppScore);
+      const closeBonus = Math.max(0, 8 - margin) * 1.5;
+      const rankedBonus = (TEAM_POWER_BY_TEAM[team]?.rank <= 25 ? 6 : 0) + (oppMatch && TEAM_POWER_BY_TEAM[oppMatch]?.rank <= 25 ? 6 : 0);
+      const upsetBonus = (
+        (teamScore > oppScore && oPower - tPower > 10) ||
+        (oppScore > teamScore && tPower - oPower > 10)
+      ) ? 8 : 0;
+      const tournamentBonus = /tournament|diamond classic|county|njsiaa/i.test(g.opponent) ? 5 : 0;
+
+      games.push({
+        date: d,
+        dateKey: dateKey(d),
+        team,
+        opponent: oppLabel,
+        oppMatch,
+        winner,
+        loser,
+        winnerScore,
+        loserScore,
+        teamScore,
+        oppScore,
+        margin,
+        importance: avgPower + closeBonus + rankedBonus + upsetBonus + tournamentBonus,
+        tournament: tournamentBonus > 0,
+      });
+    });
+  });
+
+  return games;
+}
+
+function renderHomeScores() {
+  const container = document.getElementById('homeScores');
+  const meta = document.getElementById('homeScoresMeta');
+  if (!container) return;
+
+  const games = buildCompletedScoreGames();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = dateKey(yesterday);
+  let selected = games.filter(g => g.dateKey === yesterdayKey);
+  let selectedDate = selected[0]?.date || yesterday;
+  let usedFallback = false;
+
+  if (!selected.length && games.length) {
+    const latestKey = games.map(g => g.dateKey).sort().at(-1);
+    selected = games.filter(g => g.dateKey === latestKey);
+    selectedDate = selected[0].date;
+    usedFallback = latestKey !== yesterdayKey;
+  }
+
+  selected.sort((a, b) => b.importance - a.importance || a.margin - b.margin);
+  if (meta) {
+    meta.textContent = selected.length
+      ? `${usedFallback ? 'Latest completed scores' : 'Yesterday'} · ${displayScoreDate(selectedDate)} · ranked by game importance`
+      : 'No completed scores available yet.';
+  }
+
+  if (!selected.length) {
+    container.innerHTML = '<div class="empty">No completed scores available.</div>';
+    return;
+  }
+
+  const teamLogo = name => TM[name]?.logo ? `<img src="${TM[name].logo}" width="18" height="18" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : '';
+  const teamClick = name => TM[name] ? `onclick="showTeam(decodeURIComponent('${encodeURIComponent(name)}'),'home')"` : '';
+
+  container.innerHTML = `<table class="home-rankings-table">
+    <thead><tr>
+      <th style="width:32px">#</th>
+      <th>Game</th>
+      <th class="num">Score</th>
+      <th class="num">DI</th>
+    </tr></thead>
+    <tbody>
+      ${selected.slice(0, 10).map((g, i) => {
+        const winnerPower = TEAM_POWER_BY_TEAM[g.winner]?.score;
+        return `<tr ${teamClick(g.winner)}>
+          <td style="font-family:'Bebas Neue',sans-serif;color:${i < 3 ? 'var(--accent)' : 'var(--muted)'};font-size:16px">${i + 1}</td>
+          <td>
+            <div class="home-score-game">
+              ${g.tournament ? '<span class="home-score-badge">TOURNEY</span>' : ''}
+              <span class="home-score-team home-score-winner">${teamLogo(g.winner)}<span>${g.winner}</span></span>
+              <span class="home-score-vs">def.</span>
+              <span class="home-score-team home-score-loser">${teamLogo(g.loser)}<span>${g.loser}</span></span>
+            </div>
+          </td>
+          <td class="num" style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--text)">${g.winnerScore}-${g.loserScore}</td>
+          <td class="num" style="color:var(--muted2)">${Number.isFinite(winnerPower) ? winnerPower.toFixed(1) : '—'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
+
 function renderHome() {
 
   // Top performers — top 3 hitters by wRC+, top 3 pitchers by strikeouts
@@ -1495,6 +1645,8 @@ function renderHome() {
     topHitters.map((p,i) => perfCard(p,'wRC_plus',v=>Math.round(v),'wRC+',i,false)).join('')+
     `<div style="grid-column:1/-1;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-top:12px;margin-bottom:4px">Pitching — Strikeouts</div>`+
     topPitchers.map((p,i) => perfCard(p,'K',v=>Math.round(v),'K',i,true)).join('');
+
+  renderHomeScores();
 
   // Articles
   document.getElementById('homeArticles').innerHTML = ARTICLES.map(a => `

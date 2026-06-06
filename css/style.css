@@ -1352,6 +1352,13 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   color: var(--text);
 }
 
+.home-section-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+}
+
 .home-section-link {
   font-size: 11px;
   font-weight: 600;
@@ -1517,6 +1524,41 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .home-rankings-table tbody tr:hover { background: var(--surface); }
 .home-rankings-table tbody tr:last-child { border-bottom: none; }
 .home-rankings-table td { padding: 9px 14px; font-size: 13px; }
+
+.home-score-game {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.home-score-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.home-score-team span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-score-winner { color: var(--text); font-weight: 700; }
+.home-score-loser { color: var(--muted2); }
+.home-score-vs { color: var(--muted); font-size: 11px; flex-shrink: 0; }
+
+.home-score-badge {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  border: 1px solid rgba(200, 155, 60, 0.35);
+  background: rgba(200, 155, 60, 0.08);
+  border-radius: 3px;
+  padding: 2px 6px;
+}
 
 /* ── TEAM RANKINGS PAGE ───────────────────────────────────────────────────── */
 .rankings-sort-active { color: var(--accent) !important; }
