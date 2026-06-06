@@ -63,6 +63,17 @@
 
   </nav>
 
+  <div class="global-search" id="globalSearch">
+    <svg class="global-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
+    </svg>
+    <input class="global-search-input" type="text" id="globalPlayerSearch"
+      placeholder="Search players..." autocomplete="off"
+      oninput="renderGlobalPlayerSearch()" onfocus="renderGlobalPlayerSearch()"
+      onkeydown="handleGlobalSearchKey(event)">
+    <div class="global-search-results" id="globalSearchResults"></div>
+  </div>
+
   <button class="back-btn" id="backBtn" onclick="goBack()">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M10 3L5 8l5 5"/>

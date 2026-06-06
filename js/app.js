@@ -70,6 +70,8 @@ let pitPage = 1;
 const LEADER_PAGE_SIZE = 100;
 const GRADE_VALUES = ['Freshman', 'Sophomore', 'Junior', 'Senior'];
 let playerLogsLoadPromise = null;
+let globalPlayerSearchIndex = [];
+let globalSearchActiveIndex = 0;
 
 // Standard sort state
 let hitStdSort = { col: 'HR', asc: false };
@@ -385,6 +387,114 @@ function loadPlayerGameLogs(name, team) {
       const current = document.getElementById('playerGameLogs');
       if (current) current.innerHTML = `<div class="game-log-section"><div class="game-log-empty">Game log could not be loaded.</div></div>`;
     });
+}
+
+function buildGlobalPlayerSearchIndex() {
+  const byKey = new Map();
+  const addPlayer = (p, kind) => {
+    const key = playerKey(p.name, p.team);
+    const existing = byKey.get(key) || {
+      name: p.name,
+      team: p.team,
+      year: p.year || '',
+      pos: p.pos || '',
+      hitter: false,
+      pitcher: false,
+      score: 0,
+    };
+    if (kind === 'hitter') {
+      existing.hitter = true;
+      existing.score = Math.max(existing.score, p.PA || 0);
+    } else {
+      existing.pitcher = true;
+      existing.score = Math.max(existing.score, (p.IP || 0) * 3);
+    }
+    if (!existing.year && p.year) existing.year = p.year;
+    if (!existing.pos && p.pos) existing.pos = p.pos;
+    byKey.set(key, existing);
+  };
+  AP.forEach(p => addPlayer(p, 'hitter'));
+  PP.forEach(p => addPlayer(p, 'pitcher'));
+  globalPlayerSearchIndex = [...byKey.values()]
+    .map(p => ({ ...p, search: `${p.name} ${p.team} ${p.year} ${p.pos}`.toLowerCase() }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function getGlobalSearchMatches(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const terms = q.split(/\s+/).filter(Boolean);
+  return globalPlayerSearchIndex
+    .filter(p => terms.every(t => p.search.includes(t)))
+    .sort((a, b) => {
+      const an = a.name.toLowerCase().startsWith(q) ? 0 : 1;
+      const bn = b.name.toLowerCase().startsWith(q) ? 0 : 1;
+      if (an !== bn) return an - bn;
+      return b.score - a.score;
+    })
+    .slice(0, 10);
+}
+
+function renderGlobalPlayerSearch() {
+  const input = document.getElementById('globalPlayerSearch');
+  const menu = document.getElementById('globalSearchResults');
+  if (!input || !menu) return;
+  const matches = getGlobalSearchMatches(input.value);
+  globalSearchActiveIndex = 0;
+  if (!input.value.trim()) {
+    menu.classList.remove('open');
+    menu.innerHTML = '';
+    return;
+  }
+  menu.classList.add('open');
+  menu.innerHTML = matches.length ? matches.map((p, i) => {
+    const role = p.hitter && p.pitcher ? 'Two-Way' : (p.pitcher ? 'Pitcher' : 'Hitter');
+    const detail = [p.team, p.year, p.pos].filter(Boolean).join(' · ');
+    return `<button class="global-search-item${i === 0 ? ' active' : ''}" type="button"
+      onclick="selectGlobalPlayer('${encodeURIComponent(p.name)}','${encodeURIComponent(p.team)}')">
+      <div>
+        <div class="global-search-name">${p.name}</div>
+        <div class="global-search-meta">${detail}</div>
+      </div>
+      <span class="global-search-role">${role}</span>
+    </button>`;
+  }).join('') : `<div class="global-search-empty">No players found.</div>`;
+}
+
+function selectGlobalPlayer(encName, encTeam) {
+  const team = decodeURIComponent(encTeam);
+  const input = document.getElementById('globalPlayerSearch');
+  const menu = document.getElementById('globalSearchResults');
+  if (input) input.value = '';
+  if (menu) {
+    menu.innerHTML = '';
+    menu.classList.remove('open');
+  }
+  closeDropdowns();
+  showPlayer(encName, team, 'leaderboard');
+}
+
+function handleGlobalSearchKey(e) {
+  const input = document.getElementById('globalPlayerSearch');
+  const menu = document.getElementById('globalSearchResults');
+  const items = menu ? [...menu.querySelectorAll('.global-search-item')] : [];
+  if (e.key === 'Escape') {
+    if (menu) menu.classList.remove('open');
+    if (input) input.blur();
+    return;
+  }
+  if (!items.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    globalSearchActiveIndex = e.key === 'ArrowDown'
+      ? Math.min(globalSearchActiveIndex + 1, items.length - 1)
+      : Math.max(globalSearchActiveIndex - 1, 0);
+    items.forEach((el, i) => el.classList.toggle('active', i === globalSearchActiveIndex));
+    items[globalSearchActiveIndex].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    items[globalSearchActiveIndex].click();
+  }
 }
 
 function showLastUpdated() {
@@ -1076,6 +1186,9 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.div-filter-wrap')) {
     document.querySelectorAll('.div-filter-menu').forEach(m => m.classList.remove('open'));
   }
+  if (!e.target.closest('.global-search')) {
+    document.getElementById('globalSearchResults')?.classList.remove('open');
+  }
 });
 
 // ── DROPDOWN NAV ───────────────────────────────────────────────────────────────
@@ -1398,6 +1511,7 @@ function renderStandings() {
 // ── INIT ───────────────────────────────────────────────────────────────────────
 normalizePlayers();
 setupPlayerScore();
+buildGlobalPlayerSearchIndex();
 showLastUpdated();
 buildDivFilters();
 buildTeamFilters();

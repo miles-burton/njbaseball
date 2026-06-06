@@ -105,6 +105,110 @@ body {
 
 .back-btn:hover { color: var(--text); }
 
+/* ── GLOBAL PLAYER SEARCH ────────────────────────────────────────────────── */
+.global-search {
+  position: relative;
+  margin-left: auto;
+  width: min(280px, 26vw);
+  min-width: 210px;
+}
+
+.global-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted2);
+  pointer-events: none;
+}
+
+.global-search-input {
+  width: 100%;
+  height: 34px;
+  padding: 0 12px 0 34px;
+  border-radius: 4px;
+  border: 1px solid var(--border2);
+  background: rgba(15,36,64,0.72);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.global-search-input:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.global-search-input::placeholder { color: var(--muted2); }
+
+.global-search-results {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(420px, 90vw);
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  box-shadow: 0 18px 44px rgba(0,0,0,0.45);
+  padding: 6px;
+  z-index: 200;
+}
+
+.global-search-results.open { display: block; }
+
+.global-search-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.global-search-item:hover,
+.global-search-item.active { background: var(--surface2); }
+
+.global-search-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.global-search-meta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted2);
+}
+
+.global-search-role {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.global-search-empty {
+  padding: 10px;
+  color: var(--muted2);
+  font-size: 13px;
+}
+
 /* ── NAV DROPDOWNS ────────────────────────────────────────────────────────── */
 .nav-dropdown { position: relative; display: flex; align-items: stretch; }
 .nav-dropdown-trigger { display: flex; align-items: center; }
@@ -1558,6 +1662,24 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 
 /* ── RESPONSIVE ───────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
+  .site-header {
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .global-search {
+    order: 3;
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+  }
+  .global-search-results {
+    left: 0;
+    right: auto;
+    width: 100%;
+  }
   .leaderboard-wrap,
   .player-wrap,
   .team-wrap,
@@ -1577,7 +1699,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 
 @media (max-width: 480px) {
   .teams-grid { grid-template-columns: 1fr; }
-  .site-header { padding: 0 1rem; gap: 1rem; }
+  .site-header { padding: 8px 1rem; gap: 1rem; }
   .logo-icon { width: 28px; height: 34px; }
   .home-hero-title { font-size: 40px; }
 }
