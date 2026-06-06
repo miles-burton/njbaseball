@@ -68,6 +68,7 @@ let pitMode = 'advanced';
 let hitPage = 1;
 let pitPage = 1;
 const LEADER_PAGE_SIZE = 100;
+const GRADE_VALUES = ['Freshman', 'Sophomore', 'Junior', 'Senior'];
 
 // Standard sort state
 let hitStdSort = { col: 'HR', asc: false };
@@ -134,6 +135,44 @@ function calcPct(vals, v, lowerBetter) {
   const e = sorted.filter(x => x === v).length;
   const raw = sorted.length ? Math.round(((b + e * 0.5) / sorted.length) * 100) : 50;
   return lowerBetter ? 100 - raw : raw;
+}
+
+function normalizeGrade(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  return GRADE_VALUES.find(g => g.toLowerCase() === raw) || '';
+}
+
+function isPositionText(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return false;
+  return /^[A-Z0-9,\s/.-]+$/.test(raw) && /[A-Z]/.test(raw);
+}
+
+function normalizePlayerIdentity(p) {
+  if (!p) return;
+
+  p.name = String(p.name || '')
+    .replace(/\s+(?:#|\/)\d+\s*$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const trailingGrade = p.name.match(/\s+(Freshman|Sophomore|Junior|Senior)$/i);
+  if (trailingGrade) {
+    const grade = normalizeGrade(trailingGrade[1]);
+    p.name = p.name.slice(0, trailingGrade.index).trim();
+    if (!normalizeGrade(p.year)) {
+      if (isPositionText(p.year) && !p.pos) p.pos = p.year;
+      p.year = grade;
+    }
+  }
+
+  const normalizedYear = normalizeGrade(p.year);
+  if (normalizedYear) p.year = normalizedYear;
+}
+
+function normalizePlayers() {
+  AP.forEach(normalizePlayerIdentity);
+  PP.forEach(normalizePlayerIdentity);
 }
 
 function setupPlayerScore() {
@@ -303,6 +342,7 @@ function renderHitTable() {
   const isStd = hitMode === 'standard';
   const ss    = document.getElementById('hitStatFilter').value;
   const tf    = document.getElementById('hitTeamFilter').value;
+  const gf    = document.getElementById('hitGradeFilter').value;
   const minPA = parseInt(document.getElementById('hitMinPA').value) || 0;
   const q     = document.getElementById('hitSearchInput').value.trim().toLowerCase();
 
@@ -324,6 +364,7 @@ function renderHitTable() {
   let pl = AP;
   if (selDivs) pl = pl.filter(p => selDivs.includes(TM[p.team]?.div));
   if (tf !== 'all') pl = pl.filter(p => p.team === tf);
+  if (gf !== 'all') pl = pl.filter(p => p.year === gf);
   if (q) pl = pl.filter(p => p.name.toLowerCase().includes(q));
   pl = pl.filter(p => p.PA >= minPA);
 
@@ -393,6 +434,7 @@ function renderPitchTable() {
   const isStd = pitMode === 'standard';
   const ss    = document.getElementById('pitStatFilter').value;
   const tf    = document.getElementById('pitTeamFilter').value;
+  const gf    = document.getElementById('pitGradeFilter').value;
   const minIP = parseFloat(document.getElementById('pitMinIP').value) || 0;
   const q     = document.getElementById('pitSearchInput').value.trim().toLowerCase();
 
@@ -413,6 +455,7 @@ function renderPitchTable() {
   let pl = PP;
   if (selDivs) pl = pl.filter(p => selDivs.includes(TM[p.team]?.div));
   if (tf !== 'all') pl = pl.filter(p => p.team === tf);
+  if (gf !== 'all') pl = pl.filter(p => p.year === gf);
   if (q) pl = pl.filter(p => p.name.toLowerCase().includes(q));
   pl = pl.filter(p => p.IP >= minIP);
 
@@ -1259,6 +1302,7 @@ function renderStandings() {
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────────
+normalizePlayers();
 setupPlayerScore();
 showLastUpdated();
 buildDivFilters();

@@ -880,6 +880,19 @@ def parse_name_pos_year(cell):
     name = parts[0].strip() if len(parts) > 0 else cell.strip()
     year = parts[1].strip() if len(parts) > 1 else ''
     pos  = parts[2].strip() if len(parts) > 2 else ''
+    name = re.sub(r'\s+(?:#|/)\d+\s*$', '', name).strip()
+
+    grade_match = re.search(r'\s+(Freshman|Sophomore|Junior|Senior)$', name, re.I)
+    if grade_match:
+        grade = grade_match.group(1).title()
+        name = name[:grade_match.start()].strip()
+        if year.title() not in {'Freshman', 'Sophomore', 'Junior', 'Senior'}:
+            if year and not pos:
+                pos = year
+            year = grade
+
+    if year.title() in {'Freshman', 'Sophomore', 'Junior', 'Senior'}:
+        year = year.title()
     return name, pos, year
 
 def safe_float(v, default=0.0):
