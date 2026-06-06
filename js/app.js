@@ -96,7 +96,7 @@ function setPitStdSort(col) {
 
 // ── STAT TOOLTIPS ──────────────────────────────────────────────────────────────
 const HIT_TIPS = {
-  PS:       'Player Score — 0-100 composite from qualified-player percentiles',
+  PS:       'Player Score — 0-100 production score with a capped schedule-strength adjustment',
   wRC_plus: 'Weighted Runs Created Plus — 100 is avg, higher is better',
   wOBA:     'Weighted On-Base Average — measures overall offensive value',
   OPS:      'On-Base Plus Slugging',
@@ -111,7 +111,7 @@ const HIT_TIPS = {
 };
 
 const PIT_TIPS = {
-  PS:        'Player Score — 0-100 composite from qualified-pitcher percentiles',
+  PS:        'Player Score — 0-100 production score with a capped schedule-strength adjustment',
   ERA:       'Earned Run Average — per 7 innings (high school standard)',
   FIP:       'Fielding Independent Pitching — strikeouts, walks, HBP only',
   WHIP:      'Walks + Hits per Inning Pitched',
@@ -211,14 +211,17 @@ function setupPlayerScore() {
     BB_pct: hitVals('BB_pct'),
     BsR: hitVals('BsR'),
   };
+  if (!TEAM_POWER_RATINGS.length) calculateTeamPowerRatings();
   AP.forEach(p => {
-    p.PS =
+    p.PS_base =
       calcPct(h.wRC_plus, p.wRC_plus, false) * 0.45 +
       calcPct(h.wOBA, p.wOBA, false) * 0.20 +
       calcPct(h.OPS, p.OPS, false) * 0.15 +
       calcPct(h.ISO, p.ISO, false) * 0.10 +
       calcPct(h.BB_pct, p.BB_pct, false) * 0.05 +
       calcPct(h.BsR, p.BsR, false) * 0.05;
+    p.PS_sos = playerSOSAdjustment(p.team);
+    p.PS = clamp(p.PS_base + p.PS_sos);
   });
 
   const q = {
@@ -230,14 +233,23 @@ function setupPlayerScore() {
     IP: pitVals('IP'),
   };
   PP.forEach(p => {
-    p.PS =
+    p.PS_base =
       calcPct(q.ERA_minus, p.ERA_minus, true) * 0.30 +
       calcPct(q.FIP_minus, p.FIP_minus, true) * 0.25 +
       calcPct(q.WHIP, p.WHIP, true) * 0.15 +
       calcPct(q.K7, p.K7, false) * 0.15 +
       calcPct(q.KBB, p.KBB, false) * 0.10 +
       calcPct(q.IP, p.IP, false) * 0.05;
+    p.PS_sos = playerSOSAdjustment(p.team);
+    p.PS = clamp(p.PS_base + p.PS_sos);
   });
+}
+
+function playerSOSAdjustment(team) {
+  if (!TEAM_POWER_RATINGS.length) calculateTeamPowerRatings();
+  const power = TEAM_POWER_BY_TEAM[team];
+  if (!power || !Number.isFinite(power.sosComp)) return 0;
+  return clamp((power.sosComp - 50) * 0.10, -5, 5);
 }
 
 function resetHitPage() { hitPage = 1; renderHitTable(); }
@@ -538,13 +550,15 @@ function applyHitRangeScores(players) {
     ISO: vals('ISO'), BB_pct: vals('BB_pct'), BsR: vals('BsR'),
   };
   players.forEach(p => {
-    p.PS =
+    p.PS_base =
       calcPct(v.wRC_plus, p.wRC_plus, false) * 0.45 +
       calcPct(v.wOBA, p.wOBA, false) * 0.20 +
       calcPct(v.OPS, p.OPS, false) * 0.15 +
       calcPct(v.ISO, p.ISO, false) * 0.10 +
       calcPct(v.BB_pct, p.BB_pct, false) * 0.05 +
       calcPct(v.BsR, p.BsR, false) * 0.05;
+    p.PS_sos = playerSOSAdjustment(p.team);
+    p.PS = clamp(p.PS_base + p.PS_sos);
   });
 }
 
@@ -556,13 +570,15 @@ function applyPitchRangeScores(players) {
     K7: vals('K7'), KBB: vals('KBB'), IP: vals('IP'),
   };
   players.forEach(p => {
-    p.PS =
+    p.PS_base =
       calcPct(v.ERA_minus, p.ERA_minus, true) * 0.30 +
       calcPct(v.FIP_minus, p.FIP_minus, true) * 0.25 +
       calcPct(v.WHIP, p.WHIP, true) * 0.15 +
       calcPct(v.K7, p.K7, false) * 0.15 +
       calcPct(v.KBB, p.KBB, false) * 0.10 +
       calcPct(v.IP, p.IP, false) * 0.05;
+    p.PS_sos = playerSOSAdjustment(p.team);
+    p.PS = clamp(p.PS_base + p.PS_sos);
   });
 }
 
