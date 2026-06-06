@@ -69,6 +69,7 @@ let hitPage = 1;
 let pitPage = 1;
 const LEADER_PAGE_SIZE = 100;
 const GRADE_VALUES = ['Freshman', 'Sophomore', 'Junior', 'Senior'];
+let playerLogsLoadPromise = null;
 
 // Standard sort state
 let hitStdSort = { col: 'HR', asc: false };
@@ -304,6 +305,74 @@ function pctRow(label, val, pctVal, fmtVal) {
     </div>
     <span class="pct-raw">${fmtVal}</span>
   </div>`;
+}
+
+function playerKey(name, team) {
+  return `${team}::${name}`;
+}
+
+function renderGameLogTable(title, rows, cols) {
+  if (!rows || !rows.length) return '';
+  return `<div class="game-log-section">
+    <div class="game-log-title">${title}</div>
+    <div class="lb-table-wrap game-log-table-wrap">
+      <table>
+        <thead><tr>${cols.map(c => `<th class="${c.num ? 'num' : ''}">${c.label}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(r => `<tr>${cols.map(c => `<td class="${c.num ? 'num' : ''}">${r[c.key] ?? '—'}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function renderPlayerGameLogs(name, team) {
+  const logs = (typeof PLAYER_LOGS !== 'undefined' ? PLAYER_LOGS[playerKey(name, team)] : null) || {};
+  const hitCols = [
+    {key:'date', label:'Date'}, {key:'opp', label:'Opponent'}, {key:'res', label:'Result'},
+    {key:'AB', label:'AB', num:true}, {key:'R', label:'R', num:true}, {key:'H', label:'H', num:true},
+    {key:'RBI', label:'RBI', num:true}, {key:'B1', label:'1B', num:true}, {key:'B2', label:'2B', num:true},
+    {key:'B3', label:'3B', num:true}, {key:'HR', label:'HR', num:true}, {key:'BB', label:'BB', num:true},
+    {key:'HBP', label:'HBP', num:true}, {key:'SB', label:'SB', num:true}, {key:'AVG', label:'AVG', num:true},
+    {key:'SLG', label:'SLG', num:true},
+  ];
+  const pitCols = [
+    {key:'date', label:'Date'}, {key:'opp', label:'Opponent'}, {key:'res', label:'Result'},
+    {key:'W', label:'W', num:true}, {key:'L', label:'L', num:true}, {key:'PIT', label:'PIT', num:true},
+    {key:'IP', label:'IP', num:true}, {key:'H', label:'H', num:true}, {key:'R', label:'R', num:true},
+    {key:'ER', label:'ER', num:true}, {key:'BB', label:'BB', num:true}, {key:'K', label:'K', num:true},
+    {key:'HB', label:'HBP', num:true}, {key:'ERA', label:'ERA', num:true},
+  ];
+  const html = [
+    renderGameLogTable('Hitting Game Log', logs.hitting, hitCols),
+    renderGameLogTable('Pitching Game Log', logs.pitching, pitCols),
+  ].filter(Boolean).join('');
+  return html || `<div class="game-log-section"><div class="game-log-empty">No game log is available for this player yet.</div></div>`;
+}
+
+function ensurePlayerLogsLoaded() {
+  if (typeof PLAYER_LOGS !== 'undefined') return Promise.resolve();
+  if (playerLogsLoadPromise) return playerLogsLoadPromise;
+  playerLogsLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'js/player_logs.js';
+    script.onload = resolve;
+    script.onerror = reject;
+    document.body.appendChild(script);
+  });
+  return playerLogsLoadPromise;
+}
+
+function loadPlayerGameLogs(name, team) {
+  const el = document.getElementById('playerGameLogs');
+  if (!el) return;
+  ensurePlayerLogsLoaded()
+    .then(() => {
+      const current = document.getElementById('playerGameLogs');
+      if (current) current.innerHTML = renderPlayerGameLogs(name, team);
+    })
+    .catch(() => {
+      const current = document.getElementById('playerGameLogs');
+      if (current) current.innerHTML = `<div class="game-log-section"><div class="game-log-empty">Game log could not be loaded.</div></div>`;
+    });
 }
 
 function showLastUpdated() {
@@ -642,9 +711,13 @@ function showPlayer(enc, team, from) {
         </div>
       </div>
     </div>
-    ${bodyHTML}`;
+    ${bodyHTML}
+    <div id="playerGameLogs">
+      <div class="game-log-section"><div class="game-log-empty">Loading game log...</div></div>
+    </div>`;
 
   showView('player', from);
+  loadPlayerGameLogs(playerName, team);
 }
 
 function switchRole(btn, panelId) {

@@ -15,6 +15,7 @@ import re
 import json
 import sys
 import time
+from html import unescape
 
 # ── LEAGUE CONSTANTS ───────────────────────────────────────────────────────────
 SEASON       = "2025-2026"
@@ -872,6 +873,31 @@ def get_table_rows(html):
         result.append(parsed_rows)
     return result
 
+def clean_cell(cell):
+    cell = re.sub(r'<[^>]+>', ' ', cell)
+    cell = unescape(cell).replace('\xa0', ' ')
+    cell = re.sub(r'&bull;', '•', cell)
+    cell = re.sub(r'&mdash;', '0', cell)
+    cell = re.sub(r'\s+', ' ', cell).strip()
+    return cell
+
+def get_table_rows_from_table(table_html):
+    rows = []
+    for row in re.findall(r'<tr.*?</tr>', table_html, re.DOTALL | re.I):
+        cells = re.findall(r'<t[dh][^>]*>(.*?)</t[dh]>', row, re.DOTALL | re.I)
+        cells = [clean_cell(c) for c in cells]
+        if any(cells):
+            rows.append(cells)
+    return rows
+
+def extract_player_links(stats_html):
+    links = {}
+    for href, name in re.findall(r'<a\s+href="(/player/[^"]+/baseball/season/[^"]+)">([^<]+)</a>', stats_html, re.I):
+        clean_name = clean_cell(name)
+        if clean_name:
+            links.setdefault(clean_name, href)
+    return links
+
 def parse_name_pos_year(cell):
     """Parse 'Jordan Jackson #8 • Senior • OF, P' -> (name, pos, year)"""
     cell = re.sub(r'#\d+', '', cell)
@@ -894,6 +920,67 @@ def parse_name_pos_year(cell):
     if year.title() in {'Freshman', 'Sophomore', 'Junior', 'Senior'}:
         year = year.title()
     return name, pos, year
+
+def parse_player_game_logs(profile_html):
+    logs = {}
+    tables = re.findall(r'<table.*?</table>', profile_html, re.DOTALL | re.I)
+    for table in tables:
+        rows = get_table_rows_from_table(table)
+        if len(rows) < 2:
+            continue
+        header = rows[0]
+        is_game_log = len(header) >= 3 and header[0] == 'Date' and header[1] == 'Opponent' and header[2] == 'Result'
+        if not is_game_log:
+            continue
+
+        if 'AB' in header and 'SLG' in header:
+            parsed = []
+            for row in rows[1:]:
+                if len(row) < len(header):
+                    row += [''] * (len(header) - len(row))
+                parsed.append({
+                    "date": row[0],
+                    "opp": row[1],
+                    "res": row[2],
+                    "AB": row[3],
+                    "R": row[4],
+                    "H": row[5],
+                    "RBI": row[6],
+                    "B1": row[7],
+                    "B2": row[8],
+                    "B3": row[9],
+                    "HR": row[10],
+                    "BB": row[11],
+                    "HBP": row[12],
+                    "SB": row[13],
+                    "AVG": row[19] if len(row) > 19 else "",
+                    "SLG": row[20] if len(row) > 20 else "",
+                })
+            logs["hitting"] = parsed
+
+        elif 'IP' in header and 'ERA' in header and 'PIT' in header:
+            parsed = []
+            for row in rows[1:]:
+                if len(row) < len(header):
+                    row += [''] * (len(header) - len(row))
+                parsed.append({
+                    "date": row[0],
+                    "opp": row[1],
+                    "res": row[2],
+                    "W": row[3],
+                    "L": row[4],
+                    "PIT": row[5],
+                    "IP": row[6],
+                    "H": row[7],
+                    "R": row[8],
+                    "ER": row[9],
+                    "BB": row[10],
+                    "K": row[11],
+                    "HB": row[12],
+                    "ERA": row[14] if len(row) > 14 else "",
+                })
+            logs["pitching"] = parsed
+    return logs
 
 def safe_float(v, default=0.0):
     try:
@@ -1053,20 +1140,35 @@ def scrape_team(display_name, slug):
         tables     = get_table_rows(stats_html)
         hitters    = parse_hitting(tables[0],  display_name) if len(tables) > 0 else []
         pitchers   = parse_pitching(tables[1], display_name) if len(tables) > 1 else []
+        player_links = extract_player_links(stats_html)
+        player_logs = {}
+        for player_name in sorted({p["name"] for p in hitters + pitchers}):
+            href = player_links.get(player_name)
+            if not href:
+                continue
+            try:
+                logs = parse_player_game_logs(fetch("https://highschoolsports.nj.com" + href))
+                if logs:
+                    player_logs[f"{display_name}::{player_name}"] = logs
+            except Exception:
+                pass
+            time.sleep(0.05)
 
         sched_html = fetch_schedule(slug)
         schedule   = parse_schedule(sched_html)
 
-        print(f"{len(hitters)} hitters, {len(pitchers)} pitchers, {schedule['wins']}-{schedule['losses']}")
-        return hitters, pitchers, schedule
+        print(f"{len(hitters)} hitters, {len(pitchers)} pitchers, {len(player_logs)} logs, {schedule['wins']}-{schedule['losses']}")
+        return hitters, pitchers, schedule, player_logs
     except Exception as e:
         print(f"ERROR: {e}")
-        return [], [], {"coach": "", "wins": 0, "losses": 0, "games": []}
+        return [], [], {"coach": "", "wins": 0, "losses": 0, "games": []}, {}
 
-def generate_js(all_hitters, all_pitchers, all_schedules={}):
+def generate_js(all_hitters, all_pitchers, all_schedules={}, all_player_logs={}):
     """Write scraped data directly into js/data.js so the site updates immediately."""
     import os
-    out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "js", "data.js")
+    js_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "js")
+    out_path = os.path.join(js_dir, "data.js")
+    logs_path = os.path.join(js_dir, "player_logs.js")
 
     now = __import__('datetime').datetime.now().strftime('%b %d, %Y')
     lines = [
@@ -1161,6 +1263,17 @@ const PIT_PCT_GROUPS = [
         f.writelines(lines)
 
     print(f"\n✅  Written to {out_path}")
+    log_lines = [
+        "// AUTO-GENERATED game logs from NJ.com player pages\n",
+        "// Loaded lazily by js/app.js\n",
+        "const PLAYER_LOGS = {\n",
+    ]
+    for key, logs in sorted(all_player_logs.items()):
+        log_lines.append(f"  {json.dumps(key)}: {json.dumps(logs)},\n")
+    log_lines.append("};\n")
+    with open(logs_path, "w") as f:
+        f.writelines(log_lines)
+    print(f"✅  Written to {logs_path}")
     return out_path
 
 def print_summary(all_hitters, all_pitchers):
@@ -1197,13 +1310,15 @@ if __name__ == "__main__":
     all_hitters   = []
     all_pitchers  = []
     all_schedules = {}
+    all_player_logs = {}
 
     for display_name, slug in teams_to_scrape.items():
-        hitters, pitchers, schedule = scrape_team(display_name, slug)
+        hitters, pitchers, schedule, player_logs = scrape_team(display_name, slug)
         all_hitters.extend(hitters)
         all_pitchers.extend(pitchers)
         all_schedules[display_name] = schedule
+        all_player_logs.update(player_logs)
         time.sleep(0.5)  # be polite to the server
 
     print_summary(all_hitters, all_pitchers)
-    generate_js(all_hitters, all_pitchers, all_schedules)
+    generate_js(all_hitters, all_pitchers, all_schedules, all_player_logs)
