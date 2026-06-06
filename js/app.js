@@ -2406,14 +2406,16 @@ function renderRunDistribution(teamA, expA, teamB, expB) {
     const bRow = bDist[i];
     const aPct = aRow.prob * 100;
     const bPct = bRow.prob * 100;
+    const aWidth = aRow.prob > 0 ? Math.max(2, (aRow.prob / maxProb) * 100) : 0;
+    const bWidth = bRow.prob > 0 ? Math.max(2, (bRow.prob / maxProb) * 100) : 0;
     return `<div class="run-dist-row">
       <div class="run-dist-cell run-dist-left">
         <span>${aPct.toFixed(1)}%</span>
-        <div class="run-dist-track"><div class="run-dist-fill run-dist-fill-a" style="width:${(aRow.prob / maxProb) * 100}%"></div></div>
+        <div class="run-dist-track"><div class="run-dist-fill run-dist-fill-a" style="width:${aWidth}%"></div></div>
       </div>
       <div class="run-dist-runs">${aRow.runs}</div>
       <div class="run-dist-cell">
-        <div class="run-dist-track"><div class="run-dist-fill run-dist-fill-b" style="width:${(bRow.prob / maxProb) * 100}%"></div></div>
+        <div class="run-dist-track"><div class="run-dist-fill run-dist-fill-b" style="width:${bWidth}%"></div></div>
         <span>${bPct.toFixed(1)}%</span>
       </div>
     </div>`;

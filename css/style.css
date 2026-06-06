@@ -2114,7 +2114,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 
 .run-dist-track {
   height: 9px;
-  background: var(--surface2);
+  background: rgba(248, 249, 250, 0.08);
   border-radius: 999px;
   overflow: hidden;
   border: 1px solid var(--border2);
@@ -2125,8 +2125,16 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   border-radius: 999px;
 }
 
-.run-dist-fill-a { background: var(--accent); margin-left: auto; }
-.run-dist-fill-b { background: var(--slate); }
+.run-dist-fill-a {
+  background: var(--accent);
+  box-shadow: 0 0 0 1px rgba(200, 155, 60, 0.18);
+  margin-left: auto;
+}
+
+.run-dist-fill-b {
+  background: #4f8fd8;
+  box-shadow: 0 0 0 1px rgba(79, 143, 216, 0.2);
+}
 
 .run-dist-runs {
   font-family: 'Bebas Neue', sans-serif;
