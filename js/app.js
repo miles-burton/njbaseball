@@ -455,13 +455,12 @@ function playerCell(p) {
 
 function pctRow(label, val, pctVal, fmtVal) {
   const clr = pc(pctVal);
-  const textClr = pctVal >= 58 ? '#0B1F3A' : '#F8F9FA';
   return `<div class="pct-row">
     <span class="pct-label">${label}</span>
     <div class="pct-bar-outer">
       <div class="pct-bar-track">
         <div class="pct-bar-fill" style="width:${pctVal}%;background:${clr}"></div>
-        <div class="pct-bubble" style="background:${clr};left:${pctVal}%;color:${textClr}">${pctVal}</div>
+        <div class="pct-bubble" style="background:${clr};left:${pctVal}%">${pctVal}</div>
       </div>
     </div>
     <span class="pct-raw">${fmtVal}</span>

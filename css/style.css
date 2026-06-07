@@ -1105,13 +1105,13 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   align-items: center;
   justify-content: center;
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.02em;
-  color: var(--navy);
-  border: 2px solid var(--surface);
+  color: #05070a;
+  border: 0;
   z-index: 2;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+  box-shadow: none;
 }
 
 .pct-raw {
@@ -1140,8 +1140,8 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 :root[data-theme="light"] .pct-bubble {
-  border-color: var(--surface);
-  box-shadow: 0 2px 8px rgba(18,24,33,0.20);
+  color: #fff;
+  box-shadow: none;
 }
 
 /* ── TEAM PAGE ────────────────────────────────────────────────────────────── */
