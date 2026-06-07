@@ -70,6 +70,11 @@
     <select id="seasonSelect" onchange="changeSeason(this.value)"></select>
   </div>
 
+  <button class="theme-toggle" id="themeToggle" type="button" onclick="toggleTheme()" aria-label="Toggle light and dark mode">
+    <span class="theme-toggle-icon" aria-hidden="true"></span>
+    <span id="themeToggleLabel">Dark</span>
+  </button>
+
   <div class="global-search" id="globalSearch">
     <svg class="global-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
       <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
@@ -106,10 +111,39 @@
           <button class="home-btn-secondary" onclick="showView('pitching')">Pitching Leaders</button>
         </div>
       </div>
+      <div class="home-hero-panel" aria-label="Diamond Index snapshot">
+        <div class="home-kpi">
+          <span class="home-kpi-value" id="homeKpiPlayers">—</span>
+          <span class="home-kpi-label">Players</span>
+        </div>
+        <div class="home-kpi">
+          <span class="home-kpi-value" id="homeKpiTeams">—</span>
+          <span class="home-kpi-label">Teams</span>
+        </div>
+        <div class="home-kpi">
+          <span class="home-kpi-value" id="homeKpiGames">—</span>
+          <span class="home-kpi-label">Games</span>
+        </div>
+        <button class="home-panel-link" onclick="showView('team-rankings')">View Power Rankings</button>
+      </div>
     </div>
   </div>
 
   <div class="home-wrap">
+    <div class="home-action-grid">
+      <button class="home-action-card" onclick="showView('team-rankings')">
+        <span>Power Index</span>
+        <strong>Team rankings adjusted for performance and schedule strength.</strong>
+      </button>
+      <button class="home-action-card" onclick="showView('predictor')">
+        <span>Matchup Predictor</span>
+        <strong>Compare teams and simulate projected run outcomes.</strong>
+      </button>
+      <button class="home-action-card" onclick="showView('standings')">
+        <span>Standings</span>
+        <strong>Conference records, run differential, and expected wins.</strong>
+      </button>
+    </div>
 
     <!-- Scores -->
     <div class="home-section">
@@ -129,14 +163,6 @@
         <button class="home-section-link" onclick="showView('leaderboard')">All Leaders →</button>
       </div>
       <div class="home-performers-grid" id="homePerformers"></div>
-    </div>
-
-    <!-- Articles -->
-    <div class="home-section">
-      <div class="home-section-header">
-        <div class="home-section-title">Around New Jersey</div>
-      </div>
-      <div class="home-articles-grid" id="homeArticles"></div>
     </div>
 
     <!-- Team Rankings Preview -->
