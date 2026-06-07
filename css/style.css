@@ -1,24 +1,28 @@
 /* ── DIAMOND INDEX — Design System ────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg:        #0D1520;
-  --navy:      #0B1F3A;
-  --surface:   #0F2440;
-  --surface2:  #142d4e;
-  --surface3:  #1a3560;
-  --graphite:  #1C1F26;
-  --border:    rgba(200,155,60,0.14);
-  --border2:   rgba(200,155,60,0.24);
-  --border3:   rgba(255,255,255,0.07);
-  --text:      #F8F9FA;
-  --muted:     #5C677D;
-  --muted2:    #8892A4;
-  --accent:    #C89B3C;
-  --accent2:   rgba(200,155,60,0.1);
-  --accent3:   rgba(200,155,60,0.06);
-  --red:       #e05252;
-  --blue:      #4a7cc7;
+  --bg:        #0f1217;
+  --navy:      #161a21;
+  --surface:   #171c24;
+  --surface2:  #1c222c;
+  --surface3:  #242b37;
+  --graphite:  #10141a;
+  --border:    rgba(255,255,255,0.075);
+  --border2:   rgba(255,255,255,0.105);
+  --border3:   rgba(255,255,255,0.045);
+  --text:      #e9edf3;
+  --muted:     #646d7b;
+  --muted2:    #929cab;
+  --accent:    oklch(0.80 0.12 86);
+  --accent2:   oklch(0.80 0.12 86 / 0.16);
+  --accent3:   oklch(0.80 0.12 86 / 0.09);
+  --red:       oklch(0.68 0.18 26);
+  --blue:      #4f8fd8;
+  --good:      oklch(0.80 0.14 158);
+  --bad:       oklch(0.68 0.18 26);
+  --font-sans: 'Archivo', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: 'Spline Sans Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -26,7 +30,7 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -47,7 +51,7 @@ body {
 }
 
 .site-logo {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 22px;
   letter-spacing: 0.055em;
   white-space: nowrap;
@@ -80,7 +84,7 @@ body {
 .nav-tabs { display: flex; align-items: stretch; }
 
 .nav-tab {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 15px;
   letter-spacing: 0.08em;
   padding: 0 16px;
@@ -99,7 +103,7 @@ body {
 .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 .back-btn {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   letter-spacing: 0.08em;
   color: var(--muted2);
@@ -120,7 +124,7 @@ body {
   gap: 7px;
   margin-left: auto;
   color: var(--muted2);
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.09em;
 }
@@ -132,7 +136,7 @@ body {
   color: var(--text);
   border-radius: 4px;
   padding: 0 8px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   outline: none;
 }
@@ -165,7 +169,7 @@ body {
   border: 1px solid var(--border2);
   background: rgba(15,36,64,0.72);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   outline: none;
   transition: border-color 0.15s, background 0.15s;
@@ -215,7 +219,7 @@ body {
 .global-search-item.active { background: var(--surface2); }
 
 .global-search-name {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 16px;
   letter-spacing: 0.06em;
   color: var(--text);
@@ -228,7 +232,7 @@ body {
 }
 
 .global-search-role {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.08em;
   color: var(--accent);
@@ -271,7 +275,7 @@ body {
   gap: 8px;
   width: 100%;
   padding: 7px 10px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 500;
   color: var(--muted2);
@@ -290,7 +294,7 @@ body {
 .nav-dropdown-item--highlight:hover { background: var(--accent3); color: var(--accent); }
 
 .nav-dropdown-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.1em;
   color: var(--muted);
@@ -321,7 +325,7 @@ body {
 }
 
 .page-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 32px;
   letter-spacing: 0.06em;
   line-height: 1;
@@ -351,7 +355,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border2);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 600;
   padding: 7px 12px;
@@ -446,7 +450,7 @@ body {
 }
 
 .div-filter-menu-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.1em;
   color: var(--muted);
@@ -460,7 +464,7 @@ body {
   border: none;
   cursor: pointer;
   padding: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* ── LEADERBOARD MODE TABS ────────────────────────────────────────────────── */
@@ -473,7 +477,7 @@ body {
 }
 
 .lb-tab {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   letter-spacing: 0.08em;
   padding: 9px 20px;
@@ -510,7 +514,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border2);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   padding: 7px 12px 7px 32px;
   border-radius: 4px;
@@ -527,7 +531,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border2);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   padding: 7px 12px;
   border-radius: 4px;
@@ -551,7 +555,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border2);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   padding: 7px 10px;
   border-radius: 4px;
@@ -569,7 +573,7 @@ body {
   align-items: center;
   gap: 7px;
   color: var(--muted);
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.08em;
   white-space: nowrap;
@@ -583,7 +587,7 @@ body {
   border: 1px solid var(--border2);
   border-radius: 4px;
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   outline: none;
 }
@@ -597,7 +601,7 @@ body {
   border: 1px solid var(--border2);
   background: transparent;
   color: var(--muted2);
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.08em;
   cursor: pointer;
@@ -636,7 +640,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border2);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 700;
   padding: 7px 10px;
@@ -666,7 +670,7 @@ table { width: 100%; border-collapse: collapse; }
 thead tr { background: var(--surface); }
 
 th {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   letter-spacing: 0.08em;
   color: var(--muted2);
@@ -694,7 +698,7 @@ th[data-tip]:hover::after {
   transform: translateX(-50%);
   background: var(--graphite);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 400;
   letter-spacing: 0;
@@ -719,7 +723,7 @@ tbody tr:last-child { border-bottom: none; }
 td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 
 .rank-cell {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 16px;
   letter-spacing: 0.04em;
   color: var(--muted);
@@ -731,7 +735,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .player-cell { font-weight: 500; font-size: 13px; }
 
 .player-name {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-weight: 600;
   font-size: 13px;
   color: var(--text);
@@ -747,7 +751,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.06em;
   padding: 3px 8px;
@@ -783,7 +787,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .player-info { flex: 1; min-width: 200px; }
 
 .player-full-name {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 42px;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -799,7 +803,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .p-tag {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.08em;
   padding: 3px 10px;
@@ -820,7 +824,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .role-tab {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 15px;
   letter-spacing: 0.08em;
   padding: 10px 20px;
@@ -846,7 +850,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .game-log-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 18px;
   letter-spacing: 0.08em;
   color: var(--accent);
@@ -888,14 +892,14 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .stat-mini-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.1em;
   color: var(--muted);
 }
 
 .stat-mini-val {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 30px;
   letter-spacing: 0.02em;
   color: var(--text);
@@ -909,7 +913,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .counting-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.1em;
   color: var(--muted);
@@ -932,14 +936,14 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .counting-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.1em;
   color: var(--muted);
 }
 
 .counting-value {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 22px;
   letter-spacing: 0.02em;
   color: var(--accent);
@@ -951,7 +955,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .pct-section { margin-bottom: 1.5rem; }
 
 .pct-section-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.1em;
   color: var(--muted);
@@ -963,7 +967,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .pct-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 
 .pct-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   letter-spacing: 0.04em;
   color: var(--muted2);
@@ -994,7 +998,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.02em;
   color: var(--navy);
@@ -1033,14 +1037,14 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .team-name-lg {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 44px;
   letter-spacing: 0.04em;
   line-height: 1;
 }
 
 .team-mascot-lg {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 16px;
   letter-spacing: 0.1em;
   margin-top: 4px;
@@ -1061,14 +1065,14 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .team-stat-card-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.1em;
   color: var(--muted);
 }
 
 .team-stat-card-val {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 26px;
   letter-spacing: 0.02em;
   line-height: 1.1;
@@ -1089,7 +1093,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .team-section-tab {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   letter-spacing: 0.08em;
   padding: 8px 18px;
@@ -1164,7 +1168,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   color: var(--accent);
   border-radius: 4px;
   padding: 3px 7px;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -1188,7 +1192,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .game-detail-kicker {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   letter-spacing: 0.1em;
   color: var(--muted);
@@ -1196,7 +1200,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .game-detail-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 34px;
   letter-spacing: 0.03em;
   color: var(--text);
@@ -1204,7 +1208,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .game-detail-meta {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 26px;
   color: var(--accent);
   letter-spacing: 0.04em;
@@ -1276,7 +1280,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .game-team-name {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 22px;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -1289,7 +1293,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .game-team-score {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 30px;
   color: var(--text);
   letter-spacing: 0.02em;
@@ -1298,7 +1302,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .game-score-divider {
   align-self: center;
   color: var(--muted);
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 16px;
   letter-spacing: 0.08em;
 }
@@ -1333,14 +1337,14 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .game-total-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.1em;
   color: var(--muted2);
 }
 
 .game-total-value {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 21px;
   letter-spacing: 0.03em;
   color: var(--text);
@@ -1353,7 +1357,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .game-stat-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 18px;
   letter-spacing: 0.08em;
   color: var(--accent);
@@ -1430,14 +1434,14 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .team-card-name {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 20px;
   letter-spacing: 0.06em;
   line-height: 1;
 }
 
 .team-card-mascot {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.04em;
@@ -1453,7 +1457,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .team-card-stat { text-align: center; }
 
 .team-card-stat-val {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 20px;
   letter-spacing: 0.02em;
 }
@@ -1548,7 +1552,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .home-hero-eyebrow {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.2em;
   color: var(--accent);
@@ -1556,7 +1560,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .home-hero-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 80px;
   letter-spacing: 0.04em;
   line-height: 0.95;
@@ -1565,7 +1569,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .home-hero-tagline {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 18px;
   letter-spacing: 0.2em;
   color: var(--accent);
@@ -1584,7 +1588,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .home-hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .home-btn-primary {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 15px;
   letter-spacing: 0.1em;
   padding: 10px 24px;
@@ -1599,7 +1603,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .home-btn-primary:hover { opacity: 0.85; }
 
 .home-btn-secondary {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 15px;
   letter-spacing: 0.1em;
   padding: 10px 24px;
@@ -1630,14 +1634,14 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .home-hero-stat-val {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 34px;
   letter-spacing: 0.02em;
   color: var(--accent);
 }
 
 .home-hero-stat-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.1em;
   color: var(--muted);
@@ -1663,7 +1667,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .home-section-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 18px;
   letter-spacing: 0.08em;
   color: var(--text);
@@ -1685,7 +1689,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   border: none;
   cursor: pointer;
   transition: opacity 0.15s;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
 }
 
 .home-section-link:hover { opacity: 0.7; }
@@ -1712,7 +1716,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .performer-card:hover { background: var(--surface); border-color: var(--accent); }
 
 .performer-rank {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 26px;
   letter-spacing: 0.02em;
   color: var(--border2);
@@ -1728,7 +1732,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .performer-info { flex: 1; min-width: 0; }
 
 .performer-name {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
@@ -1741,14 +1745,14 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .performer-stat { text-align: right; flex-shrink: 0; }
 
 .performer-stat-val {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 22px;
   letter-spacing: 0.02em;
   color: var(--accent);
 }
 
 .performer-stat-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.08em;
   color: var(--muted);
@@ -1791,7 +1795,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .article-card-body { padding: 14px; }
 
 .article-card-tag {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.1em;
   color: var(--accent);
@@ -1820,7 +1824,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .home-rankings-table thead tr { background: var(--surface); }
 
 .home-rankings-table th {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.08em;
   color: var(--muted2);
@@ -1867,7 +1871,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .home-score-vs { color: var(--muted); font-size: 11px; flex-shrink: 0; }
 
 .home-score-badge {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.08em;
   color: var(--accent);
@@ -1910,7 +1914,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .predictor-field span {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.1em;
   color: var(--muted2);
@@ -1978,7 +1982,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .prediction-team-name {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 24px;
   letter-spacing: 0.04em;
   color: var(--text);
@@ -1992,7 +1996,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .prediction-vs {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   color: var(--muted);
   text-align: center;
   letter-spacing: 0.08em;
@@ -2008,14 +2012,14 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .prediction-pick-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.12em;
   color: var(--muted2);
 }
 
 .prediction-pick {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 42px;
   letter-spacing: 0.03em;
   color: var(--accent);
@@ -2024,7 +2028,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .prediction-score {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 32px;
   color: var(--text);
   margin-top: 6px;
@@ -2082,7 +2086,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .prediction-metric-label {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.1em;
   color: var(--muted2);
@@ -2093,7 +2097,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 20px;
   color: var(--text);
 }
@@ -2113,7 +2117,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .run-dist-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 18px;
   letter-spacing: 0.08em;
   color: var(--accent);
@@ -2134,7 +2138,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .run-dist-labels {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.08em;
   color: var(--muted2);
@@ -2193,7 +2197,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .run-dist-runs {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   color: var(--text);
 }
@@ -2231,7 +2235,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .standings-conference-name {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 28px;
   letter-spacing: 0.05em;
   color: var(--accent);
@@ -2263,7 +2267,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .standings-division-name {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 16px;
   letter-spacing: 0.1em;
   color: var(--accent);
@@ -2285,7 +2289,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .standings-table th {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.08em;
   color: var(--muted2);
@@ -2323,7 +2327,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .standings-pos {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   color: var(--muted);
   width: 18px;
@@ -2339,7 +2343,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .standings-record {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   letter-spacing: 0.04em;
 }
@@ -2367,7 +2371,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .glossary-section-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 20px;
   letter-spacing: 0.1em;
   color: var(--accent);
@@ -2395,7 +2399,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 }
 
 .gc-stat {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 18px;
   letter-spacing: 0.08em;
   color: var(--accent);
@@ -2497,4 +2501,692 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   .logo-icon { width: 28px; height: 34px; }
   .home-hero-title { font-size: 40px; }
   .prediction-metrics { grid-template-columns: 1fr; }
+}
+
+/* ── TERMINAL ANALYTICS SKIN ───────────────────────────────────────────────
+   Visual refresh based on the C-terminal mockup. IDs/classes stay intact so
+   all existing data, pages, filters, rankings, and predictor logic continue
+   to use the current app code. */
+
+body {
+  background:
+    radial-gradient(circle at 18% 0%, oklch(0.80 0.12 86 / 0.06), transparent 34rem),
+    linear-gradient(180deg, #11151b 0%, var(--bg) 18rem);
+  letter-spacing: 0;
+}
+
+.site-header,
+.page-banner,
+.leaderboard-wrap,
+.player-wrap,
+.team-wrap,
+.teams-wrap,
+.predictor-wrap,
+.standings-wrap,
+.glossary-wrap,
+.home-wrap {
+  font-family: var(--font-sans);
+}
+
+.site-header {
+  height: 68px;
+  padding: 0 28px;
+  gap: 22px;
+  background: linear-gradient(180deg, var(--navy), var(--bg));
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.025);
+}
+
+.site-logo {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.105em;
+  gap: 10px;
+}
+
+.logo-icon {
+  width: 34px;
+  height: 34px;
+  background: var(--accent);
+}
+
+.logo-wordmark {
+  gap: 3px;
+  line-height: 1;
+}
+
+.logo-accent,
+.site-logo:hover .logo-accent {
+  color: var(--accent);
+}
+
+.nav-tabs {
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.nav-tab,
+.back-btn {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--muted2);
+}
+
+.nav-tab:hover,
+.back-btn:hover {
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.nav-tab.active {
+  color: var(--text);
+  background: var(--surface2);
+  border-color: var(--border2);
+  border-bottom-color: var(--border2);
+}
+
+.nav-dropdown-menu {
+  top: calc(100% + 10px);
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  box-shadow: 0 22px 50px rgba(0,0,0,0.42);
+}
+
+.nav-dropdown-item {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 7px;
+}
+
+.nav-dropdown-item:hover {
+  background: var(--surface2);
+}
+
+.season-switcher {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.season-switcher select,
+.global-search-input,
+.search-input,
+.ctrl-select,
+.pa-filter-input,
+.date-input,
+.predictor-team-input {
+  height: 36px;
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--font-sans);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+}
+
+.global-search {
+  width: min(300px, 25vw);
+}
+
+.global-search-input {
+  padding-left: 36px;
+}
+
+.global-search-input:focus,
+.search-input:focus,
+.ctrl-select:focus,
+.pa-filter-input:focus,
+.date-input:focus,
+.predictor-team-input:focus {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--surface);
+}
+
+.global-search-results,
+.div-filter-menu,
+.team-search-results {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  box-shadow: 0 22px 50px rgba(0,0,0,0.42);
+}
+
+.page-banner {
+  padding: 24px 28px 0;
+  background: transparent;
+  border-bottom: 0;
+}
+
+.page-banner-inner {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.page-title,
+.home-section-title,
+.team-section-title,
+.section-title,
+.glossary-section-title,
+.standings-conference-name,
+.standings-division-name,
+.player-full-name,
+.team-name,
+.team-stat-value,
+.stat-mini-val,
+.performer-stat-val,
+.prediction-pick,
+.prediction-score-num {
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.page-title span,
+.home-section-link,
+.performer-stat-val,
+.standings-record.division-record,
+.gc-stat {
+  color: var(--accent);
+}
+
+.page-meta,
+.page-updated,
+.home-section-sub,
+.team-meta,
+.player-meta,
+.gc-def {
+  color: var(--muted2);
+}
+
+.leaderboard-wrap,
+.teams-wrap,
+.predictor-wrap,
+.standings-wrap,
+.glossary-wrap {
+  max-width: 1440px;
+  padding: 24px 28px 60px;
+}
+
+.lb-mode-tabs,
+.controls-row,
+.pagination-row,
+.team-leaders-tabs,
+.team-season-tabs,
+.game-log-filters,
+.date-range-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.lb-mode-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.lb-tab,
+.team-leader-tab,
+.team-season-tab,
+.division-btn,
+.home-btn-primary,
+.home-btn-secondary,
+.div-filter-btn,
+.predictor-swap,
+.game-view-btn,
+.home-section-link {
+  border-radius: 7px;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.lb-tab,
+.team-leader-tab,
+.team-season-tab,
+.division-btn {
+  color: var(--muted2);
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+.lb-tab-active,
+.team-leader-tab.active,
+.team-season-tab.active,
+.division-btn.active {
+  color: var(--text);
+  background: var(--surface2);
+  border-color: var(--border);
+}
+
+.lb-table-wrap,
+.game-log-table-wrap,
+.home-rankings-table-wrap,
+.predictor-panel,
+.prediction-card,
+.team-card,
+.team-hero,
+.player-hero,
+.standings-conference,
+.standings-division,
+.glossary-card,
+.home-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.team-card:hover,
+.home-section:hover,
+.glossary-card.gc-highlight {
+  border-color: var(--border2);
+}
+
+table {
+  background: transparent;
+}
+
+thead tr,
+.home-rankings-table thead tr,
+.standings-table thead tr {
+  background: transparent;
+}
+
+th,
+.home-rankings-table th,
+.standings-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted2);
+  border-bottom: 1px solid var(--border);
+}
+
+td,
+.home-rankings-table td,
+.standings-table td {
+  border-bottom-color: var(--border3);
+}
+
+tbody tr,
+.home-rankings-table tbody tr,
+.standings-table tbody tr {
+  border-bottom: 1px solid var(--border3);
+}
+
+tbody tr:hover,
+.home-rankings-table tbody tr:hover,
+.standings-table tbody tr:hover {
+  background: var(--navy);
+}
+
+.num,
+th.num,
+td.num,
+.rank-cell,
+.standings-pos,
+.stat-mini-val,
+.team-stat-value,
+.performer-stat-val,
+.prediction-score-num,
+.prediction-metric-val,
+.run-bin-label,
+.run-bin-value,
+.pagination-info,
+.page-updated {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.rank-cell,
+.standings-pos {
+  font-size: 12px;
+  color: var(--muted2);
+}
+
+.rank-cell.top3,
+.standings-pos.leader {
+  color: var(--accent);
+}
+
+.player-name,
+.team-name-cell,
+.standings-team-name,
+.performer-name,
+.team-card-name {
+  font-weight: 700;
+}
+
+.team-logo,
+.team-logo-sm,
+.home-team-logo,
+.team-card-logo,
+.player-team-logo,
+.game-team-logo {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.player-link:hover,
+.team-link:hover,
+.team-name-cell:hover,
+.standings-team-name:hover {
+  color: var(--accent);
+}
+
+.home-hero {
+  min-height: 520px;
+  background:
+    linear-gradient(90deg, var(--bg) 0%, var(--bg) 43%, rgba(15,18,23,0.86) 58%, rgba(15,18,23,0.30) 76%, rgba(15,18,23,0.12) 100%),
+    var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.home-hero::after {
+  background:
+    linear-gradient(180deg, transparent, var(--bg)),
+    radial-gradient(circle at 52% 42%, oklch(0.80 0.12 86 / 0.10), transparent 22rem);
+}
+
+.home-hero-img-wrap::before {
+  background: linear-gradient(90deg, var(--bg) 0%, rgba(15,18,23,0.96) 20%, rgba(15,18,23,0.72) 46%, rgba(15,18,23,0.20) 82%, transparent 100%);
+}
+
+.home-hero-img-wrap::after {
+  background: linear-gradient(180deg, transparent 0%, var(--bg) 96%);
+}
+
+.home-hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--muted2);
+}
+
+.home-hero-title {
+  font-family: var(--font-sans);
+  font-size: clamp(58px, 8vw, 108px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 0.85;
+}
+
+.home-hero-tagline {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--accent);
+}
+
+.home-hero-sub {
+  color: var(--muted2);
+  line-height: 1.65;
+}
+
+.home-btn-primary,
+.home-btn-secondary {
+  height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--border2);
+}
+
+.home-btn-primary {
+  color: #0a0d12;
+  background: var(--accent);
+}
+
+.home-btn-secondary {
+  color: var(--text);
+  background: var(--surface2);
+}
+
+.home-wrap {
+  max-width: 1440px;
+  padding: 24px 28px 64px;
+}
+
+.home-section-header,
+.phead {
+  border-bottom-color: var(--border);
+}
+
+.home-section-title,
+.team-section-title,
+.section-title {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.home-section-link {
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+}
+
+.player-hero,
+.team-hero {
+  background:
+    radial-gradient(circle at 12% 0%, var(--accent3), transparent 22rem),
+    var(--surface);
+}
+
+.player-avatar,
+.team-logo-large {
+  border-radius: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+}
+
+.player-full-name,
+.team-name {
+  font-size: clamp(32px, 5vw, 58px);
+  font-weight: 800;
+}
+
+.stat-mini,
+.team-stat-card,
+.prediction-metric,
+.team-record-pill,
+.record-pill,
+.score-chip,
+.game-detail-stat {
+  background: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.stat-mini-label,
+.team-stat-label,
+.prediction-metric-label,
+.game-detail-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted2);
+}
+
+.pct-bar,
+.run-bar,
+.prediction-prob-bar {
+  background: var(--surface2);
+}
+
+.pct-fill,
+.run-bar-fill,
+.prediction-prob-fill {
+  background: var(--accent);
+}
+
+.predictor-panel {
+  padding: 18px;
+}
+
+.predictor-empty {
+  background: var(--surface);
+  border: 1px dashed var(--border2);
+  border-radius: 14px;
+}
+
+.prediction-vs {
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.run-dist-card,
+.tournament-box,
+.game-detail-card,
+.game-team-card,
+.team-game-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.standings-conference-header,
+.standings-division-header {
+  background: var(--navy);
+  border-bottom: 1px solid var(--border);
+}
+
+.standings-conference-name,
+.standings-division-name {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.glossary-card {
+  background: var(--surface);
+}
+
+.glossary-section-title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.gc-stat {
+  font-family: var(--font-mono);
+  font-size: 15px;
+}
+
+@media (max-width: 768px) {
+  .site-header {
+    height: auto;
+    padding: 10px 16px;
+    gap: 10px;
+  }
+
+  .nav-tabs {
+    width: 100%;
+    overflow-x: auto;
+    order: 4;
+  }
+
+  .nav-tab {
+    flex: 0 0 auto;
+  }
+
+  .home-hero {
+    min-height: 500px;
+    background:
+      linear-gradient(180deg, var(--bg) 0%, rgba(15,18,23,0.92) 45%, rgba(15,18,23,0.72) 100%),
+      var(--bg);
+  }
+
+  .page-banner,
+  .leaderboard-wrap,
+  .teams-wrap,
+  .predictor-wrap,
+  .standings-wrap,
+  .glossary-wrap,
+  .home-wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .site-header {
+    height: auto;
+    min-height: 68px;
+    flex-wrap: wrap;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    row-gap: 10px;
+  }
+
+  .nav-tabs {
+    order: 5;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+
+  .nav-tabs::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .nav-tabs::-webkit-scrollbar-thumb {
+    background: var(--border2);
+    border-radius: 99px;
+  }
+
+  .nav-tab {
+    flex: 0 0 auto;
+  }
+
+  .season-switcher {
+    margin-left: auto;
+  }
+
+  .global-search {
+    width: min(320px, 42vw);
+  }
+}
+
+@media (max-width: 768px) {
+  .global-search {
+    order: 3;
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+  }
+
+  .season-switcher {
+    order: 2;
+    margin-left: 0;
+  }
+
+  .nav-tabs {
+    order: 4;
+  }
 }
