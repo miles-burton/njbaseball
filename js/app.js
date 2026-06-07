@@ -75,6 +75,18 @@ let globalSearchActiveIndex = 0;
 let TEAM_POWER_RATINGS = [];
 let TEAM_POWER_BY_TEAM = {};
 let TEAM_MATCH_LIST = null;
+const CURRENT_SEASON_YEAR = '2026';
+const CURRENT_SEASON_SNAPSHOT = {
+  year: CURRENT_SEASON_YEAR,
+  updated: typeof DATA_UPDATED !== 'undefined' ? DATA_UPDATED : '',
+  AP: AP.map(p => ({ ...p })),
+  PP: PP.map(p => ({ ...p })),
+  SCHEDULES: JSON.parse(JSON.stringify(typeof SCHEDULES !== 'undefined' ? SCHEDULES : {})),
+};
+const SEASON_CACHE = { [CURRENT_SEASON_YEAR]: CURRENT_SEASON_SNAPSHOT };
+let activeSeasonYear = CURRENT_SEASON_YEAR;
+let activeDataUpdated = CURRENT_SEASON_SNAPSHOT.updated;
+let activePlayerLogs = null;
 
 // Standard sort state
 let hitStdSort = { col: 'HR', asc: false };
@@ -179,6 +191,127 @@ function normalizePlayerIdentity(p) {
 function normalizePlayers() {
   AP.forEach(normalizePlayerIdentity);
   PP.forEach(normalizePlayerIdentity);
+}
+
+function availableSeasons() {
+  const seasons = Array.isArray(window.DI_SEASONS) ? window.DI_SEASONS : [];
+  return seasons.length ? seasons : [{ year: CURRENT_SEASON_YEAR, season: '2025-2026', label: '2026', current: true }];
+}
+
+function currentSeasonLabel() {
+  return availableSeasons().find(s => s.year === activeSeasonYear)?.label || activeSeasonYear;
+}
+
+function updateSeasonText() {
+  const label = currentSeasonLabel();
+  document.querySelectorAll('[data-season-label]').forEach(el => {
+    el.textContent = label;
+  });
+  document.querySelectorAll('[data-season-meta]').forEach(el => {
+    el.textContent = `${label} Season`;
+  });
+}
+
+function buildSeasonControls() {
+  const sel = document.getElementById('seasonSelect');
+  if (sel) {
+    sel.innerHTML = availableSeasons().map(s =>
+      `<option value="${s.year}" ${s.year === activeSeasonYear ? 'selected' : ''}>${s.label}</option>`
+    ).join('');
+  }
+
+  const menu = document.getElementById('menu-leaders');
+  if (menu && !document.getElementById('leaderSeasonOptions')) {
+    const seasonButtons = availableSeasons().map(s => `
+      <button class="nav-dropdown-item" onclick="changeSeason('${s.year}','leaderboard');closeDropdowns()">Hitting ${s.label}</button>
+      <button class="nav-dropdown-item" onclick="changeSeason('${s.year}','pitching');closeDropdowns()">Pitching ${s.label}</button>
+    `).join('');
+    menu.insertAdjacentHTML('beforeend', `
+      <div class="nav-dropdown-divider"></div>
+      <div class="nav-dropdown-label">Season Leaders</div>
+      <div id="leaderSeasonOptions">${seasonButtons}</div>
+    `);
+  }
+}
+
+function getSeasonConfig(year) {
+  return availableSeasons().find(s => s.year === year) || null;
+}
+
+function seasonScriptPath(year) {
+  const cfg = getSeasonConfig(year);
+  return cfg?.file || `js/seasons/${year}/data.js`;
+}
+
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    if ([...document.scripts].some(s => s.getAttribute('src') === src || s.src.endsWith(src))) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.body.appendChild(script);
+  });
+}
+
+function loadSeasonData(year) {
+  if (SEASON_CACHE[year]) return Promise.resolve(SEASON_CACHE[year]);
+  return loadScriptOnce(seasonScriptPath(year)).then(() => {
+    const data = window.DI_SEASON_DATA && window.DI_SEASON_DATA[year];
+    if (!data) throw new Error(`Season ${year} data is not available yet.`);
+    SEASON_CACHE[year] = data;
+    return data;
+  });
+}
+
+function replaceObjectContents(target, source) {
+  Object.keys(target).forEach(k => delete target[k]);
+  Object.assign(target, JSON.parse(JSON.stringify(source || {})));
+}
+
+function applySeasonDataset(year, data) {
+  activeSeasonYear = year;
+  activeDataUpdated = data.updated || '';
+  activePlayerLogs = null;
+  playerLogsLoadPromise = null;
+  AP.splice(0, AP.length, ...(data.AP || []).map(p => ({ ...p })));
+  PP.splice(0, PP.length, ...(data.PP || []).map(p => ({ ...p })));
+  replaceObjectContents(SCHEDULES, data.SCHEDULES || {});
+  normalizePlayers();
+  TEAM_POWER_RATINGS = [];
+  TEAM_POWER_BY_TEAM = {};
+  globalPlayerSearchIndex = [];
+  setupPlayerScore();
+  calculateTeamPowerRatings();
+  buildGlobalPlayerSearchIndex();
+  buildPredictorTeams(true);
+  showLastUpdated();
+  updateSeasonText();
+  renderHitTable();
+  renderPitchTable();
+  renderTeamsGrid();
+  buildTeamsNav();
+  renderHome();
+  renderTeamRankings();
+  renderMatchupPrediction();
+  renderStandings();
+}
+
+function changeSeason(year, view = null) {
+  const sel = document.getElementById('seasonSelect');
+  if (sel) sel.value = year;
+  loadSeasonData(year)
+    .then(data => {
+      applySeasonDataset(year, data);
+      if (view) showView(view);
+    })
+    .catch(() => {
+      if (sel) sel.value = activeSeasonYear;
+      alert(`Season ${year} has not been backfilled yet.`);
+    });
 }
 
 function setupPlayerScore() {
@@ -371,7 +504,7 @@ function scheduleDateKey(value) {
   if (full) return full;
   const m = String(value || '').match(/(\d{1,2})\/(\d{1,2})/);
   if (!m) return '';
-  return `2026-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+  return `${activeSeasonYear}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
 }
 
 function normalizeOpponentText(value) {
@@ -415,14 +548,15 @@ function rowMatchesGame(row, game) {
 }
 
 function collectTeamGameLogs(team, game) {
+  const logMap = getPlayerLogMap();
   const hitPlayers = AP.filter(p => p.team === team);
   const pitPlayers = PP.filter(p => p.team === team);
   const hitters = hitPlayers.flatMap(p => {
-    const rows = ((PLAYER_LOGS[playerKey(p.name, team)] || {}).hitting || []).filter(row => rowMatchesGame(row, game));
+    const rows = ((logMap[playerKey(p.name, team)] || {}).hitting || []).filter(row => rowMatchesGame(row, game));
     return rows.map(row => ({ ...row, player: p.name, team }));
   });
   const pitchers = pitPlayers.flatMap(p => {
-    const rows = ((PLAYER_LOGS[playerKey(p.name, team)] || {}).pitching || []).filter(row => rowMatchesGame(row, game));
+    const rows = ((logMap[playerKey(p.name, team)] || {}).pitching || []).filter(row => rowMatchesGame(row, game));
     return rows.map(row => ({ ...row, player: p.name, team }));
   });
   return { hitters, pitchers };
@@ -534,7 +668,7 @@ function gameScoreForTeam(game) {
 }
 
 function renderPlayerGameLogs(name, team, range = { active:false }) {
-  const logs = (typeof PLAYER_LOGS !== 'undefined' ? PLAYER_LOGS[playerKey(name, team)] : null) || {};
+  const logs = getPlayerLogMap()[playerKey(name, team)] || {};
   const hitRows = filterLogRows(logs.hitting, range);
   const pitRows = filterLogRows(logs.pitching, range);
   const hitCols = [
@@ -775,8 +909,9 @@ function applyPitchRangeScores(players) {
 }
 
 function rangeHitters(range) {
+  const logMap = getPlayerLogMap();
   const players = AP.map(p => {
-    const rows = filterLogRows((PLAYER_LOGS[playerKey(p.name, p.team)] || {}).hitting, range);
+    const rows = filterLogRows((logMap[playerKey(p.name, p.team)] || {}).hitting, range);
     return calculateHitStats(p, rows);
   }).filter(p => p.PA > 0);
   applyHitRangeScores(players);
@@ -784,15 +919,27 @@ function rangeHitters(range) {
 }
 
 function rangePitchers(range) {
+  const logMap = getPlayerLogMap();
   const players = PP.map(p => {
-    const rows = filterLogRows((PLAYER_LOGS[playerKey(p.name, p.team)] || {}).pitching, range);
+    const rows = filterLogRows((logMap[playerKey(p.name, p.team)] || {}).pitching, range);
     return calculatePitchStats(p, rows);
   }).filter(p => p.IP > 0);
   applyPitchRangeScores(players);
   return players;
 }
 
+function getPlayerLogMap() {
+  if (activePlayerLogs) return activePlayerLogs;
+  if (activeSeasonYear === CURRENT_SEASON_YEAR && typeof PLAYER_LOGS !== 'undefined') return PLAYER_LOGS;
+  return {};
+}
+
 function ensurePlayerLogsLoaded() {
+  if (activePlayerLogs) return Promise.resolve();
+  if (activeSeasonYear !== CURRENT_SEASON_YEAR) {
+    activePlayerLogs = {};
+    return Promise.resolve();
+  }
   if (typeof PLAYER_LOGS !== 'undefined') return Promise.resolve();
   if (playerLogsLoadPromise) return playerLogsLoadPromise;
   playerLogsLoadPromise = new Promise((resolve, reject) => {
@@ -931,8 +1078,8 @@ function showLastUpdated() {
   // Pull last-updated comment from data.js via AP array timestamp if available
   const el1 = document.getElementById('hitLastUpdated');
   const el2 = document.getElementById('pitLastUpdated');
-  if (typeof DATA_UPDATED !== 'undefined') {
-    const txt = `Updated ${DATA_UPDATED}`;
+  if (activeDataUpdated || typeof DATA_UPDATED !== 'undefined') {
+    const txt = `Updated ${activeDataUpdated || DATA_UPDATED}`;
     if (el1) el1.textContent = txt;
     if (el2) el2.textContent = txt;
   }
@@ -958,10 +1105,12 @@ function buildTeamFilters() {
   });
 }
 
-function buildPredictorTeams() {
+function buildPredictorTeams(force = false) {
   const list = document.getElementById('predictTeamList');
   const inputs = ['predictTeamA', 'predictTeamB'].map(id => document.getElementById(id)).filter(Boolean);
-  if (!list || !inputs.length || list.children.length) return;
+  if (!list || !inputs.length) return;
+  if (force) list.innerHTML = '';
+  if (list.children.length) return;
   Object.keys(TM).sort().forEach(team => {
     const o = document.createElement('option');
     o.value = team;
@@ -992,7 +1141,7 @@ function renderHitTable() {
   const sf = document.getElementById('hitStatFilterWrap');
   if (sf) sf.style.display = isStd ? 'none' : '';
 
-  if (range.active && typeof PLAYER_LOGS === 'undefined') {
+  if (range.active && activeSeasonYear === CURRENT_SEASON_YEAR && typeof PLAYER_LOGS === 'undefined') {
     document.getElementById('hitResultsInfo').innerHTML = 'Loading date range stats...';
     document.getElementById('hitLbBody').innerHTML = `<tr><td colspan="20" class="empty">Loading player game logs.</td></tr>`;
     ensurePlayerLogsLoaded().then(renderHitTable);
@@ -1090,7 +1239,7 @@ function renderPitchTable() {
   const sf = document.getElementById('pitStatFilterWrap');
   if (sf) sf.style.display = isStd ? 'none' : '';
 
-  if (range.active && typeof PLAYER_LOGS === 'undefined') {
+  if (range.active && activeSeasonYear === CURRENT_SEASON_YEAR && typeof PLAYER_LOGS === 'undefined') {
     document.getElementById('pitResultsInfo').innerHTML = 'Loading date range stats...';
     document.getElementById('pitLbBody').innerHTML = `<tr><td colspan="20" class="empty">Loading player game logs.</td></tr>`;
     ensurePlayerLogsLoaded().then(renderPitchTable);
@@ -1822,7 +1971,7 @@ function parseScheduleDate(dateStr) {
   if (!m) return null;
   const month = Number(m[1]);
   const day = Number(m[2]);
-  const year = month >= 9 ? 2025 : 2026;
+  const year = month >= 9 ? Number(activeSeasonYear) - 1 : Number(activeSeasonYear);
   return new Date(year, month - 1, day);
 }
 
@@ -2741,10 +2890,12 @@ function renderStandings() {
 
 // ── INIT ───────────────────────────────────────────────────────────────────────
 normalizePlayers();
+buildSeasonControls();
 setupPlayerScore();
 calculateTeamPowerRatings();
 buildGlobalPlayerSearchIndex();
 showLastUpdated();
+updateSeasonText();
 buildDivFilters();
 buildTeamFilters();
 buildPredictorTeams();

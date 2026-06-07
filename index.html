@@ -65,6 +65,11 @@
 
   </nav>
 
+  <div class="season-switcher">
+    <span>Season</span>
+    <select id="seasonSelect" onchange="changeSeason(this.value)"></select>
+  </div>
+
   <div class="global-search" id="globalSearch">
     <svg class="global-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
       <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
@@ -93,7 +98,7 @@
     </div>
     <div class="home-hero-inner">
       <div class="home-hero-text">
-        <div class="home-hero-eyebrow">New Jersey High School Baseball · 2025–26</div>
+        <div class="home-hero-eyebrow">New Jersey High School Baseball · <span data-season-meta>2026 Season</span></div>
         <h1 class="home-hero-title">DIAMOND<br>INDEX</h1>
         <div class="home-hero-tagline">Measure the Game.</div><p class="home-hero-sub">The definitive source for New Jersey high school baseball analytics — wRC+, FIP, wOBA, Player Score, and more. 15 conferences, 368 teams statewide.</p>
         <div class="home-hero-actions">
@@ -155,7 +160,7 @@
         <div class="page-meta">
           New Jersey High School Baseball
           <span class="page-meta-dot"></span>
-          2025–26 Season
+          <span data-season-meta>2026 Season</span>
           <span class="page-meta-dot"></span>
           Percentiles vs. qualified hitters (50+ PA)
         </div>
@@ -241,7 +246,7 @@
         <div class="page-meta">
           New Jersey High School Baseball
           <span class="page-meta-dot"></span>
-          2025–26 Season
+          <span data-season-meta>2026 Season</span>
           <span class="page-meta-dot"></span>
           Percentiles vs. qualified pitchers (15+ IP)
         </div>
@@ -372,7 +377,7 @@
           <span class="page-meta-dot"></span>
           Uses Diamond Index adjusted team ratings
           <span class="page-meta-dot"></span>
-          2025-26 Season
+          <span data-season-meta>2026 Season</span>
         </div>
       </div>
     </div>
@@ -476,7 +481,7 @@
         <div class="page-meta">
           New Jersey High School Baseball
           <span class="page-meta-dot"></span>
-          2025–26 Season
+          <span data-season-meta>2026 Season</span>
           <span class="page-meta-dot"></span>
           Pyth = Pythagorean Expected Record
 
@@ -593,6 +598,7 @@
 
 <script src="js/data.js"></script>
 <script src="js/divisions.js"></script>
+<script src="js/seasons/manifest.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

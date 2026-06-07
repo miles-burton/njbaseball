@@ -114,10 +114,36 @@ body {
 
 .back-btn:hover { color: var(--text); }
 
+.season-switcher {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  color: var(--muted2);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.09em;
+}
+
+.season-switcher select {
+  height: 32px;
+  border: 1px solid var(--border2);
+  background: rgba(15,36,64,0.72);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 0 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  outline: none;
+}
+
+.season-switcher select:focus {
+  border-color: var(--accent);
+}
+
 /* ── GLOBAL PLAYER SEARCH ────────────────────────────────────────────────── */
 .global-search {
   position: relative;
-  margin-left: auto;
   width: min(280px, 26vw);
   min-width: 210px;
 }
@@ -2424,6 +2450,10 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
     order: 3;
     width: 100%;
     min-width: 0;
+    margin-left: 0;
+  }
+  .season-switcher {
+    order: 2;
     margin-left: 0;
   }
   .global-search-results {
