@@ -1523,21 +1523,21 @@ function renderTeamsGrid() {
           ${m.logo ? `<img src="${m.logo}" width="30" height="30" style="object-fit:contain">` : ''}
         </div>
         <div>
-          <div class="team-card-name" style="color:${m.t}">${team}</div>
-          <div class="team-card-mascot" style="color:${m.s}">${m.mascot}</div>
+          <div class="team-card-name">${team}</div>
+          <div class="team-card-mascot">${m.mascot}</div>
         </div>
       </div>
       <div class="team-card-stats">
         <div class="team-card-stat">
-          <div class="team-card-stat-val" style="color:${m.t}">${avgAVG.toFixed(3).replace(/^0/,'')}</div>
+          <div class="team-card-stat-val">${avgAVG.toFixed(3).replace(/^0/,'')}</div>
           <div class="team-card-stat-label">Avg AVG</div>
         </div>
         <div class="team-card-stat">
-          <div class="team-card-stat-val" style="color:${m.t}">${avgOPS.toFixed(3)}</div>
+          <div class="team-card-stat-val">${avgOPS.toFixed(3)}</div>
           <div class="team-card-stat-label">Avg OPS</div>
         </div>
         <div class="team-card-stat">
-          <div class="team-card-stat-val" style="color:${m.t}">${avgWRC}</div>
+          <div class="team-card-stat-val">${avgWRC}</div>
           <div class="team-card-stat-label">Avg wRC+</div>
         </div>
       </div>
