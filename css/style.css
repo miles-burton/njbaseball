@@ -2189,10 +2189,42 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   gap: 2rem;
 }
 
+.standings-conference {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.standings-conference-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: end;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid rgba(200, 155, 60, 0.32);
+}
+
+.standings-conference-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.standings-conference-sub {
+  font-size: 12px;
+  color: var(--muted2);
+}
+
 .standings-division {
   border: 1px solid var(--border2);
   border-radius: 4px;
   overflow: hidden;
+}
+
+.standings-division-nested {
+  margin-bottom: 0;
 }
 
 .standings-division-header {
@@ -2284,6 +2316,10 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   font-family: 'Bebas Neue', sans-serif;
   font-size: 14px;
   letter-spacing: 0.04em;
+}
+
+.standings-record.division-record {
+  color: var(--accent);
 }
 
 .over-500  { color: #4ade80; }

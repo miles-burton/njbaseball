@@ -293,6 +293,22 @@ function teamLogo(team, size = 16) {
   return '';
 }
 
+function teamDivisionInfo(team) {
+  const info = typeof TEAM_DIVISIONS !== 'undefined' ? TEAM_DIVISIONS[team] : null;
+  const meta = TM[team] || {};
+  return info || {
+    conference: meta.div || '',
+    division: '',
+    divRecord: '',
+    divPct: '',
+  };
+}
+
+function numericPct(value) {
+  const n = Number(String(value || '').replace(/[^0-9.]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+
 function chip(team) {
   const m = TM[team] || { bg: '#111', s: '#333', t: '#aaa' };
   return `<span class="team-chip" style="background:${m.bg};color:${m.t};border:1px solid ${m.s}66">
@@ -1495,6 +1511,7 @@ function renderGameDetail(team, gameIndex) {
 function showTeam(team, from) {
   prevView = from || 'teams';
   const m  = TM[team] || { p:'#222', s:'#444', t:'#aaa', bg:'#111', mascot:'', svg:'' };
+  const divInfo = teamDivisionInfo(team);
   const power = TEAM_POWER_BY_TEAM[team] || null;
   const tp = AP.filter(p => p.team === team);
   const qp = tp.filter(p => p.qualified);
@@ -1590,9 +1607,18 @@ function showTeam(team, from) {
             <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--text)">${coach}</span>
           </div>` : ''}
           <div>
-            <span style="font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:.1em;color:var(--muted)">DIVISION&nbsp;&nbsp;</span>
-            <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--text)">${m.div || ''}</span>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:.1em;color:var(--muted)">CONFERENCE&nbsp;&nbsp;</span>
+            <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--text)">${divInfo.conference || m.div || ''}</span>
           </div>
+          ${divInfo.division ? `<div>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:.1em;color:var(--muted)">DIVISION&nbsp;&nbsp;</span>
+            <span style="font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--text)">${divInfo.division}</span>
+          </div>` : ''}
+          ${divInfo.divRecord ? `<div>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:.1em;color:var(--muted)">DIV RECORD&nbsp;&nbsp;</span>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.04em;color:var(--accent)">${divInfo.divRecord}</span>
+          </div>
+          ` : ''}
         </div>
       </div>
     </div>
@@ -2580,6 +2606,7 @@ function swapPredictorTeams() {
 // ── STANDINGS ─────────────────────────────────────────────────────────────────
 function teamStandingsRow(team) {
   const sched    = (typeof SCHEDULES !== 'undefined' && SCHEDULES[team]) || {};
+  const divInfo  = teamDivisionInfo(team);
   const games    = sched.games || [];
   const W        = sched.wins   || 0;
   const L        = sched.losses || 0;
@@ -2612,7 +2639,11 @@ function teamStandingsRow(team) {
   const pythL = G - pythW;
 
   return { team, W, L, G, wpct, RS, RA, rdiff, raPG, rsPG,
-           pythW, pythL, pythWpct };
+           pythW, pythL, pythWpct,
+           conference: divInfo.conference || (TM[team]?.div || ''),
+           division: divInfo.division || 'Other',
+           divRecord: divInfo.divRecord || '—',
+           divPct: divInfo.divPct || '' };
 }
 
 function renderStandings() {
@@ -2629,14 +2660,21 @@ function renderStandings() {
   const upd = document.getElementById('standingsUpdated');
   if (upd && typeof DATA_UPDATED !== 'undefined') upd.textContent = `Updated ${DATA_UPDATED}`;
 
-  el.innerHTML = DIVISIONS.map(div => {
-    const divTeams = Object.keys(TM).filter(t => TM[t].div === div);
-    const rows = divTeams.map(t => teamStandingsRow(t))
-                         .sort((a, b) => b.wpct - a.wpct || b.rdiff - a.rdiff);
+  el.innerHTML = DIVISIONS.map(conf => {
+    const confTeams = Object.keys(TM).filter(t => (teamDivisionInfo(t).conference || TM[t].div) === conf);
+    const divNames = [...new Set(confTeams.map(t => teamDivisionInfo(t).division || 'Other'))].sort();
+    const conferenceRows = confTeams.map(t => teamStandingsRow(t));
+    const conferenceSummary = `${divNames.length} divisions · ${confTeams.length} teams`;
 
-    const tableRows = rows.map((r, i) => {
+    const divisionTables = divNames.map(divName => {
+      const rows = conferenceRows
+        .filter(r => r.division === divName)
+        .sort((a, b) => numericPct(b.divPct) - numericPct(a.divPct) || b.wpct - a.wpct || b.rdiff - a.rdiff);
+
+      const tableRows = rows.map((r, i) => {
       const m        = TM[r.team] || {};
       const wlClass  = r.wpct > 0.5 ? 'over-500' : r.wpct < 0.5 ? 'under-500' : 'even-500';
+      const divPct   = r.divPct || '—';
       const pdiff    = r.pythW - r.W;
       const pdiffStr = pdiff > 0 ? `+${pdiff}` : `${pdiff}`;
       const pdiffCls = pdiff > 0 ? 'pyth-diff-pos' : pdiff < 0 ? 'pyth-diff-neg' : 'pyth-diff-neu';
@@ -2652,6 +2690,10 @@ function renderStandings() {
         <td class="num">
           <span class="standings-record ${wlClass}">${r.W}-${r.L}</span>
         </td>
+        <td class="num">
+          <span class="standings-record division-record">${r.divRecord}</span>
+        </td>
+        <td class="num" style="font-variant-numeric:tabular-nums">${divPct}</td>
         <td class="num" style="font-variant-numeric:tabular-nums">${r.wpct.toFixed(3).replace(/^0/,'')}</td>
         <td class="num" style="color:${r.rdiff > 0 ? '#4ade80' : r.rdiff < 0 ? '#f87171' : 'var(--muted2)'}">
           ${r.rdiff > 0 ? '+' : ''}${r.rdiff}
@@ -2665,15 +2707,17 @@ function renderStandings() {
       </tr>`;
     }).join('');
 
-    return `<div class="standings-division">
+      return `<div class="standings-division standings-division-nested">
       <div class="standings-division-header">
-        <span class="standings-division-name">${div}</span>
+        <span class="standings-division-name">${divName}</span>
         <span class="standings-division-sub">${rows.length} teams</span>
       </div>
       <table class="standings-table">
         <thead><tr>
           <th>Team</th>
           <th class="num">Record</th>
+          <th class="num" title="Official NJ.com division record">DIV</th>
+          <th class="num" title="Official NJ.com division winning percentage">DIV PCT</th>
           <th class="num" title="Win Percentage">PCT</th>
           <th class="num" title="Run Differential">RDIFF</th>
           <th class="num" title="Runs Scored per Game">RS/G</th>
@@ -2682,6 +2726,15 @@ function renderStandings() {
         </tr></thead>
         <tbody>${tableRows}</tbody>
       </table>
+    </div>`;
+    }).join('');
+
+    return `<div class="standings-conference">
+      <div class="standings-conference-header">
+        <span class="standings-conference-name">${conf}</span>
+        <span class="standings-conference-sub">${conferenceSummary}</span>
+      </div>
+      ${divisionTables}
     </div>`;
   }).join('');
 }
