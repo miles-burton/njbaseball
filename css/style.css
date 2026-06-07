@@ -124,6 +124,11 @@ body {
 .nav-tab:hover  { color: var(--text); }
 .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
+.nav-tab-report {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
 .back-btn {
   font-family: var(--font-sans);
   font-size: 14px;
@@ -253,6 +258,166 @@ body {
 
 :root[data-theme="light"] .theme-toggle-moon {
   display: none;
+}
+
+/* ── PROBLEM REPORT MODAL ───────────────────────────────────────────────── */
+.report-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+
+.report-modal.open {
+  display: flex;
+}
+
+.report-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(5,8,13,0.72);
+  backdrop-filter: blur(5px);
+}
+
+.report-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(560px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  box-shadow: 0 26px 80px rgba(0,0,0,0.46);
+  padding: 24px;
+}
+
+.report-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--navy);
+  color: var(--muted2);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.report-close:hover {
+  color: var(--text);
+  border-color: var(--border2);
+}
+
+.report-kicker {
+  margin-bottom: 8px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.report-dialog h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 28px;
+  line-height: 1.05;
+}
+
+.report-dialog p {
+  margin: 10px 42px 20px 0;
+  color: var(--muted2);
+  line-height: 1.5;
+}
+
+.report-form {
+  display: grid;
+  gap: 14px;
+}
+
+.report-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted2);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.report-form select,
+.report-form textarea,
+.report-form input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--navy);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  padding: 11px 12px;
+}
+
+.report-form select:focus,
+.report-form textarea:focus,
+.report-form input:focus {
+  border-color: var(--accent);
+  background: var(--surface2);
+}
+
+.report-form textarea {
+  resize: vertical;
+  min-height: 132px;
+  line-height: 1.45;
+}
+
+.report-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.report-submit,
+.report-cancel {
+  height: 38px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.report-submit {
+  border: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  background: var(--accent);
+  color: var(--graphite);
+}
+
+.report-cancel {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted2);
+}
+
+.report-cancel:hover {
+  color: var(--text);
+  border-color: var(--border2);
+}
+
+.report-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .global-search-results {
@@ -3640,6 +3805,10 @@ td.num,
     flex: 0 0 auto;
   }
 
+  .nav-tab-report {
+    margin-left: auto;
+  }
+
   .home-hero {
     min-height: 500px;
     background:
@@ -3725,6 +3894,18 @@ td.num,
 
   .nav-tabs {
     order: 4;
+  }
+
+  .nav-tab-report {
+    margin-left: 0;
+  }
+
+  .report-dialog {
+    padding: 20px;
+  }
+
+  .report-dialog h2 {
+    font-size: 24px;
   }
 }
 

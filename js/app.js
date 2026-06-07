@@ -23,6 +23,54 @@ function initTheme() {
   applyTheme(saved || preferred);
 }
 
+// ── PROBLEM REPORTING ─────────────────────────────────────────────────────────
+function openReportProblem() {
+  if (typeof closeDropdowns === 'function') closeDropdowns();
+  const modal = document.getElementById('reportModal');
+  if (!modal) return;
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  setTimeout(() => document.getElementById('reportDetails')?.focus(), 0);
+}
+
+function closeReportProblem() {
+  const modal = document.getElementById('reportModal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+function submitProblemReport(event) {
+  event.preventDefault();
+  const type = document.getElementById('reportType')?.value || 'Site problem';
+  const details = document.getElementById('reportDetails')?.value.trim() || '';
+  const contact = document.getElementById('reportContact')?.value.trim() || '';
+  const title = `[Report] ${type}`;
+  const body = [
+    '## Problem type',
+    type,
+    '',
+    '## Details',
+    details,
+    '',
+    '## Page context',
+    `URL: ${window.location.href}`,
+    `Season: ${activeSeasonYear || CURRENT_SEASON_YEAR}`,
+    `Theme: ${document.documentElement.dataset.theme || 'dark'}`,
+    `Browser: ${navigator.userAgent}`,
+    '',
+    '## Contact',
+    contact || 'No contact provided',
+  ].join('\n');
+  const url = `${REPORT_ISSUE_URL}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+  window.open(url, '_blank', 'noopener');
+  closeReportProblem();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeReportProblem();
+});
+
 // ── STANDARD STAT CONFIGS ─────────────────────────────────────────────────────
 const HIT_STD_COLS = ['AB','R','H','B2','B3','HR','RBI','BB','HBP','SB','AVG','OBP','SLG','OPS'];
 const HIT_STD_CFG  = {
@@ -82,6 +130,7 @@ const SEASON_CACHE = { [CURRENT_SEASON_YEAR]: CURRENT_SEASON_SNAPSHOT };
 let activeSeasonYear = CURRENT_SEASON_YEAR;
 let activeDataUpdated = CURRENT_SEASON_SNAPSHOT.updated;
 let activePlayerLogs = null;
+const REPORT_ISSUE_URL = 'https://github.com/miles-burton/njbaseball/issues/new';
 
 // Standard sort state
 let hitStdSort = { col: 'HR', asc: false };

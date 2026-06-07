@@ -63,6 +63,7 @@
     <button class="nav-tab" id="tab-predictor" onclick="showView('predictor')">Predictor</button>
     <button class="nav-tab" id="tab-standings" onclick="showView('standings')">Standings</button>
     <button class="nav-tab" id="tab-glossary" onclick="showView('glossary')">Glossary</button>
+    <button class="nav-tab nav-tab-report" id="tab-report" onclick="openReportProblem()">Report a Problem</button>
 
   </nav>
 
@@ -673,6 +674,43 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<div class="report-modal" id="reportModal" aria-hidden="true">
+  <div class="report-modal-backdrop" onclick="closeReportProblem()"></div>
+  <div class="report-dialog" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+    <button class="report-close" type="button" onclick="closeReportProblem()" aria-label="Close report form">×</button>
+    <div class="report-kicker">Diamond Index Feedback</div>
+    <h2 id="reportTitle">Report a Problem</h2>
+    <p>Send incorrect stats, missing teams, broken pages, score issues, or anything that looks off.</p>
+
+    <form class="report-form" onsubmit="submitProblemReport(event)">
+      <label>
+        Problem type
+        <select id="reportType" required>
+          <option value="Incorrect stat or leaderboard">Incorrect stat or leaderboard</option>
+          <option value="Missing team or player">Missing team or player</option>
+          <option value="Wrong score or schedule">Wrong score or schedule</option>
+          <option value="Broken page or button">Broken page or button</option>
+          <option value="Design or readability issue">Design or readability issue</option>
+          <option value="Other">Other</option>
+        </select>
+      </label>
+      <label>
+        What happened?
+        <textarea id="reportDetails" rows="5" placeholder="Example: Livingston's team page is missing a game from June 5, or this player's HR total looks wrong." required></textarea>
+      </label>
+      <label>
+        Your email, optional
+        <input id="reportContact" type="email" placeholder="Only if you want a follow-up">
+      </label>
+      <div class="report-actions">
+        <button class="report-submit" type="submit">Create Report</button>
+        <button class="report-cancel" type="button" onclick="closeReportProblem()">Cancel</button>
+      </div>
+      <div class="report-note">This opens a prefilled GitHub Issue for the njbaseball repo.</div>
+    </form>
   </div>
 </div>
 
