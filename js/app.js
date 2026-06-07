@@ -6,7 +6,9 @@ function applyTheme(theme) {
   const safeTheme = theme === 'light' ? 'light' : 'dark';
   document.documentElement.dataset.theme = safeTheme;
   localStorage.setItem('diamondIndexTheme', safeTheme);
+  const toggle = document.getElementById('themeToggle');
   const label = document.getElementById('themeToggleLabel');
+  if (toggle) toggle.setAttribute('aria-label', `Switch to ${safeTheme === 'light' ? 'dark' : 'light'} mode`);
   if (label) label.textContent = safeTheme === 'light' ? 'Light' : 'Dark';
 }
 
