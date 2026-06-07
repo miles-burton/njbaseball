@@ -3103,6 +3103,25 @@ td.num,
   gap: 22px;
 }
 
+.home-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 0.85fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.home-main-column,
+.home-side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
+.home-side-column .home-performers-grid {
+  grid-template-columns: 1fr;
+}
+
 .home-hero-inner {
   min-height: 500px;
 }
@@ -3171,6 +3190,19 @@ td.num,
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.scores-wrap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 28px 64px;
+}
+
+.scores-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.75fr);
+  gap: 22px;
+  align-items: start;
 }
 
 .home-action-card {
@@ -3474,9 +3506,14 @@ td.num,
   .predictor-wrap,
   .standings-wrap,
   .glossary-wrap,
-  .home-wrap {
+  .home-wrap,
+  .scores-wrap {
     padding-left: 16px;
     padding-right: 16px;
+  }
+
+  .home-action-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -3518,6 +3555,11 @@ td.num,
 
   .global-search {
     width: min(320px, 42vw);
+  }
+
+  .home-dashboard,
+  .scores-grid {
+    grid-template-columns: 1fr;
   }
 }
 

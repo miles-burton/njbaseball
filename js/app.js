@@ -290,6 +290,7 @@ function applySeasonDataset(year, data) {
   renderTeamsGrid();
   buildTeamsNav();
   renderHome();
+  renderScoresPage();
   renderTeamRankings();
   renderMatchupPrediction();
   renderStandings();
@@ -1843,10 +1844,12 @@ function showView(v, from) {
   if (['leaderboard','pitching'].includes(v))       document.getElementById('tab-leaders')?.classList.add('active');
   if (['teams','team','game'].includes(v))          document.getElementById('tab-teams-dd')?.classList.add('active');
   if (v === 'team-rankings')                        document.getElementById('tab-team-rankings')?.classList.add('active');
+  if (v === 'scores')                               document.getElementById('tab-scores')?.classList.add('active');
   if (v === 'predictor')                            document.getElementById('tab-predictor')?.classList.add('active');
   if (v === 'standings')                            document.getElementById('tab-standings')?.classList.add('active');
   if (v === 'glossary')                             document.getElementById('tab-glossary')?.classList.add('active');
   if (v === 'predictor')                            renderMatchupPrediction();
+  if (v === 'scores')                               renderScoresPage();
 }
 
 function goBack() {
@@ -2048,6 +2051,123 @@ function buildCompletedScoreGames() {
   return games;
 }
 
+function buildUpcomingGames() {
+  if (typeof SCHEDULES === 'undefined') return [];
+  const seen = new Set();
+  const games = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  Object.keys(SCHEDULES).forEach(team => {
+    (SCHEDULES[team].games || []).forEach(g => {
+      if (g.score) return;
+      const d = parseScheduleDate(g.date);
+      if (!d) return;
+      const oppMatch = matchOpponentTeam(g.opponent);
+      const opponent = oppMatch || cleanOpponentLabel(g.opponent);
+      const names = [team, opponent].sort();
+      const key = `${dateKey(d)}|${names[0]}|${names[1]}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      const tPower = TEAM_POWER_BY_TEAM[team]?.score || 50;
+      const oPower = oppMatch ? (TEAM_POWER_BY_TEAM[oppMatch]?.score || 50) : 50;
+      const tournament = /tournament|diamond classic|county|njsiaa/i.test(g.opponent);
+      const importance = (tPower + oPower) / 2
+        + (TEAM_POWER_BY_TEAM[team]?.rank <= 25 ? 6 : 0)
+        + (oppMatch && TEAM_POWER_BY_TEAM[oppMatch]?.rank <= 25 ? 6 : 0)
+        + (tournament ? 5 : 0);
+
+      games.push({
+        date: d,
+        dateKey: dateKey(d),
+        team,
+        opponent,
+        oppMatch,
+        home: !!g.home,
+        tournament,
+        importance,
+        isFuture: d >= today,
+      });
+    });
+  });
+
+  return games.sort((a, b) =>
+    Number(b.isFuture) - Number(a.isFuture) ||
+    a.date - b.date ||
+    b.importance - a.importance
+  );
+}
+
+function scoreTableHtml(selected, limit = 10, includeDate = false) {
+  if (!selected.length) return '<div class="empty">No completed scores available.</div>';
+  const teamLogoSmall = name => TM[name]?.logo ? `<img src="${TM[name].logo}" width="18" height="18" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : '';
+  const teamClick = name => TM[name] ? `onclick="showTeam(decodeURIComponent('${encodeURIComponent(name)}'),'scores')"` : '';
+
+  return `<table class="home-rankings-table">
+    <thead><tr>
+      <th style="width:32px">#</th>
+      ${includeDate ? '<th>Date</th>' : ''}
+      <th>Game</th>
+      <th class="num">Score</th>
+      <th class="num">DI</th>
+    </tr></thead>
+    <tbody>
+      ${selected.slice(0, limit).map((g, i) => {
+        const winnerPower = TEAM_POWER_BY_TEAM[g.winner]?.score;
+        return `<tr ${teamClick(g.winner)}>
+          <td style="font-family:var(--font-mono);color:${i < 3 ? 'var(--accent)' : 'var(--muted)'};font-size:16px">${i + 1}</td>
+          ${includeDate ? `<td style="color:var(--muted2);font-size:12px">${displayScoreDate(g.date)}</td>` : ''}
+          <td>
+            <div class="home-score-game">
+              ${g.tournament ? '<span class="home-score-badge">TOURNEY</span>' : ''}
+              <span class="home-score-team home-score-winner">${teamLogoSmall(g.winner)}<span>${g.winner}</span></span>
+              <span class="home-score-vs">def.</span>
+              <span class="home-score-team home-score-loser">${teamLogoSmall(g.loser)}<span>${g.loser}</span></span>
+            </div>
+          </td>
+          <td class="num" style="font-family:var(--font-mono);font-size:16px;color:var(--text)">${g.winnerScore}-${g.loserScore}</td>
+          <td class="num" style="color:var(--muted2)">${Number.isFinite(winnerPower) ? winnerPower.toFixed(1) : '—'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
+
+function upcomingTableHtml(selected, limit = 8, includeDate = false) {
+  if (!selected.length) return '<div class="empty">No upcoming games available.</div>';
+  const teamLogoSmall = name => TM[name]?.logo ? `<img src="${TM[name].logo}" width="18" height="18" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : '';
+  const teamClick = name => TM[name] ? `onclick="showTeam(decodeURIComponent('${encodeURIComponent(name)}'),'scores')"` : '';
+
+  return `<table class="home-rankings-table upcoming-table">
+    <thead><tr>
+      ${includeDate ? '<th>Date</th>' : ''}
+      <th>Matchup</th>
+      <th>Site</th>
+      <th class="num">DI</th>
+    </tr></thead>
+    <tbody>
+      ${selected.slice(0, limit).map(g => {
+        const teamPower = TEAM_POWER_BY_TEAM[g.team]?.score;
+        const oppPower = g.oppMatch ? TEAM_POWER_BY_TEAM[g.oppMatch]?.score : null;
+        return `<tr ${teamClick(g.team)}>
+          ${includeDate ? `<td style="color:var(--muted2);font-size:12px">${displayScoreDate(g.date)}</td>` : ''}
+          <td>
+            <div class="home-score-game">
+              ${g.tournament ? '<span class="home-score-badge">TOURNEY</span>' : ''}
+              <span class="home-score-team home-score-winner">${teamLogoSmall(g.team)}<span>${g.team}</span></span>
+              <span class="home-score-vs">vs.</span>
+              <span class="home-score-team home-score-loser">${teamLogoSmall(g.oppMatch || g.opponent)}<span>${g.opponent}</span></span>
+            </div>
+          </td>
+          <td style="color:var(--muted2);font-size:12px">${g.home ? 'Home' : 'Away'}</td>
+          <td class="num" style="color:var(--muted2)">${Number.isFinite(teamPower) && Number.isFinite(oppPower) ? `${teamPower.toFixed(1)} / ${oppPower.toFixed(1)}` : Number.isFinite(teamPower) ? teamPower.toFixed(1) : '—'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
+
 function renderHomeScores() {
   const container = document.getElementById('homeScores');
   const meta = document.getElementById('homeScoresMeta');
@@ -2075,52 +2195,50 @@ function renderHomeScores() {
       : 'No completed scores available yet.';
   }
 
-  if (!selected.length) {
-    container.innerHTML = '<div class="empty">No completed scores available.</div>';
-    return;
+  container.innerHTML = scoreTableHtml(selected, 8);
+}
+
+function renderHomeUpcoming() {
+  const container = document.getElementById('homeUpcoming');
+  const meta = document.getElementById('homeUpcomingMeta');
+  if (!container) return;
+
+  const games = buildUpcomingGames();
+  const upcoming = games.filter(g => g.isFuture);
+  const selected = upcoming.length ? upcoming : games;
+  if (meta) {
+    meta.textContent = selected.length
+      ? `${upcoming.length ? 'Next scheduled games' : 'Remaining unscored games'} · sorted by date`
+      : 'No upcoming games available.';
   }
+  container.innerHTML = upcomingTableHtml(selected, 7);
+}
 
-  const teamLogo = name => TM[name]?.logo ? `<img src="${TM[name].logo}" width="18" height="18" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : '';
-  const teamClick = name => TM[name] ? `onclick="showTeam(decodeURIComponent('${encodeURIComponent(name)}'),'home')"` : '';
+function renderScoresPage() {
+  const recent = document.getElementById('scoresRecent');
+  const upcoming = document.getElementById('scoresUpcoming');
+  if (!recent && !upcoming) return;
 
-  container.innerHTML = `<table class="home-rankings-table">
-    <thead><tr>
-      <th style="width:32px">#</th>
-      <th>Game</th>
-      <th class="num">Score</th>
-      <th class="num">DI</th>
-    </tr></thead>
-    <tbody>
-      ${selected.slice(0, 10).map((g, i) => {
-        const winnerPower = TEAM_POWER_BY_TEAM[g.winner]?.score;
-        return `<tr ${teamClick(g.winner)}>
-          <td style="font-family:var(--font-mono);color:${i < 3 ? 'var(--accent)' : 'var(--muted)'};font-size:16px">${i + 1}</td>
-          <td>
-            <div class="home-score-game">
-              ${g.tournament ? '<span class="home-score-badge">TOURNEY</span>' : ''}
-              <span class="home-score-team home-score-winner">${teamLogo(g.winner)}<span>${g.winner}</span></span>
-              <span class="home-score-vs">def.</span>
-              <span class="home-score-team home-score-loser">${teamLogo(g.loser)}<span>${g.loser}</span></span>
-            </div>
-          </td>
-          <td class="num" style="font-family:var(--font-mono);font-size:16px;color:var(--text)">${g.winnerScore}-${g.loserScore}</td>
-          <td class="num" style="color:var(--muted2)">${Number.isFinite(winnerPower) ? winnerPower.toFixed(1) : '—'}</td>
-        </tr>`;
-      }).join('')}
-    </tbody>
-  </table>`;
+  const scores = buildCompletedScoreGames().sort((a, b) => b.date - a.date || b.importance - a.importance);
+  const games = buildUpcomingGames();
+  const future = games.filter(g => g.isFuture);
+  const selectedUpcoming = future.length ? future : games;
+
+  if (document.getElementById('scoresRecentMeta')) {
+    document.getElementById('scoresRecentMeta').textContent = scores.length
+      ? `${scores.length.toLocaleString()} completed games · newest first`
+      : 'No completed scores available.';
+  }
+  if (document.getElementById('scoresUpcomingMeta')) {
+    document.getElementById('scoresUpcomingMeta').textContent = selectedUpcoming.length
+      ? `${selectedUpcoming.length.toLocaleString()} scheduled or unscored games`
+      : 'No upcoming games available.';
+  }
+  if (recent) recent.innerHTML = scoreTableHtml(scores, 60, true);
+  if (upcoming) upcoming.innerHTML = upcomingTableHtml(selectedUpcoming, 40, true);
 }
 
 function renderHome() {
-  const uniquePlayers = new Set([...AP, ...PP].map(p => `${p.name}|${p.team}`)).size;
-  const completedGames = buildCompletedScoreGames().length;
-  const kpiPlayers = document.getElementById('homeKpiPlayers');
-  const kpiTeams = document.getElementById('homeKpiTeams');
-  const kpiGames = document.getElementById('homeKpiGames');
-  if (kpiPlayers) kpiPlayers.textContent = uniquePlayers.toLocaleString();
-  if (kpiTeams) kpiTeams.textContent = Object.keys(TM).length.toLocaleString();
-  if (kpiGames) kpiGames.textContent = completedGames.toLocaleString();
-
   // Top performers — top 3 hitters by wRC+, top 3 pitchers by strikeouts
   const rankColors  = ['gold','silver','bronze'];
   const qualH       = AP.filter(p => p.qualified);
@@ -2153,6 +2271,7 @@ function renderHome() {
     topPitchers.map((p,i) => perfCard(p,'K',v=>Math.round(v),'K',i,true)).join('');
 
   renderHomeScores();
+  renderHomeUpcoming();
 
   // Power rankings preview (top 10)
   const teams = TEAM_POWER_RATINGS.length ? TEAM_POWER_RATINGS.slice(0, 10) : [];
@@ -2897,6 +3016,7 @@ renderPitchTable();
 renderTeamsGrid();
 buildTeamsNav();
 renderHome();
+renderScoresPage();
 renderTeamRankings();
 renderMatchupPrediction();
 renderStandings();

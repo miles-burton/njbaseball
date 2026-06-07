@@ -59,6 +59,7 @@
 
     <!-- Direct links -->
     <button class="nav-tab" id="tab-team-rankings" onclick="showView('team-rankings')">Power Rankings</button>
+    <button class="nav-tab" id="tab-scores" onclick="showView('scores')">Scores</button>
     <button class="nav-tab" id="tab-predictor" onclick="showView('predictor')">Predictor</button>
     <button class="nav-tab" id="tab-standings" onclick="showView('standings')">Standings</button>
     <button class="nav-tab" id="tab-glossary" onclick="showView('glossary')">Glossary</button>
@@ -120,21 +121,6 @@
           <button class="home-btn-secondary" onclick="showView('pitching')">Pitching Leaders</button>
         </div>
       </div>
-      <div class="home-hero-panel" aria-label="Diamond Index snapshot">
-        <div class="home-kpi">
-          <span class="home-kpi-value" id="homeKpiPlayers">—</span>
-          <span class="home-kpi-label">Players</span>
-        </div>
-        <div class="home-kpi">
-          <span class="home-kpi-value" id="homeKpiTeams">—</span>
-          <span class="home-kpi-label">Teams</span>
-        </div>
-        <div class="home-kpi">
-          <span class="home-kpi-value" id="homeKpiGames">—</span>
-          <span class="home-kpi-label">Games</span>
-        </div>
-        <button class="home-panel-link" onclick="showView('team-rankings')">View Power Rankings</button>
-      </div>
     </div>
   </div>
 
@@ -154,35 +140,94 @@
       </button>
     </div>
 
-    <!-- Scores -->
-    <div class="home-section">
-      <div class="home-section-header">
-        <div>
-          <div class="home-section-title">Recent Scores</div>
-          <div class="home-section-sub" id="homeScoresMeta"></div>
+    <div class="home-dashboard">
+      <div class="home-main-column">
+        <!-- Scores -->
+        <div class="home-section">
+          <div class="home-section-header">
+            <div>
+              <div class="home-section-title">Recent Scores</div>
+              <div class="home-section-sub" id="homeScoresMeta"></div>
+            </div>
+            <button class="home-section-link" onclick="showView('scores')">Scores Page →</button>
+          </div>
+          <div id="homeScores"></div>
+        </div>
+
+        <!-- Team Rankings Preview -->
+        <div class="home-section">
+          <div class="home-section-header">
+            <div class="home-section-title">Power Rankings</div>
+            <button class="home-section-link" onclick="showView('team-rankings')">Full Rankings →</button>
+          </div>
+          <div id="homeTeamRankings"></div>
         </div>
       </div>
-      <div id="homeScores"></div>
-    </div>
 
-    <!-- Top Performers -->
-    <div class="home-section">
-      <div class="home-section-header">
-        <div class="home-section-title">Top Performers</div>
-        <button class="home-section-link" onclick="showView('leaderboard')">All Leaders →</button>
+      <div class="home-side-column">
+        <!-- Upcoming Games -->
+        <div class="home-section">
+          <div class="home-section-header">
+            <div>
+              <div class="home-section-title">Upcoming Games</div>
+              <div class="home-section-sub" id="homeUpcomingMeta"></div>
+            </div>
+            <button class="home-section-link" onclick="showView('scores')">All Games →</button>
+          </div>
+          <div id="homeUpcoming"></div>
+        </div>
+
+        <!-- Top Performers -->
+        <div class="home-section">
+          <div class="home-section-header">
+            <div class="home-section-title">Top Performers</div>
+            <button class="home-section-link" onclick="showView('leaderboard')">All Leaders →</button>
+          </div>
+          <div class="home-performers-grid" id="homePerformers"></div>
+        </div>
       </div>
-      <div class="home-performers-grid" id="homePerformers"></div>
     </div>
 
-    <!-- Team Rankings Preview -->
-    <div class="home-section">
-      <div class="home-section-header">
-        <div class="home-section-title">Power Rankings</div>
-        <button class="home-section-link" onclick="showView('team-rankings')">Full Rankings →</button>
+  </div>
+</div>
+
+<!-- SCORES -->
+<div id="view-scores" class="view">
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Scores <span>& Games</span></div>
+        <div class="page-meta">
+          New Jersey High School Baseball
+          <span class="page-meta-dot"></span>
+          <span data-season-meta>2026 Season</span>
+          <span class="page-meta-dot"></span>
+          Ranked by game importance
+        </div>
       </div>
-      <div id="homeTeamRankings"></div>
     </div>
-
+  </div>
+  <div class="scores-wrap">
+    <div class="scores-grid">
+      <div class="home-section">
+        <div class="home-section-header">
+          <div>
+            <div class="home-section-title">Recent Scores</div>
+            <div class="home-section-sub" id="scoresRecentMeta"></div>
+          </div>
+        </div>
+        <div id="scoresRecent"></div>
+      </div>
+      <div class="home-section">
+        <div class="home-section-header">
+          <div>
+            <div class="home-section-title">Upcoming Games</div>
+            <div class="home-section-sub" id="scoresUpcomingMeta"></div>
+          </div>
+        </div>
+        <div id="scoresUpcoming"></div>
+      </div>
+    </div>
   </div>
 </div>
 
