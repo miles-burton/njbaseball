@@ -1714,8 +1714,8 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 1rem;
-  padding-bottom: 8px;
+  margin: 0;
+  padding: 16px 18px 12px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -1729,8 +1729,9 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .home-section-sub {
   font-size: 11px;
   color: var(--muted);
-  margin-top: 3px;
+  margin-top: 4px;
   letter-spacing: 0.02em;
+  line-height: 1.35;
 }
 
 .home-section-link {
@@ -1752,6 +1753,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+  padding: 16px 18px 18px;
 }
 
 .performer-card {
@@ -1869,9 +1871,9 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .home-rankings-table {
   width: 100%;
   border-collapse: collapse;
-  border-radius: 4px;
+  border-radius: 0;
   overflow: hidden;
-  border: 1px solid var(--border2);
+  border: 0;
 }
 
 .home-rankings-table thead tr { background: var(--surface); }
@@ -1881,7 +1883,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   font-size: 12px;
   letter-spacing: 0.08em;
   color: var(--muted2);
-  padding: 9px 14px;
+  padding: 11px 18px;
   text-align: left;
   border-bottom: 1px solid var(--border2);
 }
@@ -1897,7 +1899,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 
 .home-rankings-table tbody tr:hover { background: var(--surface); }
 .home-rankings-table tbody tr:last-child { border-bottom: none; }
-.home-rankings-table td { padding: 9px 14px; font-size: 13px; }
+.home-rankings-table td { padding: 11px 18px; font-size: 13px; }
 
 .home-score-game {
   display: flex;
@@ -2838,7 +2840,6 @@ body {
 .prediction-card,
 .team-card,
 .team-hero,
-.player-hero,
 .standings-conference,
 .standings-division,
 .glossary-card,
@@ -3206,6 +3207,30 @@ td.num,
     var(--surface);
 }
 
+.player-hero {
+  align-items: center;
+  gap: 16px;
+  margin: 0 0 22px;
+  padding: 0 0 20px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  overflow: visible;
+}
+
+.player-shield {
+  width: 58px;
+  height: 58px;
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+.player-shield img {
+  width: 38px;
+  height: 38px;
+}
+
 .player-avatar,
 .team-logo-large {
   border-radius: 14px;
@@ -3219,6 +3244,28 @@ td.num,
   font-weight: 800;
 }
 
+.player-full-name {
+  letter-spacing: -0.025em;
+  line-height: 0.95;
+}
+
+.player-wrap {
+  max-width: 1040px;
+}
+
+.player-details {
+  margin-top: 12px;
+}
+
+.p-tag {
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
 .stat-mini,
 .team-stat-card,
 .prediction-metric,
@@ -3229,6 +3276,22 @@ td.num,
   background: var(--navy);
   border: 1px solid var(--border);
   border-radius: 10px;
+}
+
+.stat-mini-grid {
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.stat-mini {
+  padding: 14px 16px;
+}
+
+.stat-mini-val {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-mini-label,

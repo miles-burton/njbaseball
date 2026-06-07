@@ -1818,6 +1818,7 @@ function switchTeamPanel(btn, panelId) {
 function showView(v, from) {
   document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
   document.getElementById('view-' + v).classList.add('active');
+  window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   const back = document.getElementById('backBtn');
   const nav  = document.getElementById('navTabs');
 
