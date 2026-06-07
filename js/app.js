@@ -1735,46 +1735,30 @@ function showTeam(team, from) {
 
   document.getElementById('teamContent').innerHTML = `
     <div class="team-hero">
-      <div class="team-shield-lg" style="background:${m.bg};border:1px solid ${m.s}55">
-        ${m.logo ? `<img src="${m.logo}" width="52" height="52" style="object-fit:contain">` : ''}
+      <div class="team-shield-lg" style="background:${m.bg};border-color:${m.s}55">
+        ${m.logo ? `<img src="${m.logo}" width="42" height="42" style="object-fit:contain">` : ''}
       </div>
-      <div style="flex:1">
-        <div class="team-name-lg" style="color:${m.t}">${team}</div>
-        <div class="team-mascot-lg" style="color:${m.s};margin-bottom:10px">${m.mascot}</div>
-        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
-          ${record ? `<div>
-            <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--muted)">RECORD&nbsp;&nbsp;</span>
-            <span style="font-family:var(--font-mono);font-size:20px;letter-spacing:.04em;color:var(--accent)">${record}</span>
-          </div>` : ''}
-          ${coach ? `<div>
-            <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--muted)">HEAD COACH&nbsp;&nbsp;</span>
-            <span style="font-family:var(--font-sans);font-size:14px;font-weight:600;color:var(--text)">${coach}</span>
-          </div>` : ''}
-          <div>
-            <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--muted)">CONFERENCE&nbsp;&nbsp;</span>
-            <span style="font-family:var(--font-sans);font-size:14px;font-weight:600;color:var(--text)">${divInfo.conference || m.div || ''}</span>
-          </div>
-          ${divInfo.division ? `<div>
-            <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--muted)">DIVISION&nbsp;&nbsp;</span>
-            <span style="font-family:var(--font-sans);font-size:14px;font-weight:600;color:var(--text)">${divInfo.division}</span>
-          </div>` : ''}
-          ${divInfo.divRecord ? `<div>
-            <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--muted)">DIV RECORD&nbsp;&nbsp;</span>
-            <span style="font-family:var(--font-mono);font-size:20px;letter-spacing:.04em;color:var(--accent)">${divInfo.divRecord}</span>
-          </div>
-          ` : ''}
+      <div class="team-info">
+        <div class="team-name-lg">${team}</div>
+        <div class="team-mascot-lg">${m.mascot}</div>
+        <div class="team-details">
+          ${record ? `<span class="team-meta-pill team-meta-pill-accent"><span>Record</span>${record}</span>` : ''}
+          ${coach ? `<span class="team-meta-pill"><span>Head Coach</span>${coach}</span>` : ''}
+          <span class="team-meta-pill"><span>Conference</span>${divInfo.conference || m.div || ''}</span>
+          ${divInfo.division ? `<span class="team-meta-pill"><span>Division</span>${divInfo.division}</span>` : ''}
+          ${divInfo.divRecord ? `<span class="team-meta-pill team-meta-pill-accent"><span>Div Record</span>${divInfo.divRecord}</span>` : ''}
         </div>
       </div>
     </div>
     <div class="team-stat-cards">
       <div class="team-stat-card team-score-card"><div class="team-stat-card-label">DI Score</div><div class="team-stat-card-val">${power ? power.score.toFixed(1) : '—'}</div></div>
-      <div class="team-stat-card"><div class="team-stat-card-label">State Rank</div><div class="team-stat-card-val" style="color:${m.t}">${power ? `#${power.rank}` : '—'}</div></div>
-      <div class="team-stat-card"><div class="team-stat-card-label">AVG</div><div class="team-stat-card-val" style="color:${m.t}">${teamAVG.toFixed(3).replace(/^0/,'')}</div></div>
-      <div class="team-stat-card"><div class="team-stat-card-label">OPS</div><div class="team-stat-card-val" style="color:${m.t}">${teamOPS.toFixed(3)}</div></div>
-      <div class="team-stat-card"><div class="team-stat-card-label">wOBA</div><div class="team-stat-card-val" style="color:${m.t}">${teamwOBA.toFixed(3).replace(/^0/,'')}</div></div>
-      <div class="team-stat-card"><div class="team-stat-card-label">wRC+</div><div class="team-stat-card-val" style="color:${m.t}">${teamwRCplus}</div></div>
-      <div class="team-stat-card"><div class="team-stat-card-label">ERA</div><div class="team-stat-card-val" style="color:${m.t}">${teamERA.toFixed(2)}</div></div>
-      <div class="team-stat-card"><div class="team-stat-card-label">WHIP</div><div class="team-stat-card-val" style="color:${m.t}">${teamWHIP.toFixed(2)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">State Rank</div><div class="team-stat-card-val">${power ? `#${power.rank}` : '—'}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">AVG</div><div class="team-stat-card-val">${teamAVG.toFixed(3).replace(/^0/,'')}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">OPS</div><div class="team-stat-card-val">${teamOPS.toFixed(3)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">wOBA</div><div class="team-stat-card-val">${teamwOBA.toFixed(3).replace(/^0/,'')}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">wRC+</div><div class="team-stat-card-val">${teamwRCplus}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">ERA</div><div class="team-stat-card-val">${teamERA.toFixed(2)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">WHIP</div><div class="team-stat-card-val">${teamWHIP.toFixed(2)}</div></div>
     </div>
     <div class="team-section-tabs">
       <button class="team-section-tab active" onclick="switchTeamPanel(this,'tp-hit-${team}')">Hitting Roster</button>
