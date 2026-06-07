@@ -2075,7 +2075,7 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
 .home-score-game {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
   flex-wrap: wrap;
 }
@@ -2085,6 +2085,9 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   align-items: center;
   gap: 7px;
   min-width: 0;
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.25;
 }
 
 .home-score-team span {
@@ -2094,9 +2097,22 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   overflow-wrap: anywhere;
 }
 
-.home-score-winner { color: var(--text); font-weight: 700; }
-.home-score-loser { color: var(--muted2); }
-.home-score-vs { color: var(--muted); font-size: 11px; flex-shrink: 0; }
+.home-score-primary,
+.home-score-winner,
+.home-score-loser {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.home-score-vs {
+  color: var(--muted2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
 
 .home-score-badge {
   font-family: var(--font-sans);
@@ -2107,6 +2123,8 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   background: rgba(200, 155, 60, 0.08);
   border-radius: 3px;
   padding: 2px 6px;
+  flex: 0 0 100%;
+  width: fit-content;
 }
 
 /* ── TEAM RANKINGS PAGE ───────────────────────────────────────────────────── */

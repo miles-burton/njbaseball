@@ -2218,9 +2218,9 @@ function scoreTableHtml(selected, limit = 10, includeDate = false) {
           <td>
             <div class="home-score-game">
               ${g.tournament ? '<span class="home-score-badge">TOURNEY</span>' : ''}
-              <span class="home-score-team home-score-winner">${teamLogoSmall(g.winner)}<span>${g.winner}</span></span>
+              <span class="home-score-team home-score-primary">${teamLogoSmall(g.winner)}<span>${g.winner}</span></span>
               <span class="home-score-vs">def.</span>
-              <span class="home-score-team home-score-loser">${teamLogoSmall(g.loser)}<span>${g.loser}</span></span>
+              <span class="home-score-team home-score-primary">${teamLogoSmall(g.loser)}<span>${g.loser}</span></span>
             </div>
           </td>
           <td class="num" style="font-family:var(--font-mono);font-size:16px;color:var(--text)">${g.winnerScore}-${g.loserScore}</td>
@@ -2251,9 +2251,9 @@ function upcomingTableHtml(selected, limit = 8, includeDate = false) {
           <td>
             <div class="home-score-game">
               ${g.tournament ? '<span class="home-score-badge">TOURNEY</span>' : ''}
-              <span class="home-score-team home-score-winner">${teamLogoSmall(g.team)}<span>${g.team}</span></span>
+              <span class="home-score-team home-score-primary">${teamLogoSmall(g.team)}<span>${g.team}</span></span>
               <span class="home-score-vs">vs.</span>
-              <span class="home-score-team home-score-loser">${teamLogoSmall(g.oppMatch || g.opponent)}<span>${g.opponent}</span></span>
+              <span class="home-score-team home-score-primary">${teamLogoSmall(g.oppMatch || g.opponent)}<span>${g.opponent}</span></span>
             </div>
           </td>
           <td style="color:var(--muted2);font-size:12px">${g.home ? 'Home' : 'Away'}</td>
