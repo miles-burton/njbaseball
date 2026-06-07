@@ -1546,8 +1546,8 @@ function renderTeamsGrid() {
 }
 
 // ── TEAM PAGE ──────────────────────────────────────────────────────────────────
-function showGame(team, gameIndex) {
-  prevView = `team-${team}`;
+function showGame(team, gameIndex, from = null) {
+  prevView = from || `team-${team}`;
   const target = document.getElementById('gameContent');
   if (!target) return;
   target.innerHTML = `
@@ -1558,13 +1558,121 @@ function showGame(team, gameIndex) {
       </div>
     </div>
     <div class="game-log-section"><div class="game-log-empty">Loading game stats...</div></div>`;
-  showView('game', `team-${team}`);
+  showView('game', prevView);
   ensurePlayerLogsLoaded()
     .then(() => renderGameDetail(team, gameIndex))
     .catch(() => {
       const current = document.getElementById('gameContent');
       if (current) current.innerHTML = `<div class="game-log-section"><div class="game-log-empty">Game stats could not be loaded.</div></div>`;
     });
+}
+
+function showUpcomingGame(team, gameIndex) {
+  prevView = 'scores';
+  const target = document.getElementById('gameContent');
+  if (!target) return;
+  renderUpcomingGamePreview(team, gameIndex);
+  showView('game', 'scores');
+}
+
+function matchupPreviewMetric(label, aVal, bVal) {
+  return `<div class="prediction-metric">
+    <div class="prediction-metric-label">${label}</div>
+    <div class="prediction-metric-values"><span>${aVal}</span><span>${bVal}</span></div>
+  </div>`;
+}
+
+function renderUpcomingGamePreview(team, gameIndex) {
+  const sched = (typeof SCHEDULES !== 'undefined' && SCHEDULES[team]) || {};
+  const game = (sched.games || [])[gameIndex];
+  const target = document.getElementById('gameContent');
+  if (!target || !game) return;
+
+  const opponentTeam = matchOpponentTeam(game.opponent);
+  const opponentParts = splitTournamentOpponent(game.opponent, opponentTeam);
+  const opponentLabel = opponentTeam || opponentParts.opponent || game.opponent;
+  const m = TM[team] || { bg:'#111', s:'#333', t:'#aaa', mascot:'', logo:'' };
+  const om = opponentTeam ? (TM[opponentTeam] || { bg:'#111', s:'#333', t:'#aaa', mascot:'', logo:'' }) : null;
+  const venue = game.home ? 'a-home' : 'b-home';
+  const result = opponentTeam ? predictMatchup(team, opponentTeam, venue) : null;
+  const teamProb = result ? result.winProbA : null;
+  const oppProb = result ? 1 - result.winProbA : null;
+  const teamPct = result ? (teamProb * 100).toFixed(1) : '—';
+  const oppPct = result ? (oppProb * 100).toFixed(1) : '—';
+  const winner = result ? result.winner : 'Unavailable';
+  const projected = result
+    ? `${result.expA.toFixed(1)}-${result.expB.toFixed(1)}`
+    : 'Projection unavailable';
+  const confidence = result
+    ? (Math.max(teamProb, oppProb) >= 0.68 ? 'Strong lean' : Math.max(teamProb, oppProb) >= 0.58 ? 'Lean' : 'Toss-up')
+    : 'Opponent not matched';
+  const teamPower = TEAM_POWER_BY_TEAM[team];
+  const oppPower = opponentTeam ? TEAM_POWER_BY_TEAM[opponentTeam] : null;
+
+  target.innerHTML = `
+    <div class="game-detail-hero">
+      <div>
+        <div class="game-detail-kicker">
+          ${escapeHtml(game.date)} · ${game.home ? 'Home' : 'Away'}
+          ${opponentParts.tournament ? `<span class="tournament-badge">${escapeHtml(opponentParts.tournament)}</span>` : ''}
+        </div>
+        <div class="game-detail-title">Game Preview</div>
+      </div>
+      <div class="game-detail-meta">${escapeHtml(projected)}</div>
+    </div>
+    <div class="game-scoreboard game-preview-board">
+      <button class="game-team-card" onclick="showTeam(decodeURIComponent('${encodeURIComponent(team)}'),'game')" style="border-color:${m.s}55">
+        <span class="game-team-logo" style="background:${m.bg};border-color:${m.s}55">${m.logo ? `<img src="${m.logo}" alt="">` : ''}</span>
+        <span class="game-team-info">
+          <span class="game-team-name" style="color:${m.t}">${escapeHtml(team)}</span>
+          <span class="game-team-sub">${teamPower ? `#${teamPower.rank} · DI ${teamPower.score.toFixed(1)}` : escapeHtml(m.mascot || '')}</span>
+        </span>
+        <span class="game-team-score">${teamPct}${result ? '%' : ''}</span>
+      </button>
+      <div class="game-score-divider">vs</div>
+      ${opponentTeam ? `
+        <button class="game-team-card" onclick="showTeam(decodeURIComponent('${encodeURIComponent(opponentTeam)}'),'game')" style="border-color:${om.s}55">
+          <span class="game-team-logo" style="background:${om.bg};border-color:${om.s}55">${om.logo ? `<img src="${om.logo}" alt="">` : ''}</span>
+          <span class="game-team-info">
+            <span class="game-team-name" style="color:${om.t}">${escapeHtml(opponentTeam)}</span>
+            <span class="game-team-sub">${oppPower ? `#${oppPower.rank} · DI ${oppPower.score.toFixed(1)}` : escapeHtml(om.mascot || '')}</span>
+          </span>
+          <span class="game-team-score">${oppPct}%</span>
+        </button>` : `
+        <div class="game-team-card disabled">
+          <span class="game-team-info">
+            <span class="game-team-name">${escapeHtml(opponentLabel)}</span>
+            <span class="game-team-sub">Opponent not matched in team directory</span>
+          </span>
+          <span class="game-team-score">—</span>
+        </div>`}
+    </div>
+    ${result ? `
+      <div class="prediction-card game-preview-card">
+        <div class="prediction-main">
+          <div class="prediction-pick-label">Projected Winner</div>
+          <div class="prediction-pick">${escapeHtml(winner)}</div>
+          <div class="prediction-score">${escapeHtml(projected)}</div>
+          <div class="prediction-confidence">${confidence} · ${(Math.max(teamProb, oppProb) * 100).toFixed(1)}% win probability · ${game.home ? `${team} home` : `${opponentTeam} home`}</div>
+        </div>
+        <div class="prediction-prob">
+          <div class="prediction-prob-row"><span>${escapeHtml(team)}</span><strong>${teamPct}%</strong></div>
+          <div class="prediction-bar">
+            <div class="prediction-bar-a" style="width:${teamPct}%"></div>
+            <div class="prediction-bar-b" style="width:${oppPct}%"></div>
+          </div>
+          <div class="prediction-prob-row"><span>${escapeHtml(opponentTeam)}</span><strong>${oppPct}%</strong></div>
+        </div>
+        <div class="prediction-metrics">
+          ${matchupPreviewMetric('AdjO', result.a.adjO.toFixed(2), result.b.adjO.toFixed(2))}
+          ${matchupPreviewMetric('AdjD', result.aDefense.toFixed(2), result.bDefense.toFixed(2))}
+          ${matchupPreviewMetric('SOS', result.a.sos.toFixed(1), result.b.sos.toFixed(1))}
+          ${matchupPreviewMetric('Expected Runs', result.expA.toFixed(1), result.expB.toFixed(1))}
+        </div>
+        ${renderRunDistribution(team, result.expA, opponentTeam, result.expB)}
+      </div>` : `
+      <div class="game-log-section"><div class="game-log-empty">Prediction unavailable because the opponent is not connected to a team page yet.</div></div>`}
+  `;
 }
 
 function renderGameDetail(team, gameIndex) {
@@ -1817,6 +1925,7 @@ function showView(v, from) {
     else if (from === 'pitching')              lbl = 'Pitching';
     else if (from === 'teams')                 lbl = 'Teams';
     else if (from === 'team-rankings')         lbl = 'Rankings';
+    else if (from === 'scores')                lbl = 'Scores';
     else if (from === 'nav')                   lbl = 'Back';
     else if (from && from.startsWith('team-')) lbl = from.replace('team-', '');
     document.getElementById('backLabel').textContent = lbl;
@@ -1842,6 +1951,7 @@ function goBack() {
   else if (prevView === 'pitching')                  showView('pitching');
   else if (prevView === 'standings')                 showView('standings');
   else if (prevView === 'team-rankings')             showView('team-rankings');
+  else if (prevView === 'scores')                    showView('scores');
   else if (prevView && prevView.startsWith('team-')) showTeam(prevView.replace('team-', ''), 'teams');
   else                                               showView('leaderboard');
 }
@@ -1981,7 +2091,7 @@ function buildCompletedScoreGames() {
   const games = [];
 
   Object.keys(SCHEDULES).forEach(team => {
-    (SCHEDULES[team].games || []).forEach(g => {
+    (SCHEDULES[team].games || []).forEach((g, gameIndex) => {
       if (!g.score || !['W', 'L'].includes(g.outcome)) return;
       const d = parseScheduleDate(g.date);
       if (!d) return;
@@ -2028,6 +2138,8 @@ function buildCompletedScoreGames() {
         margin,
         importance: avgPower + closeBonus + rankedBonus + upsetBonus + tournamentBonus,
         tournament: tournamentBonus > 0,
+        sourceTeam: team,
+        gameIndex,
       });
     });
   });
@@ -2043,7 +2155,7 @@ function buildUpcomingGames() {
   today.setHours(0, 0, 0, 0);
 
   Object.keys(SCHEDULES).forEach(team => {
-    (SCHEDULES[team].games || []).forEach(g => {
+    (SCHEDULES[team].games || []).forEach((g, gameIndex) => {
       if (g.score) return;
       const d = parseScheduleDate(g.date);
       if (!d) return;
@@ -2072,6 +2184,8 @@ function buildUpcomingGames() {
         tournament,
         importance,
         isFuture: d >= today,
+        sourceTeam: team,
+        gameIndex,
       });
     });
   });
@@ -2086,7 +2200,6 @@ function buildUpcomingGames() {
 function scoreTableHtml(selected, limit = 10, includeDate = false) {
   if (!selected.length) return '<div class="empty">No completed scores available.</div>';
   const teamLogoSmall = name => TM[name]?.logo ? `<img src="${TM[name].logo}" width="18" height="18" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : '';
-  const teamClick = name => TM[name] ? `onclick="showTeam(decodeURIComponent('${encodeURIComponent(name)}'),'scores')"` : '';
 
   return `<table class="home-rankings-table">
     <thead><tr>
@@ -2099,7 +2212,7 @@ function scoreTableHtml(selected, limit = 10, includeDate = false) {
     <tbody>
       ${selected.slice(0, limit).map((g, i) => {
         const winnerPower = TEAM_POWER_BY_TEAM[g.winner]?.score;
-        return `<tr ${teamClick(g.winner)}>
+        return `<tr onclick="showGame(decodeURIComponent('${encodeURIComponent(g.sourceTeam)}'),${g.gameIndex},'scores')">
           <td style="font-family:var(--font-mono);color:${i < 3 ? 'var(--accent)' : 'var(--muted)'};font-size:16px">${i + 1}</td>
           ${includeDate ? `<td style="color:var(--muted2);font-size:12px">${displayScoreDate(g.date)}</td>` : ''}
           <td>
@@ -2121,7 +2234,6 @@ function scoreTableHtml(selected, limit = 10, includeDate = false) {
 function upcomingTableHtml(selected, limit = 8, includeDate = false) {
   if (!selected.length) return '<div class="empty">No upcoming games available.</div>';
   const teamLogoSmall = name => TM[name]?.logo ? `<img src="${TM[name].logo}" width="18" height="18" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : '';
-  const teamClick = name => TM[name] ? `onclick="showTeam(decodeURIComponent('${encodeURIComponent(name)}'),'scores')"` : '';
 
   return `<table class="home-rankings-table upcoming-table">
     <thead><tr>
@@ -2134,7 +2246,7 @@ function upcomingTableHtml(selected, limit = 8, includeDate = false) {
       ${selected.slice(0, limit).map(g => {
         const teamPower = TEAM_POWER_BY_TEAM[g.team]?.score;
         const oppPower = g.oppMatch ? TEAM_POWER_BY_TEAM[g.oppMatch]?.score : null;
-        return `<tr ${teamClick(g.team)}>
+        return `<tr onclick="showUpcomingGame(decodeURIComponent('${encodeURIComponent(g.sourceTeam)}'),${g.gameIndex})">
           ${includeDate ? `<td style="color:var(--muted2);font-size:12px">${displayScoreDate(g.date)}</td>` : ''}
           <td>
             <div class="home-score-game">
