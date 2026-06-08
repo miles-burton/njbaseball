@@ -1673,7 +1673,7 @@ function renderUpcomingGamePreview(team, gameIndex) {
       <button class="game-team-card" onclick="showTeam(decodeURIComponent('${encodeURIComponent(team)}'),'game')" style="border-color:${m.s}55">
         <span class="game-team-logo" style="background:${m.bg};border-color:${m.s}55">${m.logo ? `<img src="${m.logo}" alt="">` : ''}</span>
         <span class="game-team-info">
-          <span class="game-team-name" style="color:${m.t}">${escapeHtml(team)}</span>
+          <span class="game-team-name">${escapeHtml(team)}</span>
           <span class="game-team-sub">${teamPower ? `#${teamPower.rank} · DI ${teamPower.score.toFixed(1)}` : escapeHtml(m.mascot || '')}</span>
         </span>
         <span class="game-team-score">${teamPct}${result ? '%' : ''}</span>
@@ -1683,7 +1683,7 @@ function renderUpcomingGamePreview(team, gameIndex) {
         <button class="game-team-card" onclick="showTeam(decodeURIComponent('${encodeURIComponent(opponentTeam)}'),'game')" style="border-color:${om.s}55">
           <span class="game-team-logo" style="background:${om.bg};border-color:${om.s}55">${om.logo ? `<img src="${om.logo}" alt="">` : ''}</span>
           <span class="game-team-info">
-            <span class="game-team-name" style="color:${om.t}">${escapeHtml(opponentTeam)}</span>
+            <span class="game-team-name">${escapeHtml(opponentTeam)}</span>
             <span class="game-team-sub">${oppPower ? `#${oppPower.rank} · DI ${oppPower.score.toFixed(1)}` : escapeHtml(om.mascot || '')}</span>
           </span>
           <span class="game-team-score">${oppPct}%</span>
@@ -1770,7 +1770,7 @@ function renderGameDetail(team, gameIndex) {
       <button class="game-team-card ${teamResultClass}" onclick="showTeam(decodeURIComponent('${encodeURIComponent(team)}'),'game')" style="border-color:${m.s}55">
         <span class="game-team-logo" style="background:${m.bg};border-color:${m.s}55">${m.logo ? `<img src="${m.logo}" alt="">` : ''}</span>
         <span class="game-team-info">
-          <span class="game-team-name" style="color:${m.t}">${escapeHtml(team)}</span>
+          <span class="game-team-name">${escapeHtml(team)}</span>
           <span class="game-team-sub">${escapeHtml(m.mascot || '')}</span>
         </span>
         <span class="game-team-score">${teamScore}</span>
@@ -1780,7 +1780,7 @@ function renderGameDetail(team, gameIndex) {
         <button class="game-team-card ${oppResultClass}" onclick="showTeam(decodeURIComponent('${encodeURIComponent(opponentTeam)}'),'game')" style="border-color:${om.s}55">
           <span class="game-team-logo" style="background:${om.bg};border-color:${om.s}55">${om.logo ? `<img src="${om.logo}" alt="">` : ''}</span>
           <span class="game-team-info">
-            <span class="game-team-name" style="color:${om.t}">${escapeHtml(opponentTeam)}</span>
+            <span class="game-team-name">${escapeHtml(opponentTeam)}</span>
             <span class="game-team-sub">${escapeHtml(om.mascot || '')}</span>
           </span>
           <span class="game-team-score">${oppScore}</span>
@@ -3089,7 +3089,7 @@ function renderStandings() {
           <div class="standings-team-cell">
             <span class="standings-pos ${i === 0 ? 'leader' : ''}">${i + 1}</span>
             ${m.logo ? `<img src="${m.logo}" width="22" height="22" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : ''}
-            <span class="standings-team-name" style="color:${m.t || 'var(--text)'}">${r.team}</span>
+            <span class="standings-team-name">${r.team}</span>
           </div>
         </td>
         <td class="num">
