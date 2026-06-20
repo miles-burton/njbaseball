@@ -24,9 +24,17 @@ function pct(value) {
   return Number.isFinite(value) ? value.toFixed(3).replace(/^0/, '') : '.000';
 }
 
+function logoSrc(team) {
+  if (!team) return '';
+  const shared = typeof TEAM_LOGOS !== 'undefined' ? TEAM_LOGOS[team.name] : '';
+  return shared || team.logo || '';
+}
+
 function logo(team) {
-  return team?.logo
-    ? `<img class="team-logo" src="${esc(team.logo)}" alt="">`
+  const primary = logoSrc(team);
+  const fallback = team?.logo && team.logo !== primary ? team.logo : '';
+  return primary
+    ? `<img class="team-logo" src="${esc(primary)}" alt="" ${fallback ? `onerror="this.onerror=null;this.src='${esc(fallback)}'"` : ''}>`
     : `<span class="team-logo"></span>`;
 }
 
