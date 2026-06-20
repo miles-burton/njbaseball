@@ -43,6 +43,24 @@ function setView(view, detail = '') {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function applyTheme(theme) {
+  const safeTheme = theme === 'light' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = safeTheme;
+  localStorage.setItem('diamondIndexTheme', safeTheme);
+  const label = $('themeToggleLabel');
+  if (label) label.textContent = safeTheme === 'light' ? 'Light' : 'Dark';
+}
+
+function toggleTheme() {
+  applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('diamondIndexTheme');
+  const preferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  applyTheme(saved || preferred);
+}
+
 function sortRows(rows, key, asc = false) {
   return [...rows].sort((a, b) => {
     const av = a[key] ?? '';
@@ -90,38 +108,86 @@ function renderHome() {
     .sort((a, b) => (Math.abs((b.teamScore ?? 0) - (b.opponentScore ?? 0)) - Math.abs((a.teamScore ?? 0) - (a.opponentScore ?? 0))))
     .slice(0, 8);
   $('view-home').innerHTML = `
-    <div class="shell">
-      <div class="hero">
-        <div class="hero-panel">
-          <div class="eyebrow">New Jersey Boys Soccer · ${esc(PITCH_DATA.season)} Season</div>
-          <h1>PITCH<br>INDEX</h1>
-          <div class="tagline">Measure the Match.</div>
-          <p class="hero-copy">A soccer-first analytics layer for New Jersey high school boys soccer, built from real NJ.com 2025 season standings, schedules, player scoring, and goalkeeper data.</p>
-          <div class="hero-actions">
-            <button class="btn primary" data-view-target="rankings">Team Rankings</button>
-            <button class="btn" data-view-target="leaders">Player Leaders</button>
-            <button class="btn" data-view-target="standings">Standings</button>
+    <div class="home-hero pitch-hero">
+      <div class="home-hero-inner">
+        <div class="home-hero-text">
+          <div class="home-hero-eyebrow">New Jersey Boys Soccer · ${esc(PITCH_DATA.season)} Season</div>
+          <h1 class="home-hero-title">PITCH<br>INDEX</h1>
+          <div class="home-hero-tagline">Measure the Match.</div>
+          <p class="home-hero-sub">The boys soccer branch of NJ Sports Index, built from real NJ.com standings, schedules, scoring leaders, goalkeeper data, and team rankings.</p>
+          <div class="home-hero-actions">
+            <button class="home-btn-primary" data-view-target="rankings">Power Rankings</button>
+            <button class="home-btn-secondary" data-view-target="leaders">Player Leaders</button>
           </div>
-        </div>
-        <div class="card pad">
-          <div class="grid-3">
-            <div class="stat-card"><b>${TEAMS.length}</b><span>Teams</span></div>
-            <div class="stat-card"><b>${SCORERS.length.toLocaleString()}</b><span>Scoring Rows</span></div>
-            <div class="stat-card"><b>${KEEPERS.length.toLocaleString()}</b><span>Keeper Rows</span></div>
-          </div>
-          <div style="height:18px"></div>
-          <div class="card-title" style="padding-left:0;padding-right:0">Top Pitch Scores <span>statewide</span></div>
-          ${miniRanking(topTeams)}
         </div>
       </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Scoring Leaders <span>points</span></div>
+    </div>
+
+    <div class="home-wrap">
+      <div class="home-action-grid">
+        <button class="home-action-card" data-view-target="rankings">
+          <span>Pitch Score</span>
+          <strong>Team rankings adjusted by record, goal profile, and schedule quality.</strong>
+        </button>
+        <button class="home-action-card" data-view-target="leaders">
+          <span>Player Leaders</span>
+          <strong>Scoring and goalkeeper leaderboards from the 2025 NJ.com season.</strong>
+        </button>
+        <button class="home-action-card" data-view-target="standings">
+          <span>Standings</span>
+          <strong>Conference and division tables for every boys soccer team indexed.</strong>
+        </button>
+      </div>
+
+      <div class="home-dashboard">
+        <div class="home-main-column">
+          <div class="home-section">
+            <div class="home-section-header">
+              <div>
+                <div class="home-section-title">Power Rankings</div>
+                <div class="home-section-sub">Top boys soccer teams by Pitch Score</div>
+              </div>
+              <button class="home-section-link" data-view-target="rankings">Full Rankings →</button>
+            </div>
+            ${miniRanking(topTeams)}
+          </div>
+
+          <div class="home-section">
+            <div class="home-section-header">
+              <div>
+                <div class="home-section-title">Scoring Leaders</div>
+                <div class="home-section-sub">Sorted by points</div>
+              </div>
+              <button class="home-section-link" data-view-target="leaders">All Leaders →</button>
+            </div>
           ${leaderTable(topScorers, 'scoring', false)}
         </div>
-        <div class="card">
-          <div class="card-title">Notable Results <span>from NJ.com schedules</span></div>
-          ${gameList(recentGames)}
+        </div>
+
+        <div class="home-side-column">
+          <div class="home-section">
+            <div class="home-section-header">
+              <div>
+                <div class="home-section-title">Index Snapshot</div>
+                <div class="home-section-sub">Current boys soccer dataset</div>
+              </div>
+            </div>
+            <div class="grid-3">
+              <div class="stat-card"><b>${TEAMS.length}</b><span>Teams</span></div>
+              <div class="stat-card"><b>${SCORERS.length.toLocaleString()}</b><span>Scorers</span></div>
+              <div class="stat-card"><b>${KEEPERS.length.toLocaleString()}</b><span>Keepers</span></div>
+            </div>
+          </div>
+
+          <div class="home-section">
+            <div class="home-section-header">
+              <div>
+                <div class="home-section-title">Notable Results</div>
+                <div class="home-section-sub">From NJ.com schedules</div>
+              </div>
+            </div>
+            ${gameList(recentGames)}
+          </div>
         </div>
       </div>
     </div>`;
@@ -152,12 +218,15 @@ function gameList(rows, ownerTeam = null) {
 function renderRankings() {
   const rows = sortRows(filteredTeams(), state.rankingSort.key, state.rankingSort.asc);
   $('view-rankings').innerHTML = `
-    <div class="shell">
-      <div class="card pad">
-        <div class="eyebrow">Pitch Index Team Rankings</div>
-        <h2 style="font-size:46px;line-height:.95">Boys Soccer Power Table</h2>
-        <p class="hero-copy">Pitch Score blends record, goal differential, scoring rate, goals allowed, and opponent quality from the 2025 NJ.com schedule graph. It is an early soccer version, built to be improved as we add sport-specific adjustments.</p>
+    <div class="page-banner">
+      <div class="page-banner-inner">
+        <div>
+          <div class="page-title">Power <span>Rankings</span></div>
+          <div class="page-meta">New Jersey High School Boys Soccer <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season <span class="page-meta-dot"></span> Pitch Score</div>
+        </div>
       </div>
+    </div>
+    <div class="leaderboard-wrap">
       ${toolbar('rankings')}
       <div class="card table-wrap">${rankingTable(rows, true)}</div>
     </div>`;
@@ -194,11 +263,15 @@ function renderLeaders() {
   });
   rows = sortRows(rows, state.leaderSort.key, state.leaderSort.asc).slice(0, 500);
   $('view-leaders').innerHTML = `
-    <div class="shell">
-      <div class="card pad">
-        <div class="eyebrow">Player Leaders</div>
-        <h2 style="font-size:46px;line-height:.95">2025 Boys Soccer Leaders</h2>
+    <div class="page-banner">
+      <div class="page-banner-inner">
+        <div>
+          <div class="page-title">Player <span>Leaders</span></div>
+          <div class="page-meta">New Jersey High School Boys Soccer <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season <span class="page-meta-dot"></span> Scoring and Goalkeeping</div>
+        </div>
       </div>
+    </div>
+    <div class="leaderboard-wrap">
       <div class="toolbar">
         <button class="btn ${isScoring ? 'primary' : ''}" data-leader-type="scoring">Scoring</button>
         <button class="btn ${!isScoring ? 'primary' : ''}" data-leader-type="keepers">Goalkeepers</button>
@@ -230,8 +303,16 @@ function leaderTable(rows, type, sortable) {
 function renderStandings() {
   const rows = filteredTeams();
   const byConf = Object.groupBy ? Object.groupBy(rows, (team) => team.conference) : rows.reduce((acc, team) => ((acc[team.conference] ||= []).push(team), acc), {});
-  $('view-standings').innerHTML = `<div class="shell">
-    <div class="card pad"><div class="eyebrow">Conference Standings</div><h2 style="font-size:46px;line-height:.95">Boys Soccer Standings</h2></div>
+  $('view-standings').innerHTML = `
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Conference <span>Standings</span></div>
+        <div class="page-meta">New Jersey High School Boys Soccer <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season</div>
+      </div>
+    </div>
+  </div>
+  <div class="leaderboard-wrap">
     ${toolbar('standings')}
     ${Object.keys(byConf).sort().map((conf) => {
       const divs = byConf[conf].reduce((acc, team) => ((acc[team.division] ||= []).push(team), acc), {});
@@ -244,8 +325,16 @@ function renderStandings() {
 
 function renderTeams() {
   const rows = sortRows(filteredTeams(), 'name', true);
-  $('view-teams').innerHTML = `<div class="shell">
-    <div class="card pad"><div class="eyebrow">Team Directory</div><h2 style="font-size:46px;line-height:.95">All Boys Soccer Teams</h2></div>
+  $('view-teams').innerHTML = `
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Team <span>Directory</span></div>
+        <div class="page-meta">New Jersey High School Boys Soccer <span class="page-meta-dot"></span> ${TEAMS.length} teams</div>
+      </div>
+    </div>
+  </div>
+  <div class="leaderboard-wrap">
     ${toolbar('teams')}
     <div class="team-grid">${rows.map((team) => `<button class="team-tile" data-team-slug="${esc(team.slug)}">
       ${logo(team)}<span><strong>${esc(team.name)}</strong><small>${esc(team.conference)} · ${esc(team.record)} · Pitch ${team.powerScore.toFixed(1)}</small></span>
@@ -258,7 +347,7 @@ function renderTeam() {
   if (!team) return;
   const scorers = sortRows(team.scorers || [], 'P').slice(0, 15);
   const keepers = sortRows(team.keepers || [], 'Saves').slice(0, 8);
-  $('view-team').innerHTML = `<div class="shell">
+  $('view-team').innerHTML = `<div class="leaderboard-wrap">
     <button class="btn" data-view-target="teams" style="margin-bottom:14px">Back to Teams</button>
     <div class="card pad">
       <div class="team-hero">${logo(team)}<div>
@@ -292,7 +381,7 @@ function renderPlayer() {
   const team = TEAM_BY_SLUG[player.teamSlug];
   const scoring = SCORERS.find((item) => playerKey(item) === state.playerKey);
   const keeping = KEEPERS.find((item) => playerKey(item) === state.playerKey);
-  $('view-player').innerHTML = `<div class="shell">
+  $('view-player').innerHTML = `<div class="leaderboard-wrap">
     <button class="btn" data-view-target="leaders" style="margin-bottom:14px">Back to Leaders</button>
     <div class="card pad">
       <div class="team-hero">${logo(team)}<div>
@@ -346,6 +435,12 @@ document.querySelectorAll('.pitch-nav button').forEach((btn) => {
 });
 
 document.addEventListener('click', (event) => {
+  const navTarget = event.target.closest('.pitch-nav [data-view]');
+  if (navTarget) {
+    setView(navTarget.dataset.view);
+    return;
+  }
+
   const viewTarget = event.target.closest('[data-view-target]');
   if (viewTarget) {
     setView(viewTarget.dataset.viewTarget);
@@ -412,7 +507,8 @@ document.addEventListener('change', (event) => {
 
 $('globalSearch').addEventListener('input', renderGlobalSearch);
 document.addEventListener('click', (event) => {
-  if (!event.target.closest('.top-search')) $('searchResults').classList.remove('open');
+  if (!event.target.closest('.pitch-global-search')) $('searchResults').classList.remove('open');
 });
 
+initTheme();
 renderHome();

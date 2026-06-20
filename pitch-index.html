@@ -4,38 +4,56 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pitch Index — Boys Soccer Analytics</title>
+  <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/pitch.css">
 </head>
 <body>
-  <header class="pitch-header">
-    <a class="brand" href="pitch-index.html" aria-label="Pitch Index home">
-      <span class="brand-mark" aria-hidden="true"></span>
-      <span class="brand-copy"><strong>PITCH</strong><span>INDEX</span></span>
-    </a>
-    <nav class="pitch-nav">
-      <button data-view="home" class="active">Home</button>
-      <button data-view="rankings">Rankings</button>
-      <button data-view="leaders">Leaders</button>
-      <button data-view="standings">Standings</button>
-      <button data-view="teams">Teams</button>
+  <header class="site-header">
+    <button class="site-logo pitch-site-logo" data-view-target="home" type="button">
+      <span class="logo-icon" aria-hidden="true"></span>
+      <span class="logo-wordmark"><span class="logo-accent">PITCH</span><span>INDEX</span></span>
+    </button>
+
+    <nav class="nav-tabs pitch-nav" id="navTabs">
+      <button class="nav-tab active" data-view="home" type="button">Home</button>
+      <button class="nav-tab" data-view="rankings" type="button">Power Rankings</button>
+      <button class="nav-tab" data-view="leaders" type="button">Leaders</button>
+      <button class="nav-tab" data-view="standings" type="button">Standings</button>
+      <button class="nav-tab" data-view="teams" type="button">Teams</button>
+      <a class="nav-tab" href="index.html">Sports Home</a>
+      <a class="nav-tab" href="diamond-index.html">Diamond Index</a>
     </nav>
-    <div class="top-search">
-      <input id="globalSearch" type="search" placeholder="Search teams or players...">
-    <div id="searchResults" class="search-results"></div>
+
+    <button class="theme-toggle" id="themeToggle" type="button" onclick="toggleTheme()" aria-label="Toggle light and dark mode">
+      <span class="theme-toggle-icon theme-toggle-sun" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+      </span>
+      <span class="theme-toggle-icon theme-toggle-moon" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.5 6.5 0 0 0 21 12.8Z"/>
+        </svg>
+      </span>
+      <span id="themeToggleLabel">Dark</span>
+    </button>
+
+    <div class="global-search pitch-global-search">
+      <svg class="global-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
+      </svg>
+      <input class="global-search-input" id="globalSearch" type="search" placeholder="Search teams or players..." autocomplete="off">
+      <div id="searchResults" class="global-search-results search-results"></div>
     </div>
-    <a class="diamond-link" href="index.html">Sports Home</a>
-    <a class="diamond-link" href="diamond-index.html">Diamond Index</a>
   </header>
 
-  <main>
-    <section id="view-home" class="view active"></section>
-    <section id="view-rankings" class="view"></section>
-    <section id="view-leaders" class="view"></section>
-    <section id="view-standings" class="view"></section>
-    <section id="view-teams" class="view"></section>
-    <section id="view-team" class="view"></section>
-    <section id="view-player" class="view"></section>
-  </main>
+  <section id="view-home" class="view active"></section>
+  <section id="view-rankings" class="view"></section>
+  <section id="view-leaders" class="view"></section>
+  <section id="view-standings" class="view"></section>
+  <section id="view-teams" class="view"></section>
+  <section id="view-team" class="view"></section>
+  <section id="view-player" class="view"></section>
 
   <script src="js/pitch-data.js"></script>
   <script src="js/pitch.js"></script>
