@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diamond Index — Measure the Game.</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-logo" onclick="showView('home')">
+    <span class="logo-icon" aria-hidden="true"></span>
+    <span class="logo-wordmark"><span class="logo-accent">DIAMOND</span><span>INDEX</span></span>
+  </div>
+
+  <nav class="nav-tabs" id="navTabs">
+
+    <!-- Leaders dropdown -->
+    <div class="nav-dropdown">
+      <button class="nav-tab nav-dropdown-trigger" id="tab-leaders">
+        Leaders
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-left:4px;opacity:.6"><path d="M2 3.5L5 6.5L8 3.5"/></svg>
+      </button>
+      <div class="nav-dropdown-menu" id="menu-leaders">
+        <button class="nav-dropdown-item" onclick="showView('leaderboard');closeDropdowns()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="10" width="3" height="4" rx="1"/><rect x="6.5" y="6" width="3" height="8" rx="1"/><rect x="11" y="2" width="3" height="12" rx="1"/></svg>
+          Hitting
+        </button>
+        <button class="nav-dropdown-item" onclick="showView('pitching');closeDropdowns()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 5.5 Q8 8 10.5 5.5"/><path d="M5.5 10.5 Q8 8 10.5 10.5"/></svg>
+          Pitching
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Teams dropdown -->
+    <div class="nav-dropdown">
+      <button class="nav-tab nav-dropdown-trigger" id="tab-teams-dd">
+        Teams
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-left:4px;opacity:.6"><path d="M2 3.5L5 6.5L8 3.5"/></svg>
+      </button>
+      <div class="nav-dropdown-menu nav-dropdown-menu--wide" id="menu-teams">
+        <button class="nav-dropdown-item nav-dropdown-item--highlight" onclick="showView('team-rankings');closeDropdowns()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 7L9 10L13 4"/></svg>
+          Power Rankings
+        </button>
+        <button class="nav-dropdown-item nav-dropdown-item--highlight" onclick="showView('teams');closeDropdowns()">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
+          All Teams
+        </button>
+        <div class="nav-dropdown-divider"></div>
+        <div id="teamsNavList">
+          <!-- Populated dynamically by buildTeamsNav() -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Direct links -->
+    <button class="nav-tab" id="tab-team-rankings" onclick="showView('team-rankings')">Power Rankings</button>
+    <button class="nav-tab" id="tab-scores" onclick="showView('scores')">Scores</button>
+    <button class="nav-tab" id="tab-predictor" onclick="showView('predictor')">Predictor</button>
+    <button class="nav-tab" id="tab-standings" onclick="showView('standings')">Standings</button>
+    <button class="nav-tab" id="tab-glossary" onclick="showView('glossary')">Glossary</button>
+    <a class="nav-tab" href="index.html">Sports Home</a>
+    <a class="nav-tab" href="pitch-index.html">Pitch Index</a>
+    <button class="nav-tab nav-tab-report" id="tab-report" onclick="openReportProblem()">Report a Problem</button>
+
+  </nav>
+
+  <div class="season-switcher">
+    <span>Season</span>
+    <select id="seasonSelect" onchange="changeSeason(this.value)"></select>
+  </div>
+
+  <button class="theme-toggle" id="themeToggle" type="button" onclick="toggleTheme()" aria-label="Toggle light and dark mode">
+    <span class="theme-toggle-icon theme-toggle-sun" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+      </svg>
+    </span>
+    <span class="theme-toggle-icon theme-toggle-moon" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.5 6.5 0 0 0 21 12.8Z"/>
+      </svg>
+    </span>
+    <span id="themeToggleLabel">Dark</span>
+  </button>
+
+  <div class="global-search" id="globalSearch">
+    <svg class="global-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
+    </svg>
+    <input class="global-search-input" type="text" id="globalPlayerSearch"
+      placeholder="Search players..." autocomplete="off"
+      oninput="renderGlobalPlayerSearch()" onfocus="renderGlobalPlayerSearch()"
+      onkeydown="handleGlobalSearchKey(event)">
+    <div class="global-search-results" id="globalSearchResults"></div>
+  </div>
+
+  <button class="back-btn" id="backBtn" onclick="goBack()">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M10 3L5 8l5 5"/>
+    </svg>
+    <span id="backLabel">Back</span>
+  </button>
+</header>
+
+<!-- HOME -->
+<div id="view-home" class="view active">
+
+  <div class="home-hero" style="position:relative;overflow:hidden">
+    <div class="home-hero-img-wrap">
+      <img src="hero.jpg" alt="NJ High School Baseball">
+    </div>
+    <div class="home-hero-inner">
+      <div class="home-hero-text">
+        <div class="home-hero-eyebrow">New Jersey High School Baseball · <span data-season-meta>2026 Season</span></div>
+        <h1 class="home-hero-title">DIAMOND<br>INDEX</h1>
+        <div class="home-hero-tagline">Measure the Game.</div><p class="home-hero-sub">The definitive source for New Jersey high school baseball analytics — wRC+, FIP, wOBA, Player Score, and more. 15 conferences, 368 teams statewide.</p>
+        <div class="home-hero-actions">
+          <button class="home-btn-primary" onclick="showView('leaderboard')">Hitting Leaders</button>
+          <button class="home-btn-secondary" onclick="showView('pitching')">Pitching Leaders</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="home-wrap">
+    <div class="home-action-grid">
+      <button class="home-action-card" onclick="showView('team-rankings')">
+        <span>Power Index</span>
+        <strong>Team rankings adjusted for performance and schedule strength.</strong>
+      </button>
+      <button class="home-action-card" onclick="showView('predictor')">
+        <span>Matchup Predictor</span>
+        <strong>Compare teams and simulate projected run outcomes.</strong>
+      </button>
+      <button class="home-action-card" onclick="showView('standings')">
+        <span>Standings</span>
+        <strong>Conference records, run differential, and expected wins.</strong>
+      </button>
+    </div>
+
+    <div class="home-dashboard">
+      <div class="home-main-column">
+        <!-- Scores -->
+        <div class="home-section">
+          <div class="home-section-header">
+            <div>
+              <div class="home-section-title">Recent Scores</div>
+              <div class="home-section-sub" id="homeScoresMeta"></div>
+            </div>
+            <button class="home-section-link" onclick="showView('scores')">Scores Page →</button>
+          </div>
+          <div id="homeScores"></div>
+        </div>
+
+        <!-- Team Rankings Preview -->
+        <div class="home-section">
+          <div class="home-section-header">
+            <div class="home-section-title">Power Rankings</div>
+            <button class="home-section-link" onclick="showView('team-rankings')">Full Rankings →</button>
+          </div>
+          <div id="homeTeamRankings"></div>
+        </div>
+      </div>
+
+      <div class="home-side-column">
+        <!-- Upcoming Games -->
+        <div class="home-section">
+          <div class="home-section-header">
+            <div>
+              <div class="home-section-title">Upcoming Games</div>
+              <div class="home-section-sub" id="homeUpcomingMeta"></div>
+            </div>
+            <button class="home-section-link" onclick="showView('scores')">All Games →</button>
+          </div>
+          <div id="homeUpcoming"></div>
+        </div>
+
+        <!-- Top Performers -->
+        <div class="home-section">
+          <div class="home-section-header">
+            <div class="home-section-title">Top Performers</div>
+            <button class="home-section-link" onclick="showView('leaderboard')">All Leaders →</button>
+          </div>
+          <div class="home-performers-grid" id="homePerformers"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SCORES -->
+<div id="view-scores" class="view">
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Scores <span>& Games</span></div>
+        <div class="page-meta">
+          New Jersey High School Baseball
+          <span class="page-meta-dot"></span>
+          <span data-season-meta>2026 Season</span>
+          <span class="page-meta-dot"></span>
+          Ranked by game importance
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="scores-wrap">
+    <div class="scores-grid">
+      <div class="home-section">
+        <div class="home-section-header">
+          <div>
+            <div class="home-section-title">Recent Scores</div>
+            <div class="home-section-sub" id="scoresRecentMeta"></div>
+          </div>
+        </div>
+        <div id="scoresRecent"></div>
+      </div>
+      <div class="home-section">
+        <div class="home-section-header">
+          <div>
+            <div class="home-section-title">Upcoming Games</div>
+            <div class="home-section-sub" id="scoresUpcomingMeta"></div>
+          </div>
+        </div>
+        <div id="scoresUpcoming"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HITTING LEADERBOARD -->
+<div id="view-leaderboard" class="view">
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Hitting <span>Leaders</span></div>
+        <div class="page-meta">
+          New Jersey High School Baseball
+          <span class="page-meta-dot"></span>
+          <span data-season-meta>2026 Season</span>
+          <span class="page-meta-dot"></span>
+          Percentiles vs. qualified hitters (50+ PA)
+        </div>
+      </div>
+      <div class="page-updated" id="hitLastUpdated"></div>
+    </div>
+  </div>
+  <div class="leaderboard-wrap">
+    <div class="lb-mode-tabs">
+      <button class="lb-tab lb-tab-active" id="hitTabAdv" onclick="hitMode='advanced';resetHitPage()">Advanced</button>
+      <button class="lb-tab" id="hitTabStd" onclick="hitMode='standard';resetHitPage()">Standard</button>
+    </div>
+    <div class="controls-row">
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
+        </svg>
+        <input class="search-input" type="text" id="hitSearchInput" placeholder="Search player..." oninput="resetHitPage()">
+      </div>
+      <div class="div-filter-wrap" id="hitDivWrap">
+        <button class="div-filter-btn" id="hitDivBtn" onclick="toggleDivFilter('hitDiv')">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+          Conference
+        </button>
+        <div class="div-filter-menu" id="hitDivMenu">
+          <div class="div-filter-menu-header">
+            <span class="div-filter-menu-label">Filter by Conference</span>
+            <button class="div-filter-all-btn" onclick="selectAllDivs('hitDiv')">All</button>
+          </div>
+          <div id="hitDivOptions" style="max-height:260px;overflow-y:auto"></div>
+        </div>
+      </div>
+      <select class="ctrl-select" id="hitTeamFilter" onchange="resetHitPage()">
+        <option value="all">All Teams</option>
+      </select>
+      <select class="ctrl-select" id="hitGradeFilter" onchange="resetHitPage()">
+        <option value="all">All Grades</option>
+        <option value="Freshman">Freshmen</option>
+        <option value="Sophomore">Sophomores</option>
+        <option value="Junior">Juniors</option>
+        <option value="Senior">Seniors</option>
+      </select>
+      <div id="hitStatFilterWrap" style="display:flex;align-items:center"><select class="ctrl-select" id="hitStatFilter" onchange="resetHitPage()">
+        <option value="wRC_plus">wRC+</option>
+        <option value="wRC">wRC</option>
+        <option value="wOBA">wOBA</option>
+        <option value="wRAA">wRAA</option>
+        <option value="OPS">OPS</option>
+        <option value="OBP">OBP</option>
+        <option value="SLG">SLG</option>
+        <option value="AVG">AVG</option>
+        <option value="ISO">ISO</option>
+        <option value="BB_pct">BB%</option>
+        <option value="BsR">BsR</option>
+        <option value="PS">PS</option>
+      </select></div>
+      <div class="pa-filter-wrap">
+        <span>Min PA:</span>
+        <input type="number" id="hitMinPA" value="50" min="0" max="200" oninput="resetHitPage()">
+      </div>
+      <div class="date-filter-wrap">
+        <span>Date:</span>
+        <input type="date" id="hitDateStart" onchange="resetHitPage()">
+        <span>to</span>
+        <input type="date" id="hitDateEnd" onchange="resetHitPage()">
+        <button class="date-clear-btn" onclick="clearLeaderboardDates('hit')">Clear</button>
+      </div>
+    </div>
+    <div class="results-info" id="hitResultsInfo"></div>
+    <div class="lb-table-wrap">
+      <table><thead id="hitLbHead"></thead><tbody id="hitLbBody"></tbody></table>
+    </div>
+    <div class="pagination-bar" id="hitPagination"></div>
+  </div>
+</div>
+
+<!-- PITCHING LEADERBOARD -->
+<div id="view-pitching" class="view">
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Pitching <span>Leaders</span></div>
+        <div class="page-meta">
+          New Jersey High School Baseball
+          <span class="page-meta-dot"></span>
+          <span data-season-meta>2026 Season</span>
+          <span class="page-meta-dot"></span>
+          Percentiles vs. qualified pitchers (15+ IP)
+        </div>
+      </div>
+      <div class="page-updated" id="pitLastUpdated"></div>
+    </div>
+  </div>
+  <div class="leaderboard-wrap">
+    <div class="lb-mode-tabs">
+      <button class="lb-tab lb-tab-active" id="pitTabAdv" onclick="pitMode='advanced';resetPitPage()">Advanced</button>
+      <button class="lb-tab" id="pitTabStd" onclick="pitMode='standard';resetPitPage()">Standard</button>
+    </div>
+    <div class="controls-row">
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
+        </svg>
+        <input class="search-input" type="text" id="pitSearchInput" placeholder="Search player..." oninput="resetPitPage()">
+      </div>
+      <div class="div-filter-wrap" id="pitDivWrap">
+        <button class="div-filter-btn" id="pitDivBtn" onclick="toggleDivFilter('pitDiv')">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+          Conference
+        </button>
+        <div class="div-filter-menu" id="pitDivMenu">
+          <div class="div-filter-menu-header">
+            <span class="div-filter-menu-label">Filter by Conference</span>
+            <button class="div-filter-all-btn" onclick="selectAllDivs('pitDiv')">All</button>
+          </div>
+          <div id="pitDivOptions" style="max-height:260px;overflow-y:auto"></div>
+        </div>
+      </div>
+      <select class="ctrl-select" id="pitTeamFilter" onchange="resetPitPage()">
+        <option value="all">All Teams</option>
+      </select>
+      <select class="ctrl-select" id="pitGradeFilter" onchange="resetPitPage()">
+        <option value="all">All Grades</option>
+        <option value="Freshman">Freshmen</option>
+        <option value="Sophomore">Sophomores</option>
+        <option value="Junior">Juniors</option>
+        <option value="Senior">Seniors</option>
+      </select>
+      <div id="pitStatFilterWrap" style="display:flex;align-items:center"><select class="ctrl-select" id="pitStatFilter" onchange="resetPitPage()">
+        <option value="ERA">ERA</option>
+        <option value="FIP">FIP</option>
+        <option value="WHIP">WHIP</option>
+        <option value="K7">K/7</option>
+        <option value="BB7">BB/7</option>
+        <option value="KBB">K/BB</option>
+        <option value="ERA_minus">ERA-</option>
+        <option value="FIP_minus">FIP-</option>
+        <option value="PS">PS</option>
+        <option value="RAA">RAA</option>
+        <option value="IP">IP</option>
+        <option value="K">K</option>
+      </select></div>
+      <div class="pa-filter-wrap">
+        <span>Min IP:</span>
+        <input type="number" id="pitMinIP" value="15" min="0" max="200" oninput="resetPitPage()">
+      </div>
+      <div class="date-filter-wrap">
+        <span>Date:</span>
+        <input type="date" id="pitDateStart" onchange="resetPitPage()">
+        <span>to</span>
+        <input type="date" id="pitDateEnd" onchange="resetPitPage()">
+        <button class="date-clear-btn" onclick="clearLeaderboardDates('pit')">Clear</button>
+      </div>
+    </div>
+    <div class="results-info" id="pitResultsInfo"></div>
+    <div class="lb-table-wrap">
+      <table><thead id="pitLbHead"></thead><tbody id="pitLbBody"></tbody></table>
+    </div>
+    <div class="pagination-bar" id="pitPagination"></div>
+  </div>
+</div>
+
+<!-- PLAYER PAGE -->
+<div id="view-player" class="view">
+  <div class="player-wrap" id="playerContent"></div>
+</div>
+
+<!-- POWER RANKINGS -->
+<div id="view-team-rankings" class="view">
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Power <span>Rankings</span></div>
+        <div class="page-meta">
+          Diamond Index Team Score
+          <span class="page-meta-dot"></span>
+          0-100 scale
+          <span class="page-meta-dot"></span>
+          Diamond Index adjusted offensive and defensive efficiency
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="leaderboard-wrap">
+    <div class="controls-row">
+      <div class="div-filter-wrap" id="rankDivWrap">
+        <button class="div-filter-btn" id="rankDivBtn" onclick="toggleDivFilter('rankDiv')">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+          Conference
+        </button>
+        <div class="div-filter-menu" id="rankDivMenu">
+          <div class="div-filter-menu-header">
+            <span class="div-filter-menu-label">Filter by Conference</span>
+            <button class="div-filter-all-btn" onclick="selectAllDivs('rankDiv')">All</button>
+          </div>
+          <div id="rankDivOptions" style="max-height:260px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+    <div class="lb-table-wrap">
+      <table><thead id="rankingsHead"></thead><tbody id="rankingsBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- MATCHUP PREDICTOR -->
+<div id="view-predictor" class="view">
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Matchup <span>Predictor</span></div>
+        <div class="page-meta">
+          Projected score and win probability
+          <span class="page-meta-dot"></span>
+          Uses Diamond Index adjusted team ratings
+          <span class="page-meta-dot"></span>
+          <span data-season-meta>2026 Season</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="predictor-wrap">
+    <div class="predictor-panel">
+      <div class="predictor-controls">
+        <label class="predictor-field">
+          <span>Team A</span>
+          <input class="ctrl-select predictor-team-input" id="predictTeamA" list="predictTeamList"
+            autocomplete="off" oninput="handlePredictorTeamChange('A')" onchange="handlePredictorTeamChange('A')">
+        </label>
+        <button class="predictor-swap" onclick="swapPredictorTeams()" title="Swap teams">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M3 5h10M10 2l3 3-3 3M13 11H3M6 8l-3 3 3 3"/>
+          </svg>
+        </button>
+        <label class="predictor-field">
+          <span>Team B</span>
+          <input class="ctrl-select predictor-team-input" id="predictTeamB" list="predictTeamList"
+            autocomplete="off" oninput="handlePredictorTeamChange('B')" onchange="handlePredictorTeamChange('B')">
+        </label>
+        <label class="predictor-field predictor-field-small">
+          <span>Venue</span>
+          <select class="ctrl-select" id="predictVenue" onchange="renderMatchupPrediction()">
+            <option value="neutral">Neutral</option>
+            <option value="a-home">Team A home</option>
+            <option value="b-home">Team B home</option>
+          </select>
+        </label>
+      </div>
+      <datalist id="predictTeamList"></datalist>
+      <div class="predictor-pitcher-controls">
+        <label class="predictor-field">
+          <span>Team A starter</span>
+          <select class="ctrl-select" id="predictPitcherA" onchange="renderMatchupPrediction()">
+            <option value="">Team pitching staff</option>
+          </select>
+        </label>
+        <label class="predictor-field">
+          <span>Team B starter</span>
+          <select class="ctrl-select" id="predictPitcherB" onchange="renderMatchupPrediction()">
+            <option value="">Team pitching staff</option>
+          </select>
+        </label>
+      </div>
+      <div id="matchupPrediction"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TEAMS OVERVIEW -->
+<div id="view-teams" class="view">
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Team <span>Directory</span></div>
+        <div class="page-meta">
+          All NJ.com Conferences
+          <span class="page-meta-dot"></span>
+          Click a team to view roster and stats
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="teams-wrap">
+    <div class="controls-row" style="margin-bottom:1.25rem">
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
+        </svg>
+        <input class="search-input" type="text" id="teamsSearchInput"
+          placeholder="Search team..."
+          oninput="renderTeamsGrid()" style="width:200px">
+      </div>
+      <select class="ctrl-select" id="teamsConfFilter" onchange="renderTeamsGrid()">
+        <option value="all">All Conferences</option>
+      </select>
+    </div>
+    <div class="teams-grid" id="teamsGrid"></div>
+  </div>
+</div>
+
+<!-- TEAM PAGE -->
+<div id="view-team" class="view">
+  <div class="team-wrap" id="teamContent"></div>
+</div>
+
+<!-- GAME PAGE -->
+<div id="view-game" class="view">
+  <div class="team-wrap" id="gameContent"></div>
+</div>
+
+
+<!-- STANDINGS -->
+<div id="view-standings" class="view">
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Conference <span>Standings</span></div>
+        <div class="page-meta">
+          New Jersey High School Baseball
+          <span class="page-meta-dot"></span>
+          <span data-season-meta>2026 Season</span>
+          <span class="page-meta-dot"></span>
+          Pyth = Pythagorean Expected Record
+
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="search-wrap" style="margin-top:4px">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
+          </svg>
+          <input class="search-input" type="text" id="standingsConfFilter"
+            placeholder="Search conference..."
+            oninput="renderStandings()"
+            style="width:200px">
+        </div>
+        <div class="page-updated" id="standingsUpdated"></div>
+      </div>
+    </div>
+  </div>
+  <div class="standings-wrap" id="standingsContent"></div>
+</div>
+
+
+<!-- GLOSSARY -->
+<div id="view-glossary" class="view">
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Stat <span>Glossary</span></div>
+        <div class="page-meta">
+          Definitions and formulas for every metric on Diamond Index
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="glossary-wrap">
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Hitting</div>
+      <div class="glossary-grid">
+        <div class="glossary-card"><div class="gc-stat">PA</div><div class="gc-name">Plate Appearances</div><div class="gc-def">Total times a batter completes a turn at bat. AB + BB + HBP + SF + SH.</div></div>
+        <div class="glossary-card"><div class="gc-stat">AVG</div><div class="gc-name">Batting Average</div><div class="gc-def">H / AB. The most basic measure of hitting performance.</div></div>
+        <div class="glossary-card"><div class="gc-stat">OBP</div><div class="gc-name">On-Base Percentage</div><div class="gc-def">(H + BB + HBP) / (AB + BB + HBP + SF). How often a batter reaches base per plate appearance.</div></div>
+        <div class="glossary-card"><div class="gc-stat">SLG</div><div class="gc-name">Slugging Percentage</div><div class="gc-def">Total bases / AB. Measures the power component of hitting.</div></div>
+        <div class="glossary-card"><div class="gc-stat">OPS</div><div class="gc-name">On-Base Plus Slugging</div><div class="gc-def">OBP + SLG. A quick composite of a hitter's ability to get on base and hit for power.</div></div>
+        <div class="glossary-card"><div class="gc-stat">ISO</div><div class="gc-name">Isolated Power</div><div class="gc-def">SLG − AVG. Measures raw power by isolating extra bases from hits.</div></div>
+        <div class="glossary-card"><div class="gc-stat">BB%</div><div class="gc-name">Walk Percentage</div><div class="gc-def">BB / PA × 100. Measures plate discipline; how often a batter draws a walk.</div></div>
+        <div class="glossary-card"><div class="gc-stat">BsR</div><div class="gc-name">Baserunning Runs</div><div class="gc-def">(SB × 0.2) + (3B × 0.1). Estimates run value added through baserunning.</div></div>
+        <div class="glossary-card"><div class="gc-stat">wOBA</div><div class="gc-name">Weighted On-Base Average</div><div class="gc-def">(0.7×(BB+HBP) + 0.9×1B + 1.3×2B + 1.6×3B + 2.0×HR) / PA. Assigns run values to each offensive event. League average ≈ .353.</div></div>
+        <div class="glossary-card"><div class="gc-stat">wRAA</div><div class="gc-name">Weighted Runs Above Average</div><div class="gc-def">((wOBA − .353) / 1.12) × PA. Runs contributed above or below a league-average hitter.</div></div>
+        <div class="glossary-card"><div class="gc-stat">wRC</div><div class="gc-name">Weighted Runs Created</div><div class="gc-def">wRAA + (PA × .177). Total estimated runs created by the player.</div></div>
+        <div class="glossary-card gc-highlight"><div class="gc-stat">wRC+</div><div class="gc-name">Weighted Runs Created Plus</div><div class="gc-def">((wOBA − .353) / 1.12 + .177) / .177 × 100. Park- and league-adjusted offensive production. 100 = league average. 150 = 50% above average.</div></div>
+        <div class="glossary-card gc-highlight"><div class="gc-stat">PS</div><div class="gc-name">Player Score</div><div class="gc-def">0-100 composite score from qualified-player percentiles with a capped strength-of-schedule adjustment. Hitting PS weights wRC+ 45%, wOBA 20%, OPS 15%, ISO 10%, BB% 5%, and BsR 5%, then adds up to +/-5 points from team SOS.</div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Pitching</div>
+      <div class="glossary-grid">
+        <div class="glossary-card"><div class="gc-stat">IP</div><div class="gc-name">Innings Pitched</div><div class="gc-def">Total innings pitched. Partial innings shown as decimals (e.g. 6.1 = 6⅓ innings).</div></div>
+        <div class="glossary-card"><div class="gc-stat">ERA</div><div class="gc-name">Earned Run Average</div><div class="gc-def">(ER / IP) × 7. Earned runs allowed per seven innings (high school game length). Lower is better.</div></div>
+        <div class="glossary-card gc-highlight"><div class="gc-stat">FIP</div><div class="gc-name">Fielding Independent Pitching</div><div class="gc-def">((3×(BB+HB) − 2×K) / IP) + 3.10. Estimates ERA based only on outcomes the pitcher controls: strikeouts, walks, and hit batters. Removes defense and luck.</div></div>
+        <div class="glossary-card"><div class="gc-stat">WHIP</div><div class="gc-name">Walks + Hits per IP</div><div class="gc-def">(BB + H) / IP. Measures baserunners allowed per inning. League average ≈ 1.30.</div></div>
+        <div class="glossary-card"><div class="gc-stat">K/7</div><div class="gc-name">Strikeouts per 7 Innings</div><div class="gc-def">(K / IP) × 7. Strikeout rate normalized to a standard high school game length.</div></div>
+        <div class="glossary-card"><div class="gc-stat">BB/7</div><div class="gc-name">Walks per 7 Innings</div><div class="gc-def">(BB / IP) × 7. Walk rate normalized to 7 innings. Lower is better.</div></div>
+        <div class="glossary-card"><div class="gc-stat">K/BB</div><div class="gc-name">Strikeout-to-Walk Ratio</div><div class="gc-def">K / BB. The single best indicator of a pitcher's command. 2.0+ is solid; 3.0+ is elite.</div></div>
+        <div class="glossary-card"><div class="gc-stat">ERA−</div><div class="gc-name">ERA Minus</div><div class="gc-def">(ERA / 4.31) × 100. ERA relative to conference average. 100 = average. Below 100 = better than average.</div></div>
+        <div class="glossary-card"><div class="gc-stat">FIP−</div><div class="gc-name">FIP Minus</div><div class="gc-def">(FIP / 4.31) × 100. FIP relative to conference average. 100 = average. Below 100 = better than average.</div></div>
+        <div class="glossary-card"><div class="gc-stat">RAA</div><div class="gc-name">Runs Above Average</div><div class="gc-def">((4.31 − ERA) / 7) × IP. Runs saved compared to a league-average pitcher over the same innings.</div></div>
+        <div class="glossary-card gc-highlight"><div class="gc-stat">PS</div><div class="gc-name">Pitcher Player Score</div><div class="gc-def">0-100 composite score from qualified-pitcher percentiles with a capped strength-of-schedule adjustment. Pitching PS weights ERA- 30%, FIP- 25%, WHIP 15%, K/7 15%, K/BB 10%, and IP 5%, then adds up to +/-5 points from team SOS.</div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Standings &amp; Team Metrics</div>
+      <div class="glossary-grid">
+        <div class="glossary-card"><div class="gc-stat">PCT</div><div class="gc-name">Win Percentage</div><div class="gc-def">W / (W + L). Standard winning percentage.</div></div>
+        <div class="glossary-card"><div class="gc-stat">RDIFF</div><div class="gc-name">Run Differential</div><div class="gc-def">RS − RA. The total difference between runs scored and runs allowed. One of the strongest predictors of future performance.</div></div>
+        <div class="glossary-card"><div class="gc-stat">RS/G</div><div class="gc-name">Runs Scored per Game</div><div class="gc-def">Total runs scored divided by games played. Measures offensive output.</div></div>
+        <div class="glossary-card"><div class="gc-stat">RA/G</div><div class="gc-name">Runs Allowed per Game</div><div class="gc-def">Total runs allowed divided by games played. Measures pitching and defensive performance.</div></div>
+        <div class="glossary-card gc-highlight"><div class="gc-stat">PYTH</div><div class="gc-name">Pythagorean Expected Record</div><div class="gc-def">RS^1.83 / (RS^1.83 + RA^1.83) × G. Estimates the win total a team deserves based on runs scored and allowed. Teams significantly above their Pythagorean record have likely been lucky in close games.</div></div>
+        
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Power Rankings</div>
+      <div class="glossary-grid">
+        <div class="glossary-card gc-highlight"><div class="gc-stat">DI SCORE</div><div class="gc-name">Diamond Index Team Score</div><div class="gc-def">0-100 predictive rating based on adjusted offensive and defensive efficiency. It is converted from Pythagorean expected win percentage using a baseball exponent of 1.83.</div></div>
+        <div class="glossary-card"><div class="gc-stat">AdjO</div><div class="gc-name">Adjusted Offense</div><div class="gc-def">Runs scored per game adjusted for opponent defensive strength. It estimates how many runs the team would score against an average opponent.</div></div>
+        <div class="glossary-card"><div class="gc-stat">AdjD</div><div class="gc-name">Adjusted Defense</div><div class="gc-def">Runs allowed per game adjusted for opponent offensive strength. Lower is better. It estimates how many runs the team would allow against an average opponent.</div></div>
+        <div class="glossary-card"><div class="gc-stat">SOS</div><div class="gc-name">Strength of Schedule</div><div class="gc-def">Average opponent quality, calculated from opponents' adjusted offensive and defensive efficiencies and converted to a Pythagorean rating.</div></div>
+        <div class="glossary-card"><div class="gc-stat">Luck</div><div class="gc-name">Record Luck</div><div class="gc-def">Actual win percentage minus expected win percentage. Positive means the team has won more than its adjusted run profile predicts; negative means the opposite.</div></div>
+        <div class="glossary-card"><div class="gc-stat">BLOW</div><div class="gc-name">Blowout Margin Dampening</div><div class="gc-def">Average runs per game removed by the blowout dampener before ratings are calculated. Margins of 6 or fewer are unchanged; larger margins are compressed.</div></div>
+        <div class="glossary-card"><div class="gc-stat">Method</div><div class="gc-name">Adjusted Efficiency Loop</div><div class="gc-def">Each game is adjusted for opponent quality, then team ratings are recalculated repeatedly until offense, defense, and schedule strength stabilize.</div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Percentile Colors</div>
+      <div class="glossary-pct-legend">
+        <div class="glossary-pct-item"><div class="glossary-pct-swatch" style="background:#C89B3C"></div><div><strong>Gold (90th+)</strong> — Elite. Top 10% of all qualified players.</div></div>
+        <div class="glossary-pct-item"><div class="glossary-pct-swatch" style="background:#b8863a"></div><div><strong>Dark Gold (75–89th)</strong> — Above average. Solid contributor.</div></div>
+        <div class="glossary-pct-item"><div class="glossary-pct-swatch" style="background:#7a6035"></div><div><strong>Brown (58–74th)</strong> — Slightly above average.</div></div>
+        <div class="glossary-pct-item"><div class="glossary-pct-swatch" style="background:#5C677D"></div><div><strong>Slate (42–57th)</strong> — League average.</div></div>
+        <div class="glossary-pct-item"><div class="glossary-pct-swatch" style="background:#3a6ea8"></div><div><strong>Blue (25–41st)</strong> — Below average.</div></div>
+        <div class="glossary-pct-item"><div class="glossary-pct-swatch" style="background:#2a5080"></div><div><strong>Dark Blue (0–24th)</strong> — Well below average.</div></div>
+        <div style="margin-top:10px;font-size:12px;color:var(--muted)">Percentiles are calculated against qualified players only (50+ PA for hitters, 15+ IP for pitchers).</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="report-modal" id="reportModal" aria-hidden="true">
+  <div class="report-modal-backdrop" onclick="closeReportProblem()"></div>
+  <div class="report-dialog" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+    <button class="report-close" type="button" onclick="closeReportProblem()" aria-label="Close report form">×</button>
+    <div class="report-kicker">Diamond Index Feedback</div>
+    <h2 id="reportTitle">Report a Problem</h2>
+    <p>Send incorrect stats, missing teams, broken pages, score issues, or anything that looks off.</p>
+
+    <form class="report-form" onsubmit="submitProblemReport(event)">
+      <label>
+        Problem type
+        <select id="reportType" required>
+          <option value="Incorrect stat or leaderboard">Incorrect stat or leaderboard</option>
+          <option value="Missing team or player">Missing team or player</option>
+          <option value="Wrong score or schedule">Wrong score or schedule</option>
+          <option value="Broken page or button">Broken page or button</option>
+          <option value="Design or readability issue">Design or readability issue</option>
+          <option value="Other">Other</option>
+        </select>
+      </label>
+      <label>
+        What happened?
+        <textarea id="reportDetails" rows="5" placeholder="Example: Livingston's team page is missing a game from June 5, or this player's HR total looks wrong." required></textarea>
+      </label>
+      <label>
+        Your email, optional
+        <input id="reportContact" type="email" placeholder="Only if you want a follow-up">
+      </label>
+      <div class="report-actions">
+        <button class="report-submit" type="submit">Create Report</button>
+        <button class="report-cancel" type="button" onclick="closeReportProblem()">Cancel</button>
+      </div>
+      <div class="report-note">This opens a prefilled GitHub Issue for the njbaseball repo.</div>
+    </form>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/divisions.js"></script>
+<script src="js/seasons/manifest.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
