@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pitch Index — Boys Soccer Analytics</title>
+  <link rel="stylesheet" href="css/pitch.css">
+</head>
+<body>
+  <header class="pitch-header">
+    <a class="brand" href="pitch-index.html" aria-label="Pitch Index home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-copy"><strong>PITCH</strong><span>INDEX</span></span>
+    </a>
+    <nav class="pitch-nav">
+      <button data-view="home" class="active">Home</button>
+      <button data-view="rankings">Rankings</button>
+      <button data-view="leaders">Leaders</button>
+      <button data-view="standings">Standings</button>
+      <button data-view="teams">Teams</button>
+    </nav>
+    <div class="top-search">
+      <input id="globalSearch" type="search" placeholder="Search teams or players...">
+      <div id="searchResults" class="search-results"></div>
+    </div>
+    <a class="diamond-link" href="index.html">Diamond Index</a>
+  </header>
+
+  <main>
+    <section id="view-home" class="view active"></section>
+    <section id="view-rankings" class="view"></section>
+    <section id="view-leaders" class="view"></section>
+    <section id="view-standings" class="view"></section>
+    <section id="view-teams" class="view"></section>
+    <section id="view-team" class="view"></section>
+    <section id="view-player" class="view"></section>
+  </main>
+
+  <script src="js/pitch-data.js"></script>
+  <script src="js/pitch.js"></script>
+</body>
+</html>
