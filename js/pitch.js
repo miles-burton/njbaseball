@@ -13,6 +13,7 @@ const state = {
   leaderSort: { key: 'P', asc: false },
   filters: { query: '', conference: 'All' },
 };
+const RANK_LOWER_BETTER = new Set(['adjD', 'gaPerGame', 'ga', 'luck']);
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -22,6 +23,11 @@ function esc(value) {
 
 function pct(value) {
   return Number.isFinite(value) ? value.toFixed(3).replace(/^0/, '') : '.000';
+}
+
+function signed(value, digits = 3) {
+  if (!Number.isFinite(value)) return '—';
+  return `${value > 0 ? '+' : ''}${value.toFixed(digits).replace(/^([-+])0/, '$1')}`;
 }
 
 function logoSrc(team) {
@@ -235,7 +241,7 @@ function renderRankings() {
             <span class="page-meta-dot"></span>
             0-100 scale
             <span class="page-meta-dot"></span>
-            Adjusted record, goal profile, and schedule strength
+            Adjusted offensive and defensive efficiency
           </div>
         </div>
       </div>
@@ -274,13 +280,14 @@ function rankingTable(rows, sortable) {
       <th>Conf</th>
       <th class="num">Record</th>
       ${head('Pitch', 'powerScore', 'num')}
+      ${head('AdjO', 'adjO', 'num')}
+      ${head('AdjD', 'adjD', 'num')}
       ${head('SOS', 'sos', 'num')}
+      ${head('Luck', 'luck', 'num')}
       ${head('PCT', 'winPct', 'num')}
-      ${head('GF', 'gf', 'num')}
-      ${head('GA', 'ga', 'num')}
-      ${head('GD', 'gd', 'num')}
       ${head('GF/G', 'gfPerGame', 'num')}
       ${head('GA/G', 'gaPerGame', 'num')}
+      ${head('GD', 'gd', 'num')}
     </tr></thead>
     <tbody>${rows.map((team) => `<tr class="rankings-row" data-team-slug="${esc(team.slug)}">
       <td style="font-family:var(--font-sans);font-weight:700;color:${team.rank <= 3 ? 'var(--accent)' : 'var(--muted)'}">${team.rank}</td>
@@ -288,13 +295,14 @@ function rankingTable(rows, sortable) {
       <td style="font-size:11px;color:var(--muted2);max-width:170px">${esc(team.conference)}</td>
       <td class="num"><span class="standings-record ${team.winPct > 0.5 ? 'over-500' : team.winPct < 0.5 ? 'under-500' : 'even-500'}">${esc(team.record)}</span></td>
       <td class="num" style="${state.rankingSort.key === 'powerScore' ? 'font-weight:700;color:var(--accent)' : ''}">${team.powerScore.toFixed(1)}</td>
+      <td class="num" style="${state.rankingSort.key === 'adjO' ? 'font-weight:700;color:var(--accent)' : ''}">${team.adjO.toFixed(2)}</td>
+      <td class="num" style="${state.rankingSort.key === 'adjD' ? 'font-weight:700;color:var(--accent)' : ''}">${team.adjD.toFixed(2)}</td>
       <td class="num" style="${state.rankingSort.key === 'sos' ? 'font-weight:700;color:var(--accent)' : ''}">${team.sos.toFixed(1)}</td>
+      <td class="num" style="${state.rankingSort.key === 'luck' ? 'font-weight:700;color:var(--accent)' : ''}">${signed(team.luck)}</td>
       <td class="num" style="${state.rankingSort.key === 'winPct' ? 'font-weight:700;color:var(--accent)' : ''}">${pct(team.winPct)}</td>
-      <td class="num" style="${state.rankingSort.key === 'gf' ? 'font-weight:700;color:var(--accent)' : ''}">${team.gf}</td>
-      <td class="num" style="${state.rankingSort.key === 'ga' ? 'font-weight:700;color:var(--accent)' : ''}">${team.ga}</td>
-      <td class="num" style="${state.rankingSort.key === 'gd' ? 'font-weight:700;color:var(--accent)' : ''}">${team.gd}</td>
       <td class="num" style="${state.rankingSort.key === 'gfPerGame' ? 'font-weight:700;color:var(--accent)' : ''}">${team.gfPerGame.toFixed(2)}</td>
       <td class="num" style="${state.rankingSort.key === 'gaPerGame' ? 'font-weight:700;color:var(--accent)' : ''}">${team.gaPerGame.toFixed(2)}</td>
+      <td class="num" style="${state.rankingSort.key === 'gd' ? 'font-weight:700;color:var(--accent)' : ''}">${team.gd}</td>
     </tr>`).join('')}</tbody></table>`;
 }
 
@@ -400,13 +408,16 @@ function renderTeam() {
         <div class="eyebrow">${esc(team.conference)} · ${esc(team.division)}</div>
         <h2>${esc(team.name)}</h2>
         <div class="team-hero-meta">
-          <span class="pill">Record ${esc(team.record)}</span><span class="pill">Division ${esc(team.divisionRecord)}</span><span class="pill">Rank #${team.rank}</span><span class="pill">Pitch ${team.powerScore.toFixed(1)}</span><span class="pill">SOS ${team.sos.toFixed(1)}</span>
+          <span class="pill">Record ${esc(team.record)}</span><span class="pill">Division ${esc(team.divisionRecord)}</span><span class="pill">Rank #${team.rank}</span><span class="pill">Pitch ${team.powerScore.toFixed(1)}</span><span class="pill">AdjO ${team.adjO.toFixed(2)}</span><span class="pill">AdjD ${team.adjD.toFixed(2)}</span><span class="pill">SOS ${team.sos.toFixed(1)}</span><span class="pill">Luck ${signed(team.luck)}</span>
         </div>
       </div></div>
       <div class="grid-3">
         <div class="stat-card"><b>${team.gf}</b><span>Goals For</span></div>
         <div class="stat-card"><b>${team.ga}</b><span>Goals Allowed</span></div>
         <div class="stat-card"><b>${team.gd}</b><span>Goal Diff</span></div>
+        <div class="stat-card"><b>${team.adjO.toFixed(2)}</b><span>Adj Offense</span></div>
+        <div class="stat-card"><b>${team.adjD.toFixed(2)}</b><span>Adj Defense</span></div>
+        <div class="stat-card"><b>${team.sos.toFixed(1)}</b><span>SOS</span></div>
       </div>
     </div>
     <div class="subgrid">
@@ -516,7 +527,7 @@ document.addEventListener('click', (event) => {
   const rankSort = event.target.closest('[data-rank-sort]');
   if (rankSort) {
     const key = rankSort.dataset.rankSort;
-    state.rankingSort = { key, asc: state.rankingSort.key === key ? !state.rankingSort.asc : false };
+    state.rankingSort = { key, asc: state.rankingSort.key === key ? !state.rankingSort.asc : RANK_LOWER_BETTER.has(key) };
     render();
     return;
   }

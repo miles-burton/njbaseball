@@ -74,6 +74,15 @@ def parse_record(record):
     return {"wins": wins, "losses": losses, "ties": ties, "games": games, "pct": pct}
 
 
+def team_key(value):
+    value = unescape(str(value or "")).lower()
+    value = value.replace("&", " and ")
+    value = re.sub(r"\([^)]*\)", " ", value)
+    value = re.sub(r"\b(high|school|boys|soccer|prep|preparatory|academy|regional|the)\b", " ", value)
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return re.sub(r"\s+", " ", value).strip()
+
+
 def parse_conference(conf):
     url = f"{BASE}/{SPORT}/standings/season/{SEASON}?conference={urllib.parse.quote(conf)}"
     html = fetch(url)
@@ -248,51 +257,87 @@ def fetch_team_payload(team):
 
 def compute_ratings(teams):
     by_slug = {team["slug"]: team for team in teams}
+    by_name = {}
     for team in teams:
-        games = max(team.get("games", 0), 1)
-        gd_per_game = team.get("gd", 0) / games
-        attack = min(max(team.get("gfPerGame", 0) / 4.0, 0), 1)
-        defense = min(max((3.0 - team.get("gaPerGame", 0)) / 3.0, 0), 1)
-        margin = 0.5 + max(min(gd_per_game, 4), -4) / 8
-        team["rawPower"] = 100 * (
-            0.36 * team.get("winPct", 0)
-            + 0.24 * margin
-            + 0.18 * attack
-            + 0.14 * defense
-            + 0.08 * 0.5
-        )
+        key = team_key(team["name"])
+        if key:
+            by_name[key] = team
 
-    for team in teams:
-        opp_pcts = []
-        opp_scores = []
-        for game in team.get("schedule", []):
-            opponent = by_slug.get(game.get("opponentSlug"))
-            if opponent and opponent["slug"] != team["slug"]:
-                opp_pcts.append(opponent.get("winPct", 0))
-                opp_scores.append(opponent.get("rawPower", 0))
-        team["oppWinPct"] = sum(opp_pcts) / len(opp_pcts) if opp_pcts else 0.5
-        team["oppPower"] = sum(opp_scores) / len(opp_scores) if opp_scores else 50
+    def opponent_for(game):
+        slug = game.get("opponentSlug")
+        if slug and slug in by_slug:
+            return by_slug[slug]
+        opp_key = team_key(game.get("opponent"))
+        if opp_key in by_name:
+            return by_name[opp_key]
+        for key, team in by_name.items():
+            if opp_key and (opp_key == key or opp_key.startswith(f"{key} ") or key.startswith(f"{opp_key} ")):
+                return team
+        return None
+
+    total_games = sum(team.get("games", 0) for team in teams) or 1
+    league_gf_pg = sum(team.get("gf", 0) for team in teams) / total_games
+    league_ga_pg = sum(team.get("ga", 0) for team in teams) / total_games
+    league_runs = max((league_gf_pg + league_ga_pg) / 2, 0.35)
 
     for team in teams:
         games = max(team.get("games", 0), 1)
-        gd_per_game = team.get("gd", 0) / games
-        attack = min(max(team.get("gfPerGame", 0) / 4.0, 0), 1)
-        defense = min(max((3.0 - team.get("gaPerGame", 0)) / 3.0, 0), 1)
-        margin = 0.5 + max(min(gd_per_game, 4), -4) / 8
-        base = 100 * (
-            0.36 * team.get("winPct", 0)
-            + 0.24 * margin
-            + 0.18 * attack
-            + 0.14 * defense
-            + 0.08 * team.get("oppWinPct", 0.5)
-        )
-        team["rawPower"] = base
+        team["rawOffense"] = team.get("gf", 0) / games
+        team["rawDefense"] = team.get("ga", 0) / games
+        team["adjO"] = team["rawOffense"] or league_runs
+        team["adjD"] = team["rawDefense"] or league_runs
 
+    # Soccer version of Diamond's adjusted efficiency loop:
+    # scoring is boosted for facing strong defenses, and goals allowed are
+    # discounted for facing strong offenses.
+    for _ in range(14):
+        next_values = []
+        for team in teams:
+            opponents = [
+                opponent_for(game)
+                for game in team.get("schedule", [])
+            ]
+            opponents = [opp for opp in opponents if opp and opp["slug"] != team["slug"]]
+            avg_opp_def = sum(opp.get("adjD", league_runs) for opp in opponents) / len(opponents) if opponents else league_runs
+            avg_opp_off = sum(opp.get("adjO", league_runs) for opp in opponents) / len(opponents) if opponents else league_runs
+            off_factor = (league_runs / max(avg_opp_def, 0.35)) ** 0.45
+            def_factor = (league_runs / max(avg_opp_off, 0.35)) ** 0.45
+            adj_o = team["rawOffense"] * off_factor
+            adj_d = team["rawDefense"] * def_factor
+            next_values.append((team, max(0, min(adj_o, 5.75)), max(0.05, min(adj_d, 5.75))))
+        for team, adj_o, adj_d in next_values:
+            team["adjO"] = adj_o
+            team["adjD"] = adj_d
+
+    exponent = 1.35
     for team in teams:
-        opp_power = team.get("oppPower", 50)
-        team["sos"] = round(100 * (0.65 * team.get("oppWinPct", 0.5) + 0.35 * (opp_power / 100)), 1)
-        adjusted = team["rawPower"] + (team["sos"] - 50) * 0.22
-        team["powerScore"] = round(max(0, min(100, adjusted)), 1)
+        opponents = [
+            opponent_for(game)
+            for game in team.get("schedule", [])
+        ]
+        opponents = [opp for opp in opponents if opp and opp["slug"] != team["slug"]]
+        opp_wpcts = []
+        opp_exp = []
+        for opp in opponents:
+            opp_o = max(opp.get("adjO", league_runs), 0.01)
+            opp_d = max(opp.get("adjD", league_runs), 0.01)
+            opp_expected = (opp_o ** exponent) / ((opp_o ** exponent) + (opp_d ** exponent))
+            opp_wpcts.append(opp.get("winPct", 0.5))
+            opp_exp.append(opp_expected)
+
+        adj_o = max(team.get("adjO", 0), 0.01)
+        adj_d = max(team.get("adjD", 0), 0.01)
+        expected = (adj_o ** exponent) / ((adj_o ** exponent) + (adj_d ** exponent))
+        team["expectedWinPct"] = expected
+        team["expectedRecord"] = f"{round(expected * team.get('games', 0), 1)}-{round((1 - expected) * team.get('games', 0), 1)}"
+        team["luck"] = team.get("winPct", 0) - expected
+        team["oppWinPct"] = sum(opp_wpcts) / len(opp_wpcts) if opp_wpcts else 0.5
+        team["sos"] = round((sum(opp_exp) / len(opp_exp) if opp_exp else 0.5) * 100, 1)
+        team["powerScore"] = round(max(0, min(100, expected * 100)), 1)
+        team["adjO"] = round(team["adjO"], 2)
+        team["adjD"] = round(team["adjD"], 2)
+        team["expectedWinPct"] = round(team["expectedWinPct"], 3)
+        team["luck"] = round(team["luck"], 3)
 
     teams.sort(key=lambda t: (t["powerScore"], t["winPct"], t["gd"]), reverse=True)
     for idx, team in enumerate(teams, start=1):
