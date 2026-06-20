@@ -230,13 +230,27 @@ function renderRankings() {
       <div class="page-banner-inner">
         <div>
           <div class="page-title">Power <span>Rankings</span></div>
-          <div class="page-meta">New Jersey High School Boys Soccer <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season <span class="page-meta-dot"></span> Pitch Score</div>
+          <div class="page-meta">
+            Pitch Index Team Score
+            <span class="page-meta-dot"></span>
+            0-100 scale
+            <span class="page-meta-dot"></span>
+            Adjusted record, goal profile, and schedule strength
+          </div>
         </div>
       </div>
     </div>
     <div class="leaderboard-wrap">
-      ${toolbar('rankings')}
-      <div class="card table-wrap">${rankingTable(rows, true)}</div>
+      <div class="controls-row">
+        <div class="search-wrap">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
+          </svg>
+          <input class="search-input" data-filter-query type="text" placeholder="Search teams..." value="${esc(state.filters.query)}">
+        </div>
+        <select class="ctrl-select" data-filter-conference>${conferenceOptions(state.filters.conference)}</select>
+      </div>
+      <div class="lb-table-wrap">${rankingTable(rows, true)}</div>
     </div>`;
 }
 
@@ -248,15 +262,39 @@ function toolbar(kind) {
 }
 
 function rankingTable(rows, sortable) {
-  const head = (label, key, cls = '') => `<th class="${sortable ? 'sortable ' : ''}${cls}" ${sortable ? `data-rank-sort="${key}"` : ''}>${label}</th>`;
+  const sortArrow = state.rankingSort.asc ? ' ▴' : ' ▾';
+  const head = (label, key, cls = '') => {
+    const active = sortable && state.rankingSort.key === key;
+    return `<th class="${cls}${sortable ? ' sortable' : ''}${active ? ' rankings-sort-active' : ''}" ${sortable ? `data-rank-sort="${key}"` : ''}>${label}${active ? sortArrow : ''}</th>`;
+  };
   return `<table>
-    <thead><tr>${head('#','rank')}${head('Team','name')}${head('Conf','conference')}${head('Rec','record')}${head('Pct','winPct','num')}${head('GF','gf','num')}${head('GA','ga','num')}${head('GD','gd','num')}${head('SOS','sos','num')}${head('Pitch','powerScore','num')}</tr></thead>
-    <tbody>${rows.map((team) => `<tr>
-      <td class="rank">#${team.rank}</td>
+    <thead><tr>
+      <th style="width:28px">#</th>
+      <th>Team</th>
+      <th>Conf</th>
+      <th class="num">Record</th>
+      ${head('Pitch', 'powerScore', 'num')}
+      ${head('SOS', 'sos', 'num')}
+      ${head('PCT', 'winPct', 'num')}
+      ${head('GF', 'gf', 'num')}
+      ${head('GA', 'ga', 'num')}
+      ${head('GD', 'gd', 'num')}
+      ${head('GF/G', 'gfPerGame', 'num')}
+      ${head('GA/G', 'gaPerGame', 'num')}
+    </tr></thead>
+    <tbody>${rows.map((team) => `<tr class="rankings-row" data-team-slug="${esc(team.slug)}">
+      <td style="font-family:var(--font-sans);font-weight:700;color:${team.rank <= 3 ? 'var(--accent)' : 'var(--muted)'}">${team.rank}</td>
       <td><div class="team-cell">${logo(team)}<div>${teamButton(team)}<div class="muted">${esc(team.division)}</div></div></div></td>
-      <td>${esc(team.conference)}</td><td>${esc(team.record)}</td>
-      <td class="num">${pct(team.winPct)}</td><td class="num">${team.gf}</td><td class="num">${team.ga}</td><td class="num">${team.gd}</td>
-      <td class="num">${team.sos.toFixed(1)}</td><td class="num"><strong>${team.powerScore.toFixed(1)}</strong></td>
+      <td style="font-size:11px;color:var(--muted2);max-width:170px">${esc(team.conference)}</td>
+      <td class="num"><span class="standings-record ${team.winPct > 0.5 ? 'over-500' : team.winPct < 0.5 ? 'under-500' : 'even-500'}">${esc(team.record)}</span></td>
+      <td class="num" style="${state.rankingSort.key === 'powerScore' ? 'font-weight:700;color:var(--accent)' : ''}">${team.powerScore.toFixed(1)}</td>
+      <td class="num" style="${state.rankingSort.key === 'sos' ? 'font-weight:700;color:var(--accent)' : ''}">${team.sos.toFixed(1)}</td>
+      <td class="num" style="${state.rankingSort.key === 'winPct' ? 'font-weight:700;color:var(--accent)' : ''}">${pct(team.winPct)}</td>
+      <td class="num" style="${state.rankingSort.key === 'gf' ? 'font-weight:700;color:var(--accent)' : ''}">${team.gf}</td>
+      <td class="num" style="${state.rankingSort.key === 'ga' ? 'font-weight:700;color:var(--accent)' : ''}">${team.ga}</td>
+      <td class="num" style="${state.rankingSort.key === 'gd' ? 'font-weight:700;color:var(--accent)' : ''}">${team.gd}</td>
+      <td class="num" style="${state.rankingSort.key === 'gfPerGame' ? 'font-weight:700;color:var(--accent)' : ''}">${team.gfPerGame.toFixed(2)}</td>
+      <td class="num" style="${state.rankingSort.key === 'gaPerGame' ? 'font-weight:700;color:var(--accent)' : ''}">${team.gaPerGame.toFixed(2)}</td>
     </tr>`).join('')}</tbody></table>`;
 }
 
