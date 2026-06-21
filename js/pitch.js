@@ -247,6 +247,10 @@ function gameImportance(game) {
   return avgPower + closeBonus + rankedBonus + upsetBonus + tournamentBonus;
 }
 
+function isTournamentGame(game) {
+  return /tournament|county|njsiaa|sectional|final|semifinal|quarterfinal|playoff/i.test(`${game.opponent || ''} ${game.event || ''}`);
+}
+
 function allPitchGames() {
   const source = PITCH_DATA.games && PITCH_DATA.games.length
     ? PITCH_DATA.games
@@ -265,6 +269,7 @@ function allPitchGames() {
       opponentSlug: opp?.slug || game.opponentSlug || '',
       opponentName: opp?.name || cleanPitchOpponentLabel(game.opponent) || game.opponent || '',
       margin,
+      tournament: isTournamentGame(game),
     };
     normalized.importance = gameImportance(normalized);
     return normalized;
@@ -307,8 +312,9 @@ function teamOptions(selectedSlug) {
 }
 
 function renderHome() {
-  const topTeams = TEAMS.slice(0, 8);
-  const topScorers = sortRows(SCORERS, 'P').slice(0, 8);
+  const topTeams = TEAMS.slice(0, 10);
+  const topScorers = sortRows(SCORERS, 'P').slice(0, 3);
+  const topKeepers = sortRows(KEEPERS, 'Saves').slice(0, 3);
   const recentGames = latestCompletedPitchGames().slice(0, 8);
   const upcomingGames = upcomingPitchGames().slice(0, 8);
   const recentDate = recentGames[0]?.dateObj;
@@ -361,7 +367,7 @@ function renderHome() {
             <div class="home-section-header">
               <div>
                 <div class="home-section-title">Power Rankings</div>
-                <div class="home-section-sub">Top boys soccer teams by Pitch Score</div>
+                <div class="home-section-sub">Top 10 boys soccer teams by Pitch Score</div>
               </div>
               <button class="home-section-link" data-view-target="rankings">Full Rankings →</button>
             </div>
@@ -383,13 +389,10 @@ function renderHome() {
 
           <div class="home-section">
             <div class="home-section-header">
-              <div>
-                <div class="home-section-title">Scoring Leaders</div>
-                <div class="home-section-sub">Sorted by points</div>
-              </div>
+              <div class="home-section-title">Top Performers</div>
               <button class="home-section-link" data-view-target="leaders">All Leaders →</button>
             </div>
-            ${leaderTable(topScorers, 'scoring', false)}
+            <div class="home-performers-grid">${performerCards(topScorers, topKeepers)}</div>
           </div>
         </div>
       </div>
@@ -397,37 +400,85 @@ function renderHome() {
 }
 
 function miniRanking(rows) {
-  return `<table class="home-rankings-table"><tbody>${rows.map((team) => `
-    <tr>
-      <td class="rank">#${team.rank}</td>
-      <td><div class="team-cell">${logoImg(team, 22)}<div>${teamButton(team)}<div class="muted">${esc(team.conference)} · ${esc(team.record)}</div></div></div></td>
-      <td class="num">${team.powerScore.toFixed(1)}</td>
-    </tr>`).join('')}</tbody></table>`;
+  return `<table class="home-rankings-table">
+    <thead><tr>
+      <th style="width:28px">#</th>
+      <th>Team</th>
+      <th class="num">Score</th>
+      <th class="num">AdjO</th>
+      <th class="num">AdjD</th>
+    </tr></thead>
+    <tbody>${rows.slice(0, 10).map((team, i) => `
+      <tr data-team-slug="${esc(team.slug)}">
+        <td style="font-family:var(--font-mono);font-weight:700;color:${i < 3 ? 'var(--accent)' : 'var(--muted)'}">${i + 1}</td>
+        <td><div class="team-cell">${logoImg(team, 20)}<div>${teamButton(team)}<div class="muted">${esc(team.conference)} · ${esc(team.record)}</div></div></div></td>
+        <td class="num" style="font-weight:700;color:var(--accent)">${team.powerScore.toFixed(1)}</td>
+        <td class="num" style="color:var(--muted2)">${team.adjO.toFixed(2)}</td>
+        <td class="num" style="color:var(--muted2)">${team.adjD.toFixed(2)}</td>
+      </tr>`).join('')}</tbody>
+  </table>`;
 }
 
-function gameList(rows, ownerTeam = null, limit = null) {
+function gameList(rows, ownerTeam = null, limit = null, includeDate = false) {
   if (!rows.length) return `<div class="empty">No games found in the current data.</div>`;
   const selected = limit ? rows.slice(0, limit) : rows;
   return `<table class="home-rankings-table">
-    <thead><tr><th>Date</th><th>Game</th><th class="num">Result</th><th class="num">Score</th></tr></thead>
-    <tbody>${selected.map((game) => {
+    <thead><tr>
+      <th style="width:32px">#</th>
+      ${includeDate ? '<th>Date</th>' : ''}
+      <th>Game</th>
+      <th class="num">Score</th>
+      <th class="num">PI</th>
+    </tr></thead>
+    <tbody>${selected.map((game, i) => {
     const team = TEAM_BY_SLUG[game.teamSlug] || ownerTeam;
     const opp = TEAM_BY_SLUG[game.opponentSlug];
     const hasScore = game.teamScore !== null && game.opponentScore !== null && game.teamScore !== undefined && game.opponentScore !== undefined;
-    const resultClass = game.result === 'W' ? 'score-good' : game.result === 'L' ? 'score-bad' : '';
+    const winner = hasScore && game.result === 'L' ? opp : team;
+    const loser = hasScore && game.result === 'L' ? team : opp;
+    const winnerLabel = winner?.name || (game.result === 'L' ? game.opponentName : game.teamName);
+    const loserLabel = loser?.name || (game.result === 'L' ? game.teamName : game.opponentName);
+    const winnerScore = hasScore ? Math.max(Number(game.teamScore), Number(game.opponentScore)) : null;
+    const loserScore = hasScore ? Math.min(Number(game.teamScore), Number(game.opponentScore)) : null;
+    const power = winner?.powerScore ?? team?.powerScore;
     return `<tr>
-      <td style="color:var(--muted2);font-size:12px;white-space:nowrap">${esc(game.date || '')}</td>
+      <td style="font-family:var(--font-mono);color:${i < 3 ? 'var(--accent)' : 'var(--muted)'};font-size:16px">${i + 1}</td>
+      ${includeDate ? `<td style="color:var(--muted2);font-size:12px;white-space:nowrap">${esc(game.date || '')}</td>` : ''}
       <td>
         <div class="home-score-game">
-          <span class="home-score-team home-score-primary">${team ? logoImg(team, 18) : ''}<span>${team ? linkedTeam(team) : esc(game.team || '')}</span></span>
-          <span class="home-score-vs">${esc(game.site || 'vs')}</span>
-          <span class="home-score-team home-score-primary">${opp ? logoImg(opp, 18) : ''}<span>${opp ? linkedTeam(opp) : esc(game.opponentName || game.opponent || '')}</span></span>
+          ${game.tournament ? '<span class="home-score-badge">TOURNEY</span>' : ''}
+          <span class="home-score-team home-score-primary">${winner ? logoImg(winner, 18) : ''}<span>${winner ? linkedTeam(winner) : esc(winnerLabel || '')}</span></span>
+          <span class="home-score-vs">${hasScore ? 'def.' : 'vs.'}</span>
+          <span class="home-score-team home-score-primary">${loser ? logoImg(loser, 18) : ''}<span>${loser ? linkedTeam(loser) : esc(loserLabel || '')}</span></span>
         </div>
       </td>
-      <td class="num ${resultClass}">${esc(game.result || '—')}</td>
-      <td class="num">${hasScore ? `${game.teamScore}-${game.opponentScore}` : '—'}</td>
+      <td class="num" style="font-family:var(--font-mono);font-size:16px;color:var(--text)">${hasScore ? `${winnerScore}-${loserScore}` : '—'}</td>
+      <td class="num" style="color:var(--muted2)">${Number.isFinite(power) ? power.toFixed(1) : '—'}</td>
     </tr>`;
   }).join('')}</tbody></table>`;
+}
+
+function performerCards(scorers, keepers) {
+  const rankColors = ['gold', 'silver', 'bronze'];
+  const card = (player, stat, label, idx) => {
+    const team = TEAM_BY_SLUG[player.teamSlug];
+    return `<div class="performer-card" data-player-key="${encodeURIComponent(playerKey(player))}">
+      <div class="performer-rank ${rankColors[idx]}">${idx + 1}</div>
+      <div style="flex-shrink:0">${team ? logoImg(team, 28) : ''}</div>
+      <div class="performer-info">
+        <div class="performer-name">${esc(player.name)}</div>
+        <div class="performer-team">${esc(player.team)} · ${esc(player.grade || '')}</div>
+      </div>
+      <div class="performer-stat">
+        <div class="performer-stat-val">${player[stat] ?? 0}</div>
+        <div class="performer-stat-label">${label}</div>
+      </div>
+    </div>`;
+  };
+  return `<div class="performer-group-label">Offense — Points</div>` +
+    scorers.map((player, i) => card(player, 'P', 'PTS', i)).join('') +
+    `<div class="performer-group-label performer-group-label-spaced">Keepers — Saves</div>` +
+    keepers.map((player, i) => card(player, 'Saves', 'SV', i)).join('');
 }
 
 function renderRankings() {
@@ -629,7 +680,7 @@ function renderScores() {
             <div class="home-section-sub" id="scoresRecentMeta">${recent.length.toLocaleString()} completed games · newest first, then importance</div>
           </div>
         </div>
-        <div id="scoresRecent">${gameList(recent, null, 120)}</div>
+        <div id="scoresRecent">${gameList(recent, null, 120, true)}</div>
       </div>
       <div class="home-section">
         <div class="home-section-header">
@@ -638,7 +689,7 @@ function renderScores() {
             <div class="home-section-sub" id="scoresUpcomingMeta">${upcoming.length.toLocaleString()} scheduled or unscored games</div>
           </div>
         </div>
-        <div id="scoresUpcoming">${gameList(upcoming, null, 120)}</div>
+        <div id="scoresUpcoming">${gameList(upcoming, null, 120, true)}</div>
       </div>
     </div>
   </div>`;
