@@ -58,18 +58,18 @@
     </div>
 
     <!-- Direct links -->
-    <button class="nav-tab" id="tab-team-rankings" onclick="showView('team-rankings')">Power Rankings</button>
+    <button class="nav-tab" id="tab-team-rankings" onclick="showView('team-rankings')">Rankings</button>
     <button class="nav-tab" id="tab-scores" onclick="showView('scores')">Scores</button>
     <button class="nav-tab" id="tab-predictor" onclick="showView('predictor')">Predictor</button>
     <button class="nav-tab" id="tab-standings" onclick="showView('standings')">Standings</button>
     <button class="nav-tab" id="tab-glossary" onclick="showView('glossary')">Glossary</button>
-    <a class="nav-tab" href="index.html">Sports Home</a>
-    <button class="nav-tab nav-tab-report" id="tab-report" onclick="openReportProblem()">Report a Problem</button>
+    <a class="nav-tab" href="index.html" title="Sports Home">Sports</a>
+    <button class="nav-tab nav-tab-report" id="tab-report" onclick="openReportProblem()">Report</button>
 
   </nav>
 
   <div class="season-switcher">
-    <span>Season</span>
+    <span>Yr</span>
     <select id="seasonSelect" onchange="changeSeason(this.value)"></select>
   </div>
 
@@ -92,7 +92,7 @@
       <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
     </svg>
     <input class="global-search-input" type="text" id="globalPlayerSearch"
-      placeholder="Search players..." autocomplete="off"
+      placeholder="Search..." autocomplete="off"
       oninput="renderGlobalPlayerSearch()" onfocus="renderGlobalPlayerSearch()"
       onkeydown="handleGlobalSearchKey(event)">
     <div class="global-search-results" id="globalSearchResults"></div>

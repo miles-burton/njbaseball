@@ -3094,6 +3094,115 @@ body {
   box-shadow: 0 22px 50px rgba(0,0,0,0.42);
 }
 
+/* Compact desktop header: keep every top-level control visible at 100% zoom. */
+@media (min-width: 1101px) {
+  .site-header {
+    height: 60px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .site-logo {
+    font-size: 13px;
+    letter-spacing: 0.075em;
+    gap: 7px;
+    flex: 0 0 auto;
+  }
+
+  .logo-icon {
+    width: 28px;
+    height: 30px;
+  }
+
+  .nav-tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .nav-tab,
+  .back-btn {
+    height: 34px;
+    padding: 0 7px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .season-switcher {
+    margin-left: 0;
+    gap: 5px;
+    font-size: 10px;
+    flex: 0 0 auto;
+  }
+
+  .season-switcher select {
+    height: 34px;
+    padding: 0 6px;
+    font-size: 12px;
+  }
+
+  .theme-toggle {
+    height: 34px;
+    padding: 0 8px;
+    gap: 0;
+    flex: 0 0 auto;
+  }
+
+  .theme-toggle #themeToggleLabel {
+    display: none;
+  }
+
+  .theme-toggle-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .global-search {
+    width: clamp(145px, 14vw, 205px);
+    min-width: 145px;
+    flex: 0 1 205px;
+  }
+
+  .global-search-input {
+    height: 34px;
+    font-size: 12px;
+    padding-left: 32px;
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1240px) {
+  .site-header {
+    padding: 0 10px;
+    gap: 6px;
+  }
+
+  .site-logo {
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .logo-icon {
+    width: 25px;
+    height: 28px;
+  }
+
+  .nav-tab,
+  .back-btn {
+    padding: 0 5px;
+    font-size: 11.5px;
+  }
+
+  .season-switcher > span {
+    display: none;
+  }
+
+  .global-search {
+    width: 132px;
+    min-width: 132px;
+    flex-basis: 132px;
+  }
+}
+
 .page-banner {
   padding: 24px 28px 0;
   background: transparent;
