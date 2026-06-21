@@ -13,6 +13,7 @@ const state = {
   leaderType: 'scoring',
   leaderSort: { key: 'P', asc: false },
   filters: { query: '', conference: 'All' },
+  leaderFilters: { query: '', conference: 'All', team: 'All', grade: 'All', min: 0 },
   predictor: {
     teamA: TEAMS[0]?.slug || '',
     teamB: TEAMS[1]?.slug || '',
@@ -167,6 +168,19 @@ function linkedTeam(team, fallback = '') {
     : esc(fallback);
 }
 
+function teamChip(team) {
+  if (!team) return '<span class="team-chip">Unknown</span>';
+  return `<span class="team-chip">${logoImg(team, 14)}${esc(team.name)}</span>`;
+}
+
+function leaderPlayerCell(player) {
+  const sub = [player.grade, player.division].filter(Boolean).join(' · ');
+  return `<td class="player-cell">
+    <div class="player-name">${esc(player.name)}</div>
+    ${sub ? `<div class="player-sub">${esc(sub)}</div>` : ''}
+  </td>`;
+}
+
 function playerKey(player) {
   return `${player.name}__${player.teamSlug}`;
 }
@@ -309,6 +323,19 @@ function latestCompletedPitchGames() {
 
 function teamOptions(selectedSlug) {
   return TEAMS.map((team) => `<option value="${esc(team.slug)}" ${team.slug === selectedSlug ? 'selected' : ''}>${esc(team.name)} · ${esc(team.record)} · #${team.rank}</option>`).join('');
+}
+
+function filterTeamOptions(selected = 'All') {
+  return `<option value="All">All Teams</option>${TEAMS
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((team) => `<option value="${esc(team.slug)}" ${team.slug === selected ? 'selected' : ''}>${esc(team.name)}</option>`)
+    .join('')}`;
+}
+
+function gradeOptions(selected = 'All') {
+  const grades = [...new Set([...SCORERS, ...KEEPERS].map((player) => player.grade).filter(Boolean))].sort();
+  return `<option value="All">All Grades</option>${grades.map((grade) => `<option value="${esc(grade)}" ${grade === selected ? 'selected' : ''}>${esc(grade)}</option>`).join('')}`;
 }
 
 function renderHome() {
@@ -561,13 +588,21 @@ function rankingTable(rows, sortable) {
 function renderLeaders() {
   const isScoring = state.leaderType === 'scoring';
   let rows = isScoring ? SCORERS : KEEPERS;
-  const q = state.filters.query.toLowerCase();
+  const filters = state.leaderFilters;
+  const q = filters.query.toLowerCase();
   rows = rows.filter((player) => {
     const matchesQ = !q || player.name.toLowerCase().includes(q) || player.team.toLowerCase().includes(q);
-    const matchesConf = state.filters.conference === 'All' || player.conference === state.filters.conference;
-    return matchesQ && matchesConf;
+    const matchesConf = filters.conference === 'All' || player.conference === filters.conference;
+    const matchesTeam = filters.team === 'All' || player.teamSlug === filters.team;
+    const matchesGrade = filters.grade === 'All' || player.grade === filters.grade;
+    const stat = isScoring ? 'P' : 'Saves';
+    const matchesMin = Number(player[stat] || 0) >= Number(filters.min || 0);
+    return matchesQ && matchesConf && matchesTeam && matchesGrade && matchesMin;
   });
   rows = sortRows(rows, state.leaderSort.key, state.leaderSort.asc).slice(0, 500);
+  const statOptions = isScoring
+    ? [['P','Points'], ['G','Goals'], ['A','Assists']]
+    : [['Saves','Saves'], ['GP','Keeper GP']];
   $('view-leaders').innerHTML = `
     <div class="page-banner">
       <div class="page-banner-inner">
@@ -578,13 +613,30 @@ function renderLeaders() {
       </div>
     </div>
     <div class="leaderboard-wrap">
-      <div class="toolbar">
-        <button class="btn ${isScoring ? 'primary' : ''}" data-leader-type="scoring">Scoring</button>
-        <button class="btn ${!isScoring ? 'primary' : ''}" data-leader-type="keepers">Goalkeepers</button>
-        <input data-filter-query type="search" placeholder="Search players or teams..." value="${esc(state.filters.query)}">
-        <select data-filter-conference>${conferenceOptions(state.filters.conference)}</select>
+      <div class="lb-mode-tabs">
+        <button class="lb-tab ${isScoring ? 'lb-tab-active' : ''}" data-leader-type="scoring" type="button">Scoring</button>
+        <button class="lb-tab ${!isScoring ? 'lb-tab-active' : ''}" data-leader-type="keepers" type="button">Goalkeepers</button>
       </div>
-      <div class="card">${leaderTable(rows, state.leaderType, true)}</div>
+      <div class="controls-row">
+        <div class="search-wrap">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
+          </svg>
+          <input class="search-input" data-leader-query type="search" placeholder="Search player..." value="${esc(filters.query)}">
+        </div>
+        <select class="ctrl-select" data-leader-conference>${conferenceOptions(filters.conference)}</select>
+        <select class="ctrl-select" data-leader-team>${filterTeamOptions(filters.team)}</select>
+        <select class="ctrl-select" data-leader-grade>${gradeOptions(filters.grade)}</select>
+        <select class="ctrl-select" data-leader-stat>
+          ${statOptions.map(([key, label]) => `<option value="${key}" ${state.leaderSort.key === key ? 'selected' : ''}>${label}</option>`).join('')}
+        </select>
+        <div class="pa-filter-wrap">
+          <span>Min ${isScoring ? 'P' : 'SV'}:</span>
+          <input class="pa-filter-input" data-leader-min type="number" min="0" value="${Number(filters.min || 0)}">
+        </div>
+      </div>
+      <div class="results-info">Showing <span>${rows.length}</span> ${isScoring ? 'scoring leader' : 'goalkeeper'}${rows.length === 1 ? '' : 's'}</div>
+      ${leaderTable(rows, state.leaderType, true)}
     </div>`;
 }
 
@@ -592,16 +644,30 @@ function leaderTable(rows, type, sortable) {
   const cols = type === 'keepers'
     ? [['Saves','Saves'], ['GP','GP']]
     : [['G','G'], ['A','A'], ['P','P']];
-  const sort = (key) => sortable ? `data-leader-sort="${key}" class="sortable num"` : 'class="num"';
+  const sortArrow = state.leaderSort.asc ? ' ▴' : ' ▾';
+  const sort = (key) => {
+    const active = sortable && state.leaderSort.key === key;
+    return `class="num${sortable ? ' sortable' : ''}${active ? ' rankings-sort-active' : ''}" ${sortable ? `data-leader-sort="${key}"` : ''}`;
+  };
   return `<div class="lb-table-wrap"><table>
-    <thead><tr><th>Player</th><th>Team</th><th>Class</th>${cols.map(([label,key]) => `<th ${sort(key)}>${label}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map((player) => {
+    <thead><tr>
+      <th style="width:36px">#</th>
+      <th>Player</th>
+      <th>Team</th>
+      <th>Class</th>
+      ${cols.map(([label,key]) => `<th ${sort(key)}>${label}${state.leaderSort.key === key ? sortArrow : ''}</th>`).join('')}
+    </tr></thead>
+    <tbody>${rows.map((player, i) => {
       const team = TEAM_BY_SLUG[player.teamSlug];
-      return `<tr>
-        <td>${playerButton(player)}</td>
-        <td>${team ? teamButton(team) : esc(player.team)}<div class="muted">${esc(player.conference)}</div></td>
+      return `<tr data-player-key="${encodeURIComponent(playerKey(player))}">
+        <td class="rank-cell${i < 3 ? ' top3' : ''}">${i + 1}</td>
+        ${leaderPlayerCell(player)}
+        <td>${teamChip(team)}<div class="muted">${esc(player.conference)}</div></td>
         <td>${esc(player.grade || '')}</td>
-        ${cols.map(([, key]) => `<td class="num"><strong>${player[key] ?? 0}</strong></td>`).join('')}
+        ${cols.map(([, key]) => {
+          const active = state.leaderSort.key === key;
+          return `<td class="num" style="${active ? 'font-weight:700;color:var(--accent)' : 'color:var(--muted2)'}">${player[key] ?? 0}</td>`;
+        }).join('')}
       </tr>`;
     }).join('')}</tbody></table></div>`;
 }
@@ -1010,12 +1076,36 @@ document.addEventListener('input', (event) => {
     state.filters.query = event.target.value;
     render();
   }
+  if (event.target.matches('[data-leader-query]')) {
+    state.leaderFilters.query = event.target.value;
+    renderLeaders();
+  }
+  if (event.target.matches('[data-leader-min]')) {
+    state.leaderFilters.min = Number(event.target.value || 0);
+    renderLeaders();
+  }
 });
 
 document.addEventListener('change', (event) => {
   if (event.target.matches('[data-filter-conference]')) {
     state.filters.conference = event.target.value;
     render();
+  }
+  if (event.target.matches('[data-leader-conference]')) {
+    state.leaderFilters.conference = event.target.value;
+    renderLeaders();
+  }
+  if (event.target.matches('[data-leader-team]')) {
+    state.leaderFilters.team = event.target.value;
+    renderLeaders();
+  }
+  if (event.target.matches('[data-leader-grade]')) {
+    state.leaderFilters.grade = event.target.value;
+    renderLeaders();
+  }
+  if (event.target.matches('[data-leader-stat]')) {
+    state.leaderSort = { key: event.target.value, asc: false };
+    renderLeaders();
   }
   if (event.target.matches('[data-predict-team]')) {
     if (event.target.dataset.predictTeam === 'A') state.predictor.teamA = event.target.value;
