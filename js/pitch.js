@@ -4,6 +4,7 @@ const SCORERS = PITCH_DATA.scorers || [];
 const KEEPERS = PITCH_DATA.keepers || [];
 const TEAM_BY_SLUG = Object.fromEntries(TEAMS.map((team) => [team.slug, team]));
 const CONFERENCES = [...new Set(TEAMS.map((team) => team.conference))].sort();
+const REPORT_ISSUE_URL = 'https://github.com/miles-burton/njbaseball/issues/new';
 const state = {
   view: 'home',
   teamSlug: '',
@@ -12,6 +13,11 @@ const state = {
   leaderType: 'scoring',
   leaderSort: { key: 'P', asc: false },
   filters: { query: '', conference: 'All' },
+  predictor: {
+    teamA: TEAMS[0]?.slug || '',
+    teamB: TEAMS[1]?.slug || '',
+    venue: 'neutral',
+  },
 };
 const RANK_LOWER_BETTER = new Set(['adjD', 'gaPerGame', 'ga', 'luck']);
 
@@ -40,7 +46,7 @@ function logo(team) {
   const primary = logoSrc(team);
   const fallback = team?.logo && team.logo !== primary ? team.logo : '';
   return primary
-    ? `<img class="team-logo" src="${esc(primary)}" alt="" ${fallback ? `onerror="this.onerror=null;this.src='${esc(fallback)}'"` : ''}>`
+    ? `<img class="team-logo" loading="lazy" decoding="async" src="${esc(primary)}" alt="" ${fallback ? `onerror="this.onerror=null;this.src='${esc(fallback)}'"` : ''}>`
     : `<span class="team-logo"></span>`;
 }
 
@@ -48,8 +54,11 @@ function setView(view, detail = '') {
   state.view = view;
   document.querySelectorAll('.view').forEach((el) => el.classList.remove('active'));
   $(`view-${view}`)?.classList.add('active');
-  document.querySelectorAll('.pitch-nav button').forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.view === view);
+  document.querySelectorAll('.pitch-nav [data-view]').forEach((btn) => {
+    const active = btn.dataset.view === view ||
+      (view === 'leaders' && btn.id === 'tab-leaders') ||
+      ((view === 'teams' || view === 'team') && btn.id === 'tab-teams-dd');
+    btn.classList.toggle('active', active);
   });
   if (view === 'team') state.teamSlug = detail;
   if (view === 'player') state.playerKey = decodeURIComponent(detail);
@@ -73,6 +82,48 @@ function initTheme() {
   const saved = localStorage.getItem('diamondIndexTheme');
   const preferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   applyTheme(saved || preferred);
+}
+
+function openReportProblem() {
+  closeDropdowns();
+  const modal = $('reportModal');
+  if (!modal) return;
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  setTimeout(() => $('reportDetails')?.focus(), 0);
+}
+
+function closeReportProblem() {
+  const modal = $('reportModal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+function submitProblemReport(event) {
+  event.preventDefault();
+  const type = $('reportType')?.value || 'Site problem';
+  const details = $('reportDetails')?.value.trim() || '';
+  const contact = $('reportContact')?.value.trim() || '';
+  const title = `[Pitch Index Report] ${type}`;
+  const body = [
+    '## Problem type',
+    type,
+    '',
+    '## Details',
+    details,
+    '',
+    '## Page context',
+    `URL: ${window.location.href}`,
+    `Season: ${PITCH_DATA.season || ''}`,
+    `Theme: ${document.documentElement.dataset.theme || 'dark'}`,
+    `Browser: ${navigator.userAgent}`,
+    '',
+    '## Contact',
+    contact || 'No contact provided',
+  ].join('\n');
+  window.open(`${REPORT_ISSUE_URL}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`, '_blank', 'noopener');
+  closeReportProblem();
 }
 
 function sortRows(rows, key, asc = false) {
@@ -111,6 +162,54 @@ function playerKey(player) {
 
 function playerButton(player) {
   return `<button class="linkish" data-player-key="${encodeURIComponent(playerKey(player))}">${esc(player.name)}</button>`;
+}
+
+function closeDropdowns() {
+  document.querySelectorAll('.nav-dropdown-menu').forEach((menu) => menu.classList.remove('open'));
+}
+
+function buildTeamsNav() {
+  const el = $('teamsNavList');
+  if (!el) return;
+  el.innerHTML = CONFERENCES.map((conf) => {
+    const teams = TEAMS.filter((team) => team.conference === conf).sort((a, b) => a.name.localeCompare(b.name));
+    return `<div class="nav-dropdown-label">${esc(conf)}</div>` +
+      teams.map((team) => `<button class="nav-dropdown-item" data-team-slug="${esc(team.slug)}" data-close-dropdowns="1" type="button">${esc(team.name)}</button>`).join('');
+  }).join('<div class="nav-dropdown-divider"></div>');
+}
+
+function allPitchGames() {
+  const source = PITCH_DATA.games && PITCH_DATA.games.length
+    ? PITCH_DATA.games
+    : TEAMS.flatMap((team) => (team.schedule || []).map((game) => ({ ...game, team: team.name, teamSlug: team.slug })));
+  const seen = new Set();
+  return source.filter((game) => {
+    const key = [
+      game.date,
+      game.teamSlug || game.team,
+      game.opponentSlug || game.opponent,
+      game.teamScore,
+      game.opponentScore,
+      game.result,
+    ].join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function completedPitchGames() {
+  return allPitchGames()
+    .filter((game) => game.result && game.teamScore !== null && game.opponentScore !== null)
+    .sort((a, b) => {
+      const aTeam = TEAM_BY_SLUG[a.teamSlug];
+      const bTeam = TEAM_BY_SLUG[b.teamSlug];
+      return (bTeam?.powerScore || 0) - (aTeam?.powerScore || 0);
+    });
+}
+
+function teamOptions(selectedSlug) {
+  return TEAMS.map((team) => `<option value="${esc(team.slug)}" ${team.slug === selectedSlug ? 'selected' : ''}>${esc(team.name)} · ${esc(team.record)} · #${team.rank}</option>`).join('');
 }
 
 function renderHome() {
@@ -396,6 +495,128 @@ function renderTeams() {
   </div>`;
 }
 
+function renderScores() {
+  const rows = completedPitchGames();
+  $('view-scores').innerHTML = `
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Scores <span>& Results</span></div>
+        <div class="page-meta">New Jersey High School Boys Soccer <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season</div>
+      </div>
+    </div>
+  </div>
+  <div class="leaderboard-wrap">
+    <div class="card">
+      <div class="card-title">Completed Games <span>${rows.length.toLocaleString()} results</span></div>
+      ${gameList(rows.slice(0, 300))}
+    </div>
+  </div>`;
+}
+
+function predictPitchMatchup(teamA, teamB, venue = 'neutral') {
+  if (!teamA || !teamB || teamA.slug === teamB.slug) return null;
+  const leagueGF = TEAMS.length ? TEAMS.reduce((sum, team) => sum + team.gfPerGame, 0) / TEAMS.length : 2;
+  const homeGoal = 0.18;
+  const aHome = venue === 'a-home' ? homeGoal : 0;
+  const bHome = venue === 'b-home' ? homeGoal : 0;
+  const expA = Math.max(0.05, (teamA.adjO * teamB.adjD / Math.max(0.1, leagueGF)) + aHome);
+  const expB = Math.max(0.05, (teamB.adjO * teamA.adjD / Math.max(0.1, leagueGF)) + bHome);
+  const diff = expA - expB;
+  const winProbA = 1 / (1 + Math.exp(-diff * 1.25));
+  return { teamA, teamB, expA, expB, winProbA, winner: winProbA >= 0.5 ? teamA : teamB };
+}
+
+function renderPredictor() {
+  const teamA = TEAM_BY_SLUG[state.predictor.teamA] || TEAMS[0];
+  const teamB = TEAM_BY_SLUG[state.predictor.teamB] || TEAMS[1];
+  const prediction = predictPitchMatchup(teamA, teamB, state.predictor.venue);
+  $('view-predictor').innerHTML = `
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Matchup <span>Predictor</span></div>
+        <div class="page-meta">Uses Pitch Index adjusted offense, defense, and team rating context</div>
+      </div>
+    </div>
+  </div>
+  <div class="predictor-wrap">
+    <div class="predictor-card">
+      <div class="predictor-controls">
+        <label class="predictor-field">
+          <span>Team A</span>
+          <select class="ctrl-select" data-predict-team="A">${teamOptions(teamA?.slug)}</select>
+        </label>
+        <label class="predictor-field">
+          <span>Venue</span>
+          <select class="ctrl-select" data-predict-venue>
+            <option value="neutral" ${state.predictor.venue === 'neutral' ? 'selected' : ''}>Neutral</option>
+            <option value="a-home" ${state.predictor.venue === 'a-home' ? 'selected' : ''}>Team A Home</option>
+            <option value="b-home" ${state.predictor.venue === 'b-home' ? 'selected' : ''}>Team B Home</option>
+          </select>
+        </label>
+        <label class="predictor-field">
+          <span>Team B</span>
+          <select class="ctrl-select" data-predict-team="B">${teamOptions(teamB?.slug)}</select>
+        </label>
+      </div>
+      ${prediction ? `
+        <div class="prediction-result">
+          <div class="prediction-head">
+            <div class="prediction-team">${logo(teamA)}<div><strong>${esc(teamA.name)}</strong><span>#${teamA.rank} · Pitch ${teamA.powerScore.toFixed(1)}</span></div></div>
+            <div class="prediction-vs">
+              <div class="prediction-score">${prediction.expA.toFixed(2)} - ${prediction.expB.toFixed(2)}</div>
+              <div class="prediction-label">Projected Goals</div>
+            </div>
+            <div class="prediction-team prediction-team-right">${logo(teamB)}<div><strong>${esc(teamB.name)}</strong><span>#${teamB.rank} · Pitch ${teamB.powerScore.toFixed(1)}</span></div></div>
+          </div>
+          <div class="prediction-pick">${esc(prediction.winner.name)}</div>
+          <div class="prediction-sub">Win probability: ${(Math.max(prediction.winProbA, 1 - prediction.winProbA) * 100).toFixed(1)}%</div>
+          <div class="prediction-metrics">
+            <div><span>${esc(teamA.name)}</span><b>${(prediction.winProbA * 100).toFixed(1)}%</b></div>
+            <div><span>${esc(teamB.name)}</span><b>${((1 - prediction.winProbA) * 100).toFixed(1)}%</b></div>
+            <div><span>AdjO Gap</span><b>${signed(teamA.adjO - teamB.adjO, 2)}</b></div>
+            <div><span>AdjD Gap</span><b>${signed(teamB.adjD - teamA.adjD, 2)}</b></div>
+          </div>
+        </div>
+      ` : `<div class="card pad muted">Choose two different teams to generate a prediction.</div>`}
+    </div>
+  </div>`;
+}
+
+function renderGlossary() {
+  $('view-glossary').innerHTML = `
+  <div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Pitch <span>Glossary</span></div>
+        <div class="page-meta">Definitions and formulas for Pitch Index metrics</div>
+      </div>
+    </div>
+  </div>
+  <div class="glossary-wrap">
+    <div class="glossary-section">
+      <div class="glossary-section-title">Team Ratings</div>
+      <div class="glossary-grid">
+        <div class="glossary-card gc-highlight"><div class="gc-stat">PITCH</div><div class="gc-name">Pitch Score</div><div class="gc-def">0-100 team rating based on adjusted goal efficiency, record, goal differential, and schedule context.</div></div>
+        <div class="glossary-card"><div class="gc-stat">AdjO</div><div class="gc-name">Adjusted Offense</div><div class="gc-def">Goals scored per game adjusted for opponent defensive strength and normalized to the state environment.</div></div>
+        <div class="glossary-card"><div class="gc-stat">AdjD</div><div class="gc-name">Adjusted Defense</div><div class="gc-def">Goals allowed per game adjusted for opponent attacking strength. Lower is better.</div></div>
+        <div class="glossary-card"><div class="gc-stat">SOS</div><div class="gc-name">Strength of Schedule</div><div class="gc-def">Opponent quality on a 0-100 scale using opponents' adjusted team strength.</div></div>
+        <div class="glossary-card"><div class="gc-stat">Luck</div><div class="gc-name">Luck</div><div class="gc-def">Difference between actual winning percentage and expected winning percentage from adjusted goal profile.</div></div>
+      </div>
+    </div>
+    <div class="glossary-section">
+      <div class="glossary-section-title">Player Leaderboards</div>
+      <div class="glossary-grid">
+        <div class="glossary-card"><div class="gc-stat">G</div><div class="gc-name">Goals</div><div class="gc-def">Total goals from NJ.com scoring leaders.</div></div>
+        <div class="glossary-card"><div class="gc-stat">A</div><div class="gc-name">Assists</div><div class="gc-def">Total assists from NJ.com scoring leaders.</div></div>
+        <div class="glossary-card"><div class="gc-stat">P</div><div class="gc-name">Points</div><div class="gc-def">Goals plus assists.</div></div>
+        <div class="glossary-card"><div class="gc-stat">Saves</div><div class="gc-name">Goalkeeper Saves</div><div class="gc-def">Total saves from NJ.com goalkeeper leaders.</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderTeam() {
   const team = TEAM_BY_SLUG[state.teamSlug];
   if (!team) return;
@@ -481,31 +702,49 @@ function render() {
   if (state.view === 'home') renderHome();
   if (state.view === 'rankings') renderRankings();
   if (state.view === 'leaders') renderLeaders();
+  if (state.view === 'scores') renderScores();
+  if (state.view === 'predictor') renderPredictor();
   if (state.view === 'standings') renderStandings();
   if (state.view === 'teams') renderTeams();
+  if (state.view === 'glossary') renderGlossary();
   if (state.view === 'team') renderTeam();
   if (state.view === 'player') renderPlayer();
 }
 
-document.querySelectorAll('.pitch-nav button').forEach((btn) => {
-  btn.addEventListener('click', () => setView(btn.dataset.view));
-});
-
 document.addEventListener('click', (event) => {
+  const trigger = event.target.closest('.nav-dropdown-trigger');
+  const menu = event.target.closest('.nav-dropdown-menu');
+  if (trigger) {
+    const dropdown = trigger.closest('.nav-dropdown')?.querySelector('.nav-dropdown-menu');
+    const isOpen = dropdown?.classList.contains('open');
+    closeDropdowns();
+    if (dropdown && !isOpen) dropdown.classList.add('open');
+    event.stopPropagation();
+    return;
+  }
+  if (!menu) closeDropdowns();
+
   const navTarget = event.target.closest('.pitch-nav [data-view]');
   if (navTarget) {
+    if (navTarget.dataset.leaderType) {
+      state.leaderType = navTarget.dataset.leaderType;
+      state.leaderSort = state.leaderType === 'keepers' ? { key: 'Saves', asc: false } : { key: 'P', asc: false };
+    }
+    closeDropdowns();
     setView(navTarget.dataset.view);
     return;
   }
 
   const viewTarget = event.target.closest('[data-view-target]');
   if (viewTarget) {
+    closeDropdowns();
     setView(viewTarget.dataset.viewTarget);
     return;
   }
 
   const teamTarget = event.target.closest('[data-team-slug]');
   if (teamTarget) {
+    if (teamTarget.dataset.closeDropdowns) closeDropdowns();
     setView('team', teamTarget.dataset.teamSlug);
     if (teamTarget.dataset.clearSearch) {
       $('globalSearch').value = '';
@@ -544,7 +783,8 @@ document.addEventListener('click', (event) => {
   if (leaderType) {
     state.leaderType = leaderType.dataset.leaderType;
     state.leaderSort = state.leaderType === 'keepers' ? { key: 'Saves', asc: false } : { key: 'P', asc: false };
-    render();
+    if (state.view !== 'leaders') setView('leaders');
+    else render();
   }
 });
 
@@ -560,12 +800,28 @@ document.addEventListener('change', (event) => {
     state.filters.conference = event.target.value;
     render();
   }
+  if (event.target.matches('[data-predict-team]')) {
+    if (event.target.dataset.predictTeam === 'A') state.predictor.teamA = event.target.value;
+    if (event.target.dataset.predictTeam === 'B') state.predictor.teamB = event.target.value;
+    renderPredictor();
+  }
+  if (event.target.matches('[data-predict-venue]')) {
+    state.predictor.venue = event.target.value;
+    renderPredictor();
+  }
 });
 
 $('globalSearch').addEventListener('input', renderGlobalSearch);
 document.addEventListener('click', (event) => {
   if (!event.target.closest('.pitch-global-search')) $('searchResults').classList.remove('open');
 });
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    closeDropdowns();
+    closeReportProblem();
+  }
+});
 
 initTheme();
+buildTeamsNav();
 renderHome();

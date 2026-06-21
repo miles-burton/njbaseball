@@ -15,12 +15,49 @@
     </button>
 
     <nav class="nav-tabs pitch-nav" id="navTabs">
-      <button class="nav-tab active" data-view="home" type="button">Home</button>
-      <button class="nav-tab" data-view="rankings" type="button">Rankings</button>
-      <button class="nav-tab" data-view="leaders" type="button">Leaders</button>
-      <button class="nav-tab" data-view="standings" type="button">Standings</button>
-      <button class="nav-tab" data-view="teams" type="button">Teams</button>
+      <div class="nav-dropdown">
+        <button class="nav-tab nav-dropdown-trigger" id="tab-leaders" data-view="leaders" type="button">
+          Leaders
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-left:4px;opacity:.6"><path d="M2 3.5L5 6.5L8 3.5"/></svg>
+        </button>
+        <div class="nav-dropdown-menu" id="menu-leaders">
+          <button class="nav-dropdown-item" data-view="leaders" data-leader-type="scoring" type="button">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="10" width="3" height="4" rx="1"/><rect x="6.5" y="6" width="3" height="8" rx="1"/><rect x="11" y="2" width="3" height="12" rx="1"/></svg>
+            Scoring
+          </button>
+          <button class="nav-dropdown-item" data-view="leaders" data-leader-type="keepers" type="button">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M5 8h6M8 5v6"/></svg>
+            Goalkeepers
+          </button>
+        </div>
+      </div>
+
+      <div class="nav-dropdown">
+        <button class="nav-tab nav-dropdown-trigger" id="tab-teams-dd" data-view="teams" type="button">
+          Teams
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-left:4px;opacity:.6"><path d="M2 3.5L5 6.5L8 3.5"/></svg>
+        </button>
+        <div class="nav-dropdown-menu nav-dropdown-menu--wide" id="menu-teams">
+          <button class="nav-dropdown-item nav-dropdown-item--highlight" data-view="rankings" type="button">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L6 7L9 10L13 4"/></svg>
+            Power Rankings
+          </button>
+          <button class="nav-dropdown-item nav-dropdown-item--highlight" data-view="teams" type="button">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
+            All Teams
+          </button>
+          <div class="nav-dropdown-divider"></div>
+          <div id="teamsNavList"></div>
+        </div>
+      </div>
+
+      <button class="nav-tab" id="tab-team-rankings" data-view="rankings" type="button">Rankings</button>
+      <button class="nav-tab" id="tab-scores" data-view="scores" type="button">Scores</button>
+      <button class="nav-tab" id="tab-predictor" data-view="predictor" type="button">Predictor</button>
+      <button class="nav-tab" id="tab-standings" data-view="standings" type="button">Standings</button>
+      <button class="nav-tab" id="tab-glossary" data-view="glossary" type="button">Glossary</button>
       <a class="nav-tab" href="index.html" title="Sports Home">Sports</a>
+      <button class="nav-tab nav-tab-report" id="tab-report" onclick="openReportProblem()" type="button">Report</button>
     </nav>
 
     <button class="theme-toggle" id="themeToggle" type="button" onclick="toggleTheme()" aria-label="Toggle light and dark mode">
@@ -49,10 +86,48 @@
   <section id="view-home" class="view active"></section>
   <section id="view-rankings" class="view"></section>
   <section id="view-leaders" class="view"></section>
+  <section id="view-scores" class="view"></section>
+  <section id="view-predictor" class="view"></section>
   <section id="view-standings" class="view"></section>
   <section id="view-teams" class="view"></section>
+  <section id="view-glossary" class="view"></section>
   <section id="view-team" class="view"></section>
   <section id="view-player" class="view"></section>
+
+  <div class="report-modal" id="reportModal" aria-hidden="true">
+    <div class="report-modal-backdrop" onclick="closeReportProblem()"></div>
+    <div class="report-dialog" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+      <button class="report-close" type="button" onclick="closeReportProblem()" aria-label="Close report form">×</button>
+      <div class="report-kicker">Pitch Index Feedback</div>
+      <h2 id="reportTitle">Report a Problem</h2>
+      <p>Send an issue to the NJ Sports Index GitHub repository with the page, season, and browser context attached.</p>
+      <form class="report-form" onsubmit="submitProblemReport(event)">
+        <label>
+          Problem Type
+          <select id="reportType">
+            <option>Incorrect data</option>
+            <option>Missing team/player</option>
+            <option>Broken link or page</option>
+            <option>Design issue</option>
+            <option>Other</option>
+          </select>
+        </label>
+        <label>
+          Details
+          <textarea id="reportDetails" required placeholder="What should be fixed?"></textarea>
+        </label>
+        <label>
+          Contact
+          <input id="reportContact" type="text" placeholder="Optional email or Instagram">
+        </label>
+        <div class="report-actions">
+          <button class="report-submit" type="submit">Create Report</button>
+          <button class="report-cancel" type="button" onclick="closeReportProblem()">Cancel</button>
+        </div>
+        <div class="report-note">This opens a pre-filled GitHub issue. Nothing is sent until the issue is submitted there.</div>
+      </form>
+    </div>
+  </div>
 
   <script src="js/team-logos.js"></script>
   <script src="js/pitch-data.js"></script>
