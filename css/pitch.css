@@ -398,3 +398,48 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Pitch pages should inherit Diamond Index page composition. */
+.team-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 0 22px;
+  padding: 0 0 20px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.team-hero .team-logo-large {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+}
+
+.team-hero .linkish,
+.player-hero .linkish,
+.home-score-game .linkish,
+.schedule-team-link {
+  font: inherit;
+}
+
+.predictor-panel .predictor-controls {
+  grid-template-columns: minmax(220px, 1fr) 180px minmax(220px, 1fr);
+}
+
+.prediction-card .prediction-metrics {
+  margin-bottom: 0;
+}
+
+.pitch-hero .home-hero-title {
+  letter-spacing: 0;
+}
+
+@media (max-width: 768px) {
+  .predictor-panel .predictor-controls {
+    grid-template-columns: 1fr;
+  }
+}

@@ -42,12 +42,17 @@ function logoSrc(team) {
   return shared || team.logo || '';
 }
 
-function logo(team) {
+function logo(team, cls = 'team-logo') {
   const primary = logoSrc(team);
   const fallback = team?.logo && team.logo !== primary ? team.logo : '';
   return primary
-    ? `<img class="team-logo" loading="lazy" decoding="async" src="${esc(primary)}" alt="" ${fallback ? `onerror="this.onerror=null;this.src='${esc(fallback)}'"` : ''}>`
-    : `<span class="team-logo"></span>`;
+    ? `<img class="${cls}" loading="lazy" decoding="async" src="${esc(primary)}" alt="" ${fallback ? `onerror="this.onerror=null;this.src='${esc(fallback)}'"` : ''}>`
+    : `<span class="${cls}"></span>`;
+}
+
+function logoImg(team, size = 22) {
+  const src = logoSrc(team);
+  return src ? `<img loading="lazy" decoding="async" src="${esc(src)}" width="${size}" height="${size}" style="object-fit:contain;border-radius:3px;flex-shrink:0" alt="">` : '';
 }
 
 function setView(view, detail = '') {
@@ -156,6 +161,12 @@ function teamButton(team) {
   return `<button class="linkish" data-team-slug="${esc(team.slug)}">${esc(team.name)}</button>`;
 }
 
+function linkedTeam(team, fallback = '') {
+  return team
+    ? `<button class="schedule-team-link" data-team-slug="${esc(team.slug)}">${esc(team.name)}</button>`
+    : esc(fallback);
+}
+
 function playerKey(player) {
   return `${player.name}__${player.teamSlug}`;
 }
@@ -208,6 +219,12 @@ function completedPitchGames() {
     });
 }
 
+function upcomingPitchGames() {
+  return allPitchGames()
+    .filter((game) => !game.result || game.teamScore === null || game.opponentScore === null)
+    .slice(0, 80);
+}
+
 function teamOptions(selectedSlug) {
   return TEAMS.map((team) => `<option value="${esc(team.slug)}" ${team.slug === selectedSlug ? 'selected' : ''}>${esc(team.name)} · ${esc(team.record)} · #${team.rank}</option>`).join('');
 }
@@ -215,11 +232,8 @@ function teamOptions(selectedSlug) {
 function renderHome() {
   const topTeams = TEAMS.slice(0, 8);
   const topScorers = sortRows(SCORERS, 'P').slice(0, 8);
-  const recentGames = [...(PITCH_DATA.games || [])]
-    .filter((game) => game.result && game.teamScore !== null)
-    .slice(-80)
-    .sort((a, b) => (Math.abs((b.teamScore ?? 0) - (b.opponentScore ?? 0)) - Math.abs((a.teamScore ?? 0) - (a.opponentScore ?? 0))))
-    .slice(0, 8);
+  const recentGames = completedPitchGames().slice(0, 8);
+  const upcomingGames = upcomingPitchGames().slice(0, 8);
   $('view-home').innerHTML = `
     <div class="home-hero pitch-hero">
       <div class="home-hero-inner">
@@ -257,12 +271,36 @@ function renderHome() {
           <div class="home-section">
             <div class="home-section-header">
               <div>
+                <div class="home-section-title">Recent Scores</div>
+                <div class="home-section-sub">Top completed games by team strength</div>
+              </div>
+              <button class="home-section-link" data-view-target="scores">Scores Page →</button>
+            </div>
+            ${gameList(recentGames)}
+          </div>
+
+          <div class="home-section">
+            <div class="home-section-header">
+              <div>
                 <div class="home-section-title">Power Rankings</div>
                 <div class="home-section-sub">Top boys soccer teams by Pitch Score</div>
               </div>
               <button class="home-section-link" data-view-target="rankings">Full Rankings →</button>
             </div>
             ${miniRanking(topTeams)}
+        </div>
+        </div>
+
+        <div class="home-side-column">
+          <div class="home-section">
+            <div class="home-section-header">
+              <div>
+                <div class="home-section-title">Upcoming Games</div>
+                <div class="home-section-sub">Scheduled or unscored matchups</div>
+              </div>
+              <button class="home-section-link" data-view-target="scores">All Games →</button>
+            </div>
+            ${gameList(upcomingGames)}
           </div>
 
           <div class="home-section">
@@ -273,33 +311,7 @@ function renderHome() {
               </div>
               <button class="home-section-link" data-view-target="leaders">All Leaders →</button>
             </div>
-          ${leaderTable(topScorers, 'scoring', false)}
-        </div>
-        </div>
-
-        <div class="home-side-column">
-          <div class="home-section">
-            <div class="home-section-header">
-              <div>
-                <div class="home-section-title">Index Snapshot</div>
-                <div class="home-section-sub">Current boys soccer dataset</div>
-              </div>
-            </div>
-            <div class="grid-3">
-              <div class="stat-card"><b>${TEAMS.length}</b><span>Teams</span></div>
-              <div class="stat-card"><b>${SCORERS.length.toLocaleString()}</b><span>Scorers</span></div>
-              <div class="stat-card"><b>${KEEPERS.length.toLocaleString()}</b><span>Keepers</span></div>
-            </div>
-          </div>
-
-          <div class="home-section">
-            <div class="home-section-header">
-              <div>
-                <div class="home-section-title">Notable Results</div>
-                <div class="home-section-sub">From NJ.com schedules</div>
-              </div>
-            </div>
-            ${gameList(recentGames)}
+            ${leaderTable(topScorers, 'scoring', false)}
           </div>
         </div>
       </div>
@@ -307,25 +319,37 @@ function renderHome() {
 }
 
 function miniRanking(rows) {
-  return `<div class="table-wrap"><table><tbody>${rows.map((team) => `
+  return `<table class="home-rankings-table"><tbody>${rows.map((team) => `
     <tr>
       <td class="rank">#${team.rank}</td>
-      <td><div class="team-cell">${logo(team)}<div>${teamButton(team)}<div class="muted">${esc(team.conference)} · ${esc(team.record)}</div></div></div></td>
+      <td><div class="team-cell">${logoImg(team, 22)}<div>${teamButton(team)}<div class="muted">${esc(team.conference)} · ${esc(team.record)}</div></div></div></td>
       <td class="num">${team.powerScore.toFixed(1)}</td>
-    </tr>`).join('')}</tbody></table></div>`;
+    </tr>`).join('')}</tbody></table>`;
 }
 
-function gameList(rows, ownerTeam = null) {
-  if (!rows.length) return `<div class="card pad muted">No completed games found in the current data.</div>`;
-  return `<div class="table-wrap"><table><tbody>${rows.map((game) => {
+function gameList(rows, ownerTeam = null, limit = null) {
+  if (!rows.length) return `<div class="empty">No games found in the current data.</div>`;
+  const selected = limit ? rows.slice(0, limit) : rows;
+  return `<table class="home-rankings-table">
+    <thead><tr><th>Date</th><th>Game</th><th class="num">Result</th><th class="num">Score</th></tr></thead>
+    <tbody>${selected.map((game) => {
     const team = TEAM_BY_SLUG[game.teamSlug] || ownerTeam;
     const opp = TEAM_BY_SLUG[game.opponentSlug];
+    const hasScore = game.teamScore !== null && game.opponentScore !== null && game.teamScore !== undefined && game.opponentScore !== undefined;
+    const resultClass = game.result === 'W' ? 'score-good' : game.result === 'L' ? 'score-bad' : '';
     return `<tr>
-      <td>${esc(game.date)}</td>
-      <td>${teamButton(team || { name: game.team, slug: game.teamSlug })}<div class="muted">${game.site || 'vs'} ${opp ? teamButton(opp) : esc(game.opponent)}</div></td>
-      <td class="num ${game.result === 'W' ? 'score-good' : game.result === 'L' ? 'score-bad' : ''}">${esc(game.result)} ${game.teamScore}-${game.opponentScore}</td>
+      <td style="color:var(--muted2);font-size:12px;white-space:nowrap">${esc(game.date || '')}</td>
+      <td>
+        <div class="home-score-game">
+          <span class="home-score-team home-score-primary">${team ? logoImg(team, 18) : ''}<span>${team ? linkedTeam(team) : esc(game.team || '')}</span></span>
+          <span class="home-score-vs">${esc(game.site || 'vs')}</span>
+          <span class="home-score-team home-score-primary">${opp ? logoImg(opp, 18) : ''}<span>${opp ? linkedTeam(opp) : esc(game.opponent || '')}</span></span>
+        </div>
+      </td>
+      <td class="num ${resultClass}">${esc(game.result || '—')}</td>
+      <td class="num">${hasScore ? `${game.teamScore}-${game.opponentScore}` : '—'}</td>
     </tr>`;
-  }).join('')}</tbody></table></div>`;
+  }).join('')}</tbody></table>`;
 }
 
 function renderRankings() {
@@ -440,7 +464,7 @@ function leaderTable(rows, type, sortable) {
     ? [['Saves','Saves'], ['GP','GP']]
     : [['G','G'], ['A','A'], ['P','P']];
   const sort = (key) => sortable ? `data-leader-sort="${key}" class="sortable num"` : 'class="num"';
-  return `<div class="table-wrap"><table>
+  return `<div class="lb-table-wrap"><table>
     <thead><tr><th>Player</th><th>Team</th><th>Class</th>${cols.map(([label,key]) => `<th ${sort(key)}>${label}</th>`).join('')}</tr></thead>
     <tbody>${rows.map((player) => {
       const team = TEAM_BY_SLUG[player.teamSlug];
@@ -489,14 +513,26 @@ function renderTeams() {
   </div>
   <div class="leaderboard-wrap">
     ${toolbar('teams')}
-    <div class="team-grid">${rows.map((team) => `<button class="team-tile" data-team-slug="${esc(team.slug)}">
-      ${logo(team)}<span><strong>${esc(team.name)}</strong><small>${esc(team.conference)} · ${esc(team.record)} · Pitch ${team.powerScore.toFixed(1)}</small></span>
-    </button>`).join('')}</div>
+    <div class="teams-grid">${rows.map((team) => `<div class="team-card" data-team-slug="${esc(team.slug)}">
+      <div class="team-card-header">
+        <div class="team-card-icon">${logoImg(team, 30)}</div>
+        <div>
+          <div class="team-card-name">${esc(team.name)}</div>
+          <div class="team-card-mascot">${esc(team.conference)} · ${esc(team.division)}</div>
+        </div>
+      </div>
+      <div class="team-card-stats">
+        <div class="team-card-stat"><div class="team-card-stat-val">${esc(team.record)}</div><div class="team-card-stat-label">Record</div></div>
+        <div class="team-card-stat"><div class="team-card-stat-val">#${team.rank}</div><div class="team-card-stat-label">Rank</div></div>
+        <div class="team-card-stat"><div class="team-card-stat-val">${team.powerScore.toFixed(1)}</div><div class="team-card-stat-label">Pitch</div></div>
+      </div>
+    </div>`).join('')}</div>
   </div>`;
 }
 
 function renderScores() {
-  const rows = completedPitchGames();
+  const recent = completedPitchGames();
+  const upcoming = upcomingPitchGames();
   $('view-scores').innerHTML = `
   <div class="page-banner">
     <div class="page-banner-inner">
@@ -506,10 +542,26 @@ function renderScores() {
       </div>
     </div>
   </div>
-  <div class="leaderboard-wrap">
-    <div class="card">
-      <div class="card-title">Completed Games <span>${rows.length.toLocaleString()} results</span></div>
-      ${gameList(rows.slice(0, 300))}
+  <div class="scores-wrap">
+    <div class="scores-grid">
+      <div class="home-section">
+        <div class="home-section-header">
+          <div>
+            <div class="home-section-title">Recent Scores</div>
+            <div class="home-section-sub">${recent.length.toLocaleString()} completed games · strongest teams first</div>
+          </div>
+        </div>
+        ${gameList(recent, null, 120)}
+      </div>
+      <div class="home-section">
+        <div class="home-section-header">
+          <div>
+            <div class="home-section-title">Upcoming Games</div>
+            <div class="home-section-sub">${upcoming.length.toLocaleString()} scheduled or unscored games</div>
+          </div>
+        </div>
+        ${gameList(upcoming, null, 120)}
+      </div>
     </div>
   </div>`;
 }
@@ -541,7 +593,7 @@ function renderPredictor() {
     </div>
   </div>
   <div class="predictor-wrap">
-    <div class="predictor-card">
+    <div class="predictor-panel">
       <div class="predictor-controls">
         <label class="predictor-field">
           <span>Team A</span>
@@ -561,25 +613,46 @@ function renderPredictor() {
         </label>
       </div>
       ${prediction ? `
-        <div class="prediction-result">
+        <div class="prediction-card">
           <div class="prediction-head">
-            <div class="prediction-team">${logo(teamA)}<div><strong>${esc(teamA.name)}</strong><span>#${teamA.rank} · Pitch ${teamA.powerScore.toFixed(1)}</span></div></div>
-            <div class="prediction-vs">
-              <div class="prediction-score">${prediction.expA.toFixed(2)} - ${prediction.expB.toFixed(2)}</div>
-              <div class="prediction-label">Projected Goals</div>
+            <div class="prediction-team">
+              ${logo(teamA, 'prediction-logo')}
+              <div>
+                <div class="prediction-team-name">${esc(teamA.name)}</div>
+                <div class="prediction-team-meta">#${teamA.rank} · Pitch ${teamA.powerScore.toFixed(1)} · ${esc(teamA.record)}</div>
+              </div>
             </div>
-            <div class="prediction-team prediction-team-right">${logo(teamB)}<div><strong>${esc(teamB.name)}</strong><span>#${teamB.rank} · Pitch ${teamB.powerScore.toFixed(1)}</span></div></div>
+            <div class="prediction-vs">
+              <span>vs</span>
+            </div>
+            <div class="prediction-team prediction-team-right">
+              ${logo(teamB, 'prediction-logo')}
+              <div>
+                <div class="prediction-team-name">${esc(teamB.name)}</div>
+                <div class="prediction-team-meta">#${teamB.rank} · Pitch ${teamB.powerScore.toFixed(1)} · ${esc(teamB.record)}</div>
+              </div>
+            </div>
           </div>
-          <div class="prediction-pick">${esc(prediction.winner.name)}</div>
-          <div class="prediction-sub">Win probability: ${(Math.max(prediction.winProbA, 1 - prediction.winProbA) * 100).toFixed(1)}%</div>
+          <div class="prediction-main">
+            <div class="prediction-pick-label">Projected Winner</div>
+            <div class="prediction-pick">${esc(prediction.winner.name)}</div>
+            <div class="prediction-score">${prediction.expA.toFixed(2)} - ${prediction.expB.toFixed(2)} projected goals</div>
+            <div class="prediction-confidence">Win probability: ${(Math.max(prediction.winProbA, 1 - prediction.winProbA) * 100).toFixed(1)}%</div>
+          </div>
+          <div class="prediction-prob">
+            <div class="prediction-prob-row"><span>${esc(teamA.name)}</span><strong>${(prediction.winProbA * 100).toFixed(1)}%</strong></div>
+            <div class="prediction-bar"><div class="prediction-bar-a" style="width:${(prediction.winProbA * 100).toFixed(1)}%"></div></div>
+            <div class="prediction-prob-row"><span>${esc(teamB.name)}</span><strong>${((1 - prediction.winProbA) * 100).toFixed(1)}%</strong></div>
+            <div class="prediction-bar"><div class="prediction-bar-b" style="width:${((1 - prediction.winProbA) * 100).toFixed(1)}%"></div></div>
+          </div>
           <div class="prediction-metrics">
-            <div><span>${esc(teamA.name)}</span><b>${(prediction.winProbA * 100).toFixed(1)}%</b></div>
-            <div><span>${esc(teamB.name)}</span><b>${((1 - prediction.winProbA) * 100).toFixed(1)}%</b></div>
-            <div><span>AdjO Gap</span><b>${signed(teamA.adjO - teamB.adjO, 2)}</b></div>
-            <div><span>AdjD Gap</span><b>${signed(teamB.adjD - teamA.adjD, 2)}</b></div>
+            <div class="prediction-metric"><div class="prediction-metric-label">Team A AdjO</div><div class="prediction-metric-values">${teamA.adjO.toFixed(2)}</div></div>
+            <div class="prediction-metric"><div class="prediction-metric-label">Team B AdjO</div><div class="prediction-metric-values">${teamB.adjO.toFixed(2)}</div></div>
+            <div class="prediction-metric"><div class="prediction-metric-label">Team A AdjD</div><div class="prediction-metric-values">${teamA.adjD.toFixed(2)}</div></div>
+            <div class="prediction-metric"><div class="prediction-metric-label">Team B AdjD</div><div class="prediction-metric-values">${teamB.adjD.toFixed(2)}</div></div>
           </div>
         </div>
-      ` : `<div class="card pad muted">Choose two different teams to generate a prediction.</div>`}
+      ` : `<div class="predictor-empty">Choose two different teams to generate a prediction.</div>`}
     </div>
   </div>`;
 }
@@ -624,29 +697,37 @@ function renderTeam() {
   const keepers = sortRows(team.keepers || [], 'Saves').slice(0, 8);
   $('view-team').innerHTML = `<div class="leaderboard-wrap">
     <button class="btn" data-view-target="teams" style="margin-bottom:14px">Back to Teams</button>
-    <div class="card pad">
-      <div class="team-hero">${logo(team)}<div>
-        <div class="eyebrow">${esc(team.conference)} · ${esc(team.division)}</div>
-        <h2>${esc(team.name)}</h2>
-        <div class="team-hero-meta">
-          <span class="pill">Record ${esc(team.record)}</span><span class="pill">Division ${esc(team.divisionRecord)}</span><span class="pill">Rank #${team.rank}</span><span class="pill">Pitch ${team.powerScore.toFixed(1)}</span><span class="pill">AdjO ${team.adjO.toFixed(2)}</span><span class="pill">AdjD ${team.adjD.toFixed(2)}</span><span class="pill">SOS ${team.sos.toFixed(1)}</span><span class="pill">Luck ${signed(team.luck)}</span>
+    <div class="team-hero">
+      <div class="team-shield-lg">
+        ${logo(team, 'team-logo-large')}
+      </div>
+      <div class="team-info">
+        <div class="team-name-lg">${esc(team.name)}</div>
+        <div class="team-mascot-lg">${esc(team.conference)}</div>
+        <div class="team-details">
+          <span class="team-meta-pill team-meta-pill-accent"><span>Record</span>${esc(team.record)}</span>
+          <span class="team-meta-pill"><span>Division</span>${esc(team.division)}</span>
+          <span class="team-meta-pill team-meta-pill-accent"><span>Div Record</span>${esc(team.divisionRecord)}</span>
+          <span class="team-meta-pill"><span>Rank</span>#${team.rank}</span>
         </div>
-      </div></div>
-      <div class="grid-3">
-        <div class="stat-card"><b>${team.gf}</b><span>Goals For</span></div>
-        <div class="stat-card"><b>${team.ga}</b><span>Goals Allowed</span></div>
-        <div class="stat-card"><b>${team.gd}</b><span>Goal Diff</span></div>
-        <div class="stat-card"><b>${team.adjO.toFixed(2)}</b><span>Adj Offense</span></div>
-        <div class="stat-card"><b>${team.adjD.toFixed(2)}</b><span>Adj Defense</span></div>
-        <div class="stat-card"><b>${team.sos.toFixed(1)}</b><span>SOS</span></div>
       </div>
     </div>
+    <div class="team-stat-cards">
+      <div class="team-stat-card team-score-card"><div class="team-stat-card-label">Pitch Score</div><div class="team-stat-card-val">${team.powerScore.toFixed(1)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">State Rank</div><div class="team-stat-card-val">#${team.rank}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">GF</div><div class="team-stat-card-val">${team.gf}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">GA</div><div class="team-stat-card-val">${team.ga}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">AdjO</div><div class="team-stat-card-val">${team.adjO.toFixed(2)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">AdjD</div><div class="team-stat-card-val">${team.adjD.toFixed(2)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">SOS</div><div class="team-stat-card-val">${team.sos.toFixed(1)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">Luck</div><div class="team-stat-card-val">${signed(team.luck)}</div></div>
+    </div>
     <div class="subgrid">
-      <div class="card"><div class="card-title">Schedule & Results <span>${team.schedule?.length || 0} games</span></div>${gameList(team.schedule || [], team)}</div>
+      <div class="home-section"><div class="home-section-header"><div><div class="home-section-title">Schedule & Results</div><div class="home-section-sub">${team.schedule?.length || 0} games</div></div></div>${gameList(team.schedule || [], team)}</div>
       <div>
-        <div class="card"><div class="card-title">Scoring Leaders</div>${leaderTable(scorers, 'scoring', false)}</div>
+        <div class="home-section"><div class="home-section-header"><div><div class="home-section-title">Scoring Leaders</div></div></div>${leaderTable(scorers, 'scoring', false)}</div>
         <div style="height:20px"></div>
-        <div class="card"><div class="card-title">Goalkeepers</div>${leaderTable(keepers, 'keepers', false)}</div>
+        <div class="home-section"><div class="home-section-header"><div><div class="home-section-title">Goalkeepers</div></div></div>${leaderTable(keepers, 'keepers', false)}</div>
       </div>
     </div>
   </div>`;
@@ -661,20 +742,27 @@ function renderPlayer() {
   const keeping = KEEPERS.find((item) => playerKey(item) === state.playerKey);
   $('view-player').innerHTML = `<div class="leaderboard-wrap">
     <button class="btn" data-view-target="leaders" style="margin-bottom:14px">Back to Leaders</button>
-    <div class="card pad">
-      <div class="team-hero">${logo(team)}<div>
-        <div class="eyebrow">${esc(player.grade || 'Player')} · ${esc(player.conference)}</div>
-        <h2>${esc(player.name)}</h2>
-        <div class="team-hero-meta">${team ? `<span class="pill">${teamButton(team)}</span>` : ''}<span class="pill">${esc(player.division)}</span></div>
-      </div></div>
-      <div class="grid-3">
-        <div class="stat-card"><b>${scoring?.G ?? 0}</b><span>Goals</span></div>
-        <div class="stat-card"><b>${scoring?.A ?? 0}</b><span>Assists</span></div>
-        <div class="stat-card"><b>${scoring?.P ?? 0}</b><span>Points</span></div>
-        <div class="stat-card"><b>${keeping?.Saves ?? 0}</b><span>Saves</span></div>
-        <div class="stat-card"><b>${keeping?.GP ?? 0}</b><span>Keeper GP</span></div>
-        <div class="stat-card"><b>${team?.rank ? `#${team.rank}` : '-'}</b><span>Team Rank</span></div>
+    <div class="player-hero">
+      <div class="player-shield">
+        ${team ? logo(team, 'player-team-logo') : ''}
       </div>
+      <div class="player-info">
+        <div class="player-full-name">${esc(player.name)}</div>
+        <div class="player-details">
+          ${team ? `<span class="p-tag">${teamButton(team)}</span>` : ''}
+          ${player.grade ? `<span class="p-tag">${esc(player.grade)}</span>` : ''}
+          <span class="p-tag">${esc(player.conference)}</span>
+          <span class="p-tag">${esc(player.division)}</span>
+        </div>
+      </div>
+    </div>
+    <div class="counting-grid">
+      <div class="counting-card"><div class="counting-label">Goals</div><div class="counting-value">${scoring?.G ?? 0}</div></div>
+      <div class="counting-card"><div class="counting-label">Assists</div><div class="counting-value">${scoring?.A ?? 0}</div></div>
+      <div class="counting-card"><div class="counting-label">Points</div><div class="counting-value">${scoring?.P ?? 0}</div></div>
+      <div class="counting-card"><div class="counting-label">Saves</div><div class="counting-value">${keeping?.Saves ?? 0}</div></div>
+      <div class="counting-card"><div class="counting-label">Keeper GP</div><div class="counting-value">${keeping?.GP ?? 0}</div></div>
+      <div class="counting-card"><div class="counting-label">Team Rank</div><div class="counting-value">${team?.rank ? `#${team.rank}` : '-'}</div></div>
     </div>
   </div>`;
 }
