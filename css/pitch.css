@@ -438,8 +438,106 @@
   letter-spacing: 0;
 }
 
+.pitch-leaders-wrap {
+  max-width: none;
+  padding: 18px 14px 60px;
+}
+
+.pitch-leaders-wrap .controls-row {
+  align-items: stretch;
+  border-radius: 18px;
+  padding: 10px;
+}
+
+.pitch-leaders-wrap .search-wrap {
+  min-width: 260px;
+}
+
+.pitch-leaders-wrap .search-input {
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.pitch-leaders-wrap .ctrl-select,
+.pitch-leaders-wrap .div-filter-btn,
+.pitch-leaders-wrap .pa-filter-input,
+.pitch-leaders-wrap .date-filter-wrap input[type=date],
+.pitch-leaders-wrap .date-clear-btn {
+  height: 40px;
+  border-radius: 8px;
+}
+
+.pitch-leaders-wrap .ctrl-select {
+  min-width: 132px;
+}
+
+.pitch-leaders-wrap [data-leader-team] {
+  min-width: 260px;
+}
+
+.pitch-leaders-wrap .div-filter-option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-sans);
+  text-align: left;
+}
+
+.pitch-leaders-wrap .lb-table-wrap {
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.pitch-leaders-wrap table {
+  table-layout: fixed;
+}
+
+.pitch-leaders-wrap th:nth-child(1) { width: 54px; }
+.pitch-leaders-wrap th:nth-child(2) { width: 330px; }
+.pitch-leaders-wrap th:nth-child(3) { width: 280px; }
+
+.pitch-leaders-wrap .team-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 220px;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border2));
+  background: color-mix(in srgb, var(--surface2) 78%, #020617);
+  color: var(--text);
+  border-radius: 4px;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+}
+
+.pitch-leaders-wrap .team-chip img {
+  width: 18px;
+  height: 18px;
+}
+
+.pitch-leaders-wrap .muted {
+  margin-top: 5px;
+}
+
+.pitch-leaders-wrap td,
+.pitch-leaders-wrap th {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @media (max-width: 768px) {
   .predictor-panel .predictor-controls {
     grid-template-columns: 1fr;
+  }
+
+  .pitch-leaders-wrap {
+    padding-inline: 12px;
+  }
+
+  .pitch-leaders-wrap .search-wrap,
+  .pitch-leaders-wrap [data-leader-team],
+  .pitch-leaders-wrap .ctrl-select {
+    min-width: 100%;
   }
 }

@@ -13,7 +13,7 @@ const state = {
   leaderType: 'scoring',
   leaderSort: { key: 'P', asc: false },
   filters: { query: '', conference: 'All' },
-  leaderFilters: { query: '', conference: 'All', team: 'All', grade: 'All', min: 0 },
+  leaderFilters: { query: '', conference: 'All', team: 'All', grade: 'All', min: 0, dateStart: '', dateEnd: '' },
   predictor: {
     teamA: TEAMS[0]?.slug || '',
     teamB: TEAMS[1]?.slug || '',
@@ -158,6 +158,26 @@ function conferenceOptions(selected) {
   )).join('')}`;
 }
 
+function leaderConferenceMenu(selected = 'All') {
+  const options = [['All', 'All Conferences'], ...CONFERENCES.map((conf) => [conf, conf])];
+  const active = selected !== 'All';
+  return `<div class="div-filter-wrap pitch-leader-conference-wrap">
+    <button class="div-filter-btn${active ? ' active' : ''}" data-leader-conference-toggle type="button">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+      Conference${active ? '<span class="div-filter-count">1</span>' : ''}
+    </button>
+    <div class="div-filter-menu pitch-leader-conference-menu">
+      <div class="div-filter-menu-header">
+        <span class="div-filter-menu-label">Conference</span>
+        <button class="div-filter-all-btn" data-leader-conference-option="All" type="button">All</button>
+      </div>
+      ${options.map(([value, label]) => `<button class="div-filter-option${value === selected ? ' checked' : ''}" data-leader-conference-option="${esc(value)}" type="button">
+        <span class="div-filter-checkbox"></span>${esc(label)}
+      </button>`).join('')}
+    </div>
+  </div>`;
+}
+
 function teamButton(team) {
   return `<button class="linkish" data-team-slug="${esc(team.slug)}">${esc(team.name)}</button>`;
 }
@@ -191,6 +211,7 @@ function playerButton(player) {
 
 function closeDropdowns() {
   document.querySelectorAll('.nav-dropdown-menu').forEach((menu) => menu.classList.remove('open'));
+  document.querySelectorAll('.pitch-leader-conference-menu').forEach((menu) => menu.classList.remove('open'));
 }
 
 function buildTeamsNav() {
@@ -325,8 +346,9 @@ function teamOptions(selectedSlug) {
   return TEAMS.map((team) => `<option value="${esc(team.slug)}" ${team.slug === selectedSlug ? 'selected' : ''}>${esc(team.name)} · ${esc(team.record)} · #${team.rank}</option>`).join('');
 }
 
-function filterTeamOptions(selected = 'All') {
+function filterTeamOptions(selected = 'All', conference = 'All') {
   return `<option value="All">All Teams</option>${TEAMS
+    .filter((team) => conference === 'All' || team.conference === conference)
     .slice()
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((team) => `<option value="${esc(team.slug)}" ${team.slug === selected ? 'selected' : ''}>${esc(team.name)}</option>`)
@@ -601,22 +623,10 @@ function renderLeaders() {
   });
   rows = sortRows(rows, state.leaderSort.key, state.leaderSort.asc).slice(0, 500);
   const statOptions = isScoring
-    ? [['P','Points'], ['G','Goals'], ['A','Assists']]
+    ? [['P','Points'], ['G','Goals'], ['A','Assists'], ['GP','GP']]
     : [['Saves','Saves'], ['GP','Keeper GP']];
   $('view-leaders').innerHTML = `
-    <div class="page-banner">
-      <div class="page-banner-inner">
-        <div>
-          <div class="page-title">Player <span>Leaders</span></div>
-          <div class="page-meta">New Jersey High School Boys Soccer <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season <span class="page-meta-dot"></span> Scoring and Goalkeeping</div>
-        </div>
-      </div>
-    </div>
-    <div class="leaderboard-wrap">
-      <div class="lb-mode-tabs">
-        <button class="lb-tab ${isScoring ? 'lb-tab-active' : ''}" data-leader-type="scoring" type="button">Scoring</button>
-        <button class="lb-tab ${!isScoring ? 'lb-tab-active' : ''}" data-leader-type="keepers" type="button">Goalkeepers</button>
-      </div>
+    <div class="leaderboard-wrap pitch-leaders-wrap">
       <div class="controls-row">
         <div class="search-wrap">
           <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -624,15 +634,26 @@ function renderLeaders() {
           </svg>
           <input class="search-input" data-leader-query type="search" placeholder="Search player..." value="${esc(filters.query)}">
         </div>
-        <select class="ctrl-select" data-leader-conference>${conferenceOptions(filters.conference)}</select>
-        <select class="ctrl-select" data-leader-team>${filterTeamOptions(filters.team)}</select>
+        ${leaderConferenceMenu(filters.conference)}
+        <select class="ctrl-select" data-leader-team>${filterTeamOptions(filters.team, filters.conference)}</select>
         <select class="ctrl-select" data-leader-grade>${gradeOptions(filters.grade)}</select>
+        <select class="ctrl-select" data-leader-type-select>
+          <option value="scoring" ${isScoring ? 'selected' : ''}>Scoring</option>
+          <option value="keepers" ${!isScoring ? 'selected' : ''}>Goalkeepers</option>
+        </select>
         <select class="ctrl-select" data-leader-stat>
           ${statOptions.map(([key, label]) => `<option value="${key}" ${state.leaderSort.key === key ? 'selected' : ''}>${label}</option>`).join('')}
         </select>
         <div class="pa-filter-wrap">
           <span>Min ${isScoring ? 'P' : 'SV'}:</span>
           <input class="pa-filter-input" data-leader-min type="number" min="0" value="${Number(filters.min || 0)}">
+        </div>
+        <div class="date-filter-wrap">
+          <span>Date:</span>
+          <input type="date" data-leader-date-start value="${esc(filters.dateStart)}">
+          <span>to</span>
+          <input type="date" data-leader-date-end value="${esc(filters.dateEnd)}">
+          <button class="date-clear-btn" data-leader-date-clear type="button">Clear</button>
         </div>
       </div>
       <div class="results-info">Showing <span>${rows.length}</span> ${isScoring ? 'scoring leader' : 'goalkeeper'}${rows.length === 1 ? '' : 's'}</div>
@@ -642,8 +663,8 @@ function renderLeaders() {
 
 function leaderTable(rows, type, sortable) {
   const cols = type === 'keepers'
-    ? [['Saves','Saves'], ['GP','GP']]
-    : [['G','G'], ['A','A'], ['P','P']];
+    ? [['GP','GP'], ['Saves','Saves']]
+    : [['GP','GP'], ['G','G'], ['A','A'], ['P','P']];
   const sortArrow = state.leaderSort.asc ? ' ▴' : ' ▾';
   const sort = (key) => {
     const active = sortable && state.leaderSort.key === key;
@@ -654,7 +675,6 @@ function leaderTable(rows, type, sortable) {
       <th style="width:36px">#</th>
       <th>Player</th>
       <th>Team</th>
-      <th>Class</th>
       ${cols.map(([label,key]) => `<th ${sort(key)}>${label}${state.leaderSort.key === key ? sortArrow : ''}</th>`).join('')}
     </tr></thead>
     <tbody>${rows.map((player, i) => {
@@ -663,7 +683,6 @@ function leaderTable(rows, type, sortable) {
         <td class="rank-cell${i < 3 ? ' top3' : ''}">${i + 1}</td>
         ${leaderPlayerCell(player)}
         <td>${teamChip(team)}<div class="muted">${esc(player.conference)}</div></td>
-        <td>${esc(player.grade || '')}</td>
         ${cols.map(([, key]) => {
           const active = state.leaderSort.key === key;
           return `<td class="num" style="${active ? 'font-weight:700;color:var(--accent)' : 'color:var(--muted2)'}">${player[key] ?? 0}</td>`;
@@ -1025,6 +1044,24 @@ document.addEventListener('click', (event) => {
     return;
   }
 
+  const leaderConferenceToggle = event.target.closest('[data-leader-conference-toggle]');
+  if (leaderConferenceToggle) {
+    const menu = leaderConferenceToggle.closest('.pitch-leader-conference-wrap')?.querySelector('.pitch-leader-conference-menu');
+    menu?.classList.toggle('open');
+    return;
+  }
+
+  const leaderConferenceOption = event.target.closest('[data-leader-conference-option]');
+  if (leaderConferenceOption) {
+    state.leaderFilters.conference = leaderConferenceOption.dataset.leaderConferenceOption || 'All';
+    const selectedTeam = TEAM_BY_SLUG[state.leaderFilters.team];
+    if (selectedTeam && state.leaderFilters.conference !== 'All' && selectedTeam.conference !== state.leaderFilters.conference) {
+      state.leaderFilters.team = 'All';
+    }
+    renderLeaders();
+    return;
+  }
+
   const teamTarget = event.target.closest('[data-team-slug]');
   if (teamTarget) {
     if (teamTarget.dataset.closeDropdowns) closeDropdowns();
@@ -1066,8 +1103,15 @@ document.addEventListener('click', (event) => {
   if (leaderType) {
     state.leaderType = leaderType.dataset.leaderType;
     state.leaderSort = state.leaderType === 'keepers' ? { key: 'Saves', asc: false } : { key: 'P', asc: false };
+    state.leaderFilters.min = 0;
     if (state.view !== 'leaders') setView('leaders');
     else render();
+  }
+  const dateClear = event.target.closest('[data-leader-date-clear]');
+  if (dateClear) {
+    state.leaderFilters.dateStart = '';
+    state.leaderFilters.dateEnd = '';
+    renderLeaders();
   }
 });
 
@@ -1105,6 +1149,20 @@ document.addEventListener('change', (event) => {
   }
   if (event.target.matches('[data-leader-stat]')) {
     state.leaderSort = { key: event.target.value, asc: false };
+    renderLeaders();
+  }
+  if (event.target.matches('[data-leader-type-select]')) {
+    state.leaderType = event.target.value;
+    state.leaderSort = state.leaderType === 'keepers' ? { key: 'Saves', asc: false } : { key: 'P', asc: false };
+    state.leaderFilters.min = 0;
+    renderLeaders();
+  }
+  if (event.target.matches('[data-leader-date-start]')) {
+    state.leaderFilters.dateStart = event.target.value;
+    renderLeaders();
+  }
+  if (event.target.matches('[data-leader-date-end]')) {
+    state.leaderFilters.dateEnd = event.target.value;
     renderLeaders();
   }
   if (event.target.matches('[data-predict-team]')) {
