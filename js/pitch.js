@@ -189,19 +189,94 @@ function buildTeamsNav() {
   }).join('<div class="nav-dropdown-divider"></div>');
 }
 
+function seasonStartYear() {
+  const first = String(PITCH_DATA.season || '').match(/\d{4}/);
+  return first ? Number(first[0]) : new Date().getFullYear();
+}
+
+function parsePitchDate(dateStr) {
+  const m = String(dateStr || '').match(/(\d{1,2})\/(\d{1,2})/);
+  if (!m) return null;
+  const month = Number(m[1]);
+  const day = Number(m[2]);
+  const start = seasonStartYear();
+  const year = month >= 8 ? start : start + 1;
+  return new Date(year, month - 1, day);
+}
+
+function pitchDateKey(date) {
+  if (!date) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function displayPitchDate(date) {
+  return date ? date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : '';
+}
+
+function cleanPitchOpponentLabel(opponent) {
+  return String(opponent || '')
+    .replace(/\s+2025\s+Boys Soccer.*$/i, '')
+    .replace(/\s+NJSIAA.*$/i, '')
+    .replace(/\s+Tournament.*$/i, '')
+    .trim();
+}
+
+function resolveOpponentTeam(game) {
+  if (game.opponentSlug && TEAM_BY_SLUG[game.opponentSlug]) return TEAM_BY_SLUG[game.opponentSlug];
+  const label = cleanPitchOpponentLabel(game.opponent).toLowerCase();
+  if (!label) return null;
+  return TEAMS
+    .filter((team) => team.slug !== game.teamSlug)
+    .find((team) => label === team.name.toLowerCase() || label.includes(team.name.toLowerCase()));
+}
+
+function gameImportance(game) {
+  const team = TEAM_BY_SLUG[game.teamSlug];
+  const opp = TEAM_BY_SLUG[game.opponentSlug];
+  const teamPower = team?.powerScore || 50;
+  const oppPower = opp?.powerScore || 50;
+  const avgPower = (teamPower + oppPower) / 2;
+  const margin = Number.isFinite(game.margin) ? game.margin : Math.abs((game.teamScore ?? 0) - (game.opponentScore ?? 0));
+  const closeBonus = Math.max(0, 4 - margin) * 2;
+  const rankedBonus = (team?.rank <= 25 ? 6 : 0) + (opp?.rank <= 25 ? 6 : 0);
+  const upsetBonus = (
+    (game.result === 'W' && oppPower - teamPower > 10) ||
+    (game.result === 'L' && teamPower - oppPower > 10)
+  ) ? 8 : 0;
+  const tournamentBonus = /tournament|county|njsiaa|sectional|final|semifinal|quarterfinal|playoff/i.test(`${game.opponent || ''} ${game.event || ''}`) ? 5 : 0;
+  return avgPower + closeBonus + rankedBonus + upsetBonus + tournamentBonus;
+}
+
 function allPitchGames() {
   const source = PITCH_DATA.games && PITCH_DATA.games.length
     ? PITCH_DATA.games
     : TEAMS.flatMap((team) => (team.schedule || []).map((game) => ({ ...game, team: team.name, teamSlug: team.slug })));
   const seen = new Set();
-  return source.filter((game) => {
+  return source.map((game) => {
+    const date = parsePitchDate(game.date);
+    const team = TEAM_BY_SLUG[game.teamSlug];
+    const opp = resolveOpponentTeam(game);
+    const margin = Math.abs((game.teamScore ?? 0) - (game.opponentScore ?? 0));
+    const normalized = {
+      ...game,
+      dateObj: date,
+      dateKey: pitchDateKey(date),
+      teamName: team?.name || game.team || '',
+      opponentSlug: opp?.slug || game.opponentSlug || '',
+      opponentName: opp?.name || cleanPitchOpponentLabel(game.opponent) || game.opponent || '',
+      margin,
+    };
+    normalized.importance = gameImportance(normalized);
+    return normalized;
+  }).filter((game) => {
+    const names = [game.teamSlug || game.teamName, game.opponentSlug || game.opponentName].sort();
+    const scores = [game.teamScore, game.opponentScore].filter((v) => v !== null && v !== undefined).sort((a, b) => Number(a) - Number(b));
     const key = [
       game.date,
-      game.teamSlug || game.team,
-      game.opponentSlug || game.opponent,
-      game.teamScore,
-      game.opponentScore,
-      game.result,
+      names[0],
+      names[1],
+      scores[0] ?? '',
+      scores[1] ?? '',
     ].join('|');
     if (seen.has(key)) return false;
     seen.add(key);
@@ -212,17 +287,19 @@ function allPitchGames() {
 function completedPitchGames() {
   return allPitchGames()
     .filter((game) => game.result && game.teamScore !== null && game.opponentScore !== null)
-    .sort((a, b) => {
-      const aTeam = TEAM_BY_SLUG[a.teamSlug];
-      const bTeam = TEAM_BY_SLUG[b.teamSlug];
-      return (bTeam?.powerScore || 0) - (aTeam?.powerScore || 0);
-    });
+    .sort((a, b) => (b.dateObj || 0) - (a.dateObj || 0) || b.importance - a.importance || a.margin - b.margin);
 }
 
 function upcomingPitchGames() {
   return allPitchGames()
     .filter((game) => !game.result || game.teamScore === null || game.opponentScore === null)
-    .slice(0, 80);
+    .sort((a, b) => (a.dateObj || 0) - (b.dateObj || 0) || b.importance - a.importance);
+}
+
+function latestCompletedPitchGames() {
+  const games = completedPitchGames();
+  const latestKey = games[0]?.dateKey;
+  return latestKey ? games.filter((game) => game.dateKey === latestKey).sort((a, b) => b.importance - a.importance || a.margin - b.margin) : [];
 }
 
 function teamOptions(selectedSlug) {
@@ -232,8 +309,9 @@ function teamOptions(selectedSlug) {
 function renderHome() {
   const topTeams = TEAMS.slice(0, 8);
   const topScorers = sortRows(SCORERS, 'P').slice(0, 8);
-  const recentGames = completedPitchGames().slice(0, 8);
+  const recentGames = latestCompletedPitchGames().slice(0, 8);
   const upcomingGames = upcomingPitchGames().slice(0, 8);
+  const recentDate = recentGames[0]?.dateObj;
   $('view-home').innerHTML = `
     <div class="home-hero pitch-hero">
       <div class="home-hero-inner">
@@ -272,7 +350,7 @@ function renderHome() {
             <div class="home-section-header">
               <div>
                 <div class="home-section-title">Recent Scores</div>
-                <div class="home-section-sub">Top completed games by team strength</div>
+                <div class="home-section-sub">${recentDate ? `${displayPitchDate(recentDate)} · ranked by game importance` : 'Latest completed games'}</div>
               </div>
               <button class="home-section-link" data-view-target="scores">Scores Page →</button>
             </div>
@@ -343,7 +421,7 @@ function gameList(rows, ownerTeam = null, limit = null) {
         <div class="home-score-game">
           <span class="home-score-team home-score-primary">${team ? logoImg(team, 18) : ''}<span>${team ? linkedTeam(team) : esc(game.team || '')}</span></span>
           <span class="home-score-vs">${esc(game.site || 'vs')}</span>
-          <span class="home-score-team home-score-primary">${opp ? logoImg(opp, 18) : ''}<span>${opp ? linkedTeam(opp) : esc(game.opponent || '')}</span></span>
+          <span class="home-score-team home-score-primary">${opp ? logoImg(opp, 18) : ''}<span>${opp ? linkedTeam(opp) : esc(game.opponentName || game.opponent || '')}</span></span>
         </div>
       </td>
       <td class="num ${resultClass}">${esc(game.result || '—')}</td>
@@ -538,7 +616,7 @@ function renderScores() {
     <div class="page-banner-inner">
       <div>
         <div class="page-title">Scores <span>& Results</span></div>
-        <div class="page-meta">New Jersey High School Boys Soccer <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season</div>
+        <div class="page-meta">New Jersey High School Boys Soccer <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season <span class="page-meta-dot"></span> Ranked by game importance</div>
       </div>
     </div>
   </div>
@@ -548,19 +626,19 @@ function renderScores() {
         <div class="home-section-header">
           <div>
             <div class="home-section-title">Recent Scores</div>
-            <div class="home-section-sub">${recent.length.toLocaleString()} completed games · strongest teams first</div>
+            <div class="home-section-sub" id="scoresRecentMeta">${recent.length.toLocaleString()} completed games · newest first, then importance</div>
           </div>
         </div>
-        ${gameList(recent, null, 120)}
+        <div id="scoresRecent">${gameList(recent, null, 120)}</div>
       </div>
       <div class="home-section">
         <div class="home-section-header">
           <div>
             <div class="home-section-title">Upcoming Games</div>
-            <div class="home-section-sub">${upcoming.length.toLocaleString()} scheduled or unscored games</div>
+            <div class="home-section-sub" id="scoresUpcomingMeta">${upcoming.length.toLocaleString()} scheduled or unscored games</div>
           </div>
         </div>
-        ${gameList(upcoming, null, 120)}
+        <div id="scoresUpcoming">${gameList(upcoming, null, 120)}</div>
       </div>
     </div>
   </div>`;
