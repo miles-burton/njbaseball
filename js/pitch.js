@@ -194,7 +194,7 @@ function teamChip(team) {
 }
 
 function leaderPlayerCell(player) {
-  const sub = [player.grade, player.division].filter(Boolean).join(' · ');
+  const sub = player.grade || '';
   return `<td class="player-cell">
     <div class="player-name">${esc(player.name)}</div>
     ${sub ? `<div class="player-sub">${esc(sub)}</div>` : ''}
@@ -358,6 +358,12 @@ function filterTeamOptions(selected = 'All', conference = 'All') {
 function gradeOptions(selected = 'All') {
   const grades = [...new Set([...SCORERS, ...KEEPERS].map((player) => player.grade).filter(Boolean))].sort();
   return `<option value="All">All Grades</option>${grades.map((grade) => `<option value="${esc(grade)}" ${grade === selected ? 'selected' : ''}>${esc(grade)}</option>`).join('')}`;
+}
+
+function formatUpdated(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return 'Last updated unavailable';
+  return `Last updated ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 }
 
 function renderHome() {
@@ -625,7 +631,18 @@ function renderLeaders() {
   const statOptions = isScoring
     ? [['P','Points'], ['G','Goals'], ['A','Assists'], ['GP','GP']]
     : [['Saves','Saves'], ['GP','Keeper GP']];
+  const pageTitle = isScoring ? 'Scoring' : 'Goalkeeper';
+  const pageMeta = isScoring ? 'Goals, assists, and points' : 'Goalkeeper saves and appearances';
   $('view-leaders').innerHTML = `
+    <div class="page-banner pitch-leaders-banner">
+      <div class="page-banner-inner">
+        <div>
+          <div class="page-title">${pageTitle} <span>Leaders</span></div>
+          <div class="page-meta">New Jersey Boys Soccer <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season <span class="page-meta-dot"></span> ${pageMeta}</div>
+        </div>
+        <div class="page-updated">${formatUpdated(PITCH_DATA.updated)}</div>
+      </div>
+    </div>
     <div class="leaderboard-wrap pitch-leaders-wrap">
       <div class="controls-row">
         <div class="search-wrap">
@@ -682,7 +699,7 @@ function leaderTable(rows, type, sortable) {
       return `<tr data-player-key="${encodeURIComponent(playerKey(player))}">
         <td class="rank-cell${i < 3 ? ' top3' : ''}">${i + 1}</td>
         ${leaderPlayerCell(player)}
-        <td>${teamChip(team)}<div class="muted">${esc(player.conference)}</div></td>
+        <td>${teamChip(team)}</td>
         ${cols.map(([, key]) => {
           const active = state.leaderSort.key === key;
           return `<td class="num" style="${active ? 'font-weight:700;color:var(--accent)' : 'color:var(--muted2)'}">${player[key] ?? 0}</td>`;

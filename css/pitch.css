@@ -438,19 +438,28 @@
   letter-spacing: 0;
 }
 
+.pitch-leaders-banner {
+  margin-bottom: 0;
+}
+
 .pitch-leaders-wrap {
   max-width: none;
-  padding: 18px 14px 60px;
+  padding: 14px 14px 60px;
 }
 
 .pitch-leaders-wrap .controls-row {
   align-items: stretch;
   border-radius: 18px;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
   padding: 10px;
+  scrollbar-width: thin;
 }
 
 .pitch-leaders-wrap .search-wrap {
-  min-width: 260px;
+  flex: 0 0 180px;
+  min-width: 180px;
 }
 
 .pitch-leaders-wrap .search-input {
@@ -468,12 +477,64 @@
   border-radius: 8px;
 }
 
+.pitch-leaders-wrap .pitch-leader-conference-wrap {
+  flex: 0 0 auto;
+}
+
+.pitch-leaders-wrap .div-filter-btn {
+  width: 104px;
+  justify-content: center;
+  padding-inline: 10px;
+}
+
 .pitch-leaders-wrap .ctrl-select {
-  min-width: 132px;
+  flex: 0 0 auto;
+  min-width: 96px;
+  max-width: 176px;
+  padding-inline: 8px;
 }
 
 .pitch-leaders-wrap [data-leader-team] {
-  min-width: 260px;
+  min-width: 168px;
+  max-width: 176px;
+}
+
+.pitch-leaders-wrap [data-leader-grade] {
+  min-width: 100px;
+}
+
+.pitch-leaders-wrap [data-leader-type-select] {
+  min-width: 100px;
+}
+
+.pitch-leaders-wrap [data-leader-stat] {
+  min-width: 92px;
+}
+
+.pitch-leaders-wrap .pa-filter-wrap {
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.pitch-leaders-wrap .pa-filter-input {
+  width: 54px;
+  padding-inline: 7px;
+}
+
+.pitch-leaders-wrap .date-filter-wrap {
+  flex: 0 0 auto;
+  gap: 5px;
+}
+
+.pitch-leaders-wrap .date-filter-wrap input[type=date] {
+  width: 92px !important;
+  min-width: 0;
+  padding-inline: 6px;
+  font-size: 10px;
+}
+
+.pitch-leaders-wrap .date-clear-btn {
+  padding-inline: 8px;
 }
 
 .pitch-leaders-wrap .div-filter-option {
@@ -487,6 +548,7 @@
 .pitch-leaders-wrap .lb-table-wrap {
   border-radius: 18px;
   overflow: hidden;
+  margin-top: 14px;
 }
 
 .pitch-leaders-wrap table {
@@ -494,7 +556,7 @@
 }
 
 .pitch-leaders-wrap th:nth-child(1) { width: 54px; }
-.pitch-leaders-wrap th:nth-child(2) { width: 330px; }
+.pitch-leaders-wrap th:nth-child(2) { width: 340px; }
 .pitch-leaders-wrap th:nth-child(3) { width: 280px; }
 
 .pitch-leaders-wrap .team-chip {
@@ -516,10 +578,6 @@
   height: 18px;
 }
 
-.pitch-leaders-wrap .muted {
-  margin-top: 5px;
-}
-
 .pitch-leaders-wrap td,
 .pitch-leaders-wrap th {
   overflow: hidden;
@@ -538,6 +596,6 @@
   .pitch-leaders-wrap .search-wrap,
   .pitch-leaders-wrap [data-leader-team],
   .pitch-leaders-wrap .ctrl-select {
-    min-width: 100%;
+    min-width: 180px;
   }
 }
