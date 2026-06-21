@@ -118,6 +118,29 @@ let globalSearchActiveIndex = 0;
 let TEAM_POWER_RATINGS = [];
 let TEAM_POWER_BY_TEAM = {};
 let TEAM_MATCH_LIST = null;
+let playerScoresReady = false;
+let completedScoreGamesCache = null;
+let upcomingGamesCache = null;
+const renderedViews = new Set();
+
+function deferWork(fn) {
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(fn, { timeout: 1200 });
+  } else {
+    window.setTimeout(fn, 0);
+  }
+}
+
+function clearDerivedCaches() {
+  TEAM_POWER_RATINGS = [];
+  TEAM_POWER_BY_TEAM = {};
+  TEAM_MATCH_LIST = null;
+  playerScoresReady = false;
+  globalPlayerSearchIndex = [];
+  completedScoreGamesCache = null;
+  upcomingGamesCache = null;
+  renderedViews.clear();
+}
 const CURRENT_SEASON_YEAR = '2026';
 const CURRENT_SEASON_SNAPSHOT = {
   year: CURRENT_SEASON_YEAR,
@@ -191,10 +214,43 @@ function pc(p) {
   return '#2a5080';
 }
 
+const sortedValsCache = new WeakMap();
+
+function sortedVals(vals) {
+  if (!Array.isArray(vals)) return [];
+  if (!sortedValsCache.has(vals)) {
+    sortedValsCache.set(vals, vals.filter(Number.isFinite).sort((a, b) => a - b));
+  }
+  return sortedValsCache.get(vals);
+}
+
+function lowerBound(arr, value) {
+  let lo = 0;
+  let hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (arr[mid] < value) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+function upperBound(arr, value) {
+  let lo = 0;
+  let hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (arr[mid] <= value) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
 function calcPct(vals, v, lowerBetter) {
-  const sorted = [...vals].sort((a, b) => a - b);
-  const b = sorted.filter(x => x < v).length;
-  const e = sorted.filter(x => x === v).length;
+  if (!Number.isFinite(v)) return 50;
+  const sorted = sortedVals(vals);
+  const b = lowerBound(sorted, v);
+  const e = upperBound(sorted, v) - b;
   const raw = sorted.length ? Math.round(((b + e * 0.5) / sorted.length) * 100) : 50;
   return lowerBetter ? 100 - raw : raw;
 }
@@ -325,24 +381,13 @@ function applySeasonDataset(year, data) {
   PP.splice(0, PP.length, ...(data.PP || []).map(p => ({ ...p })));
   replaceObjectContents(SCHEDULES, data.SCHEDULES || {});
   normalizePlayers();
-  TEAM_POWER_RATINGS = [];
-  TEAM_POWER_BY_TEAM = {};
-  globalPlayerSearchIndex = [];
-  setupPlayerScore();
-  calculateTeamPowerRatings();
-  buildGlobalPlayerSearchIndex();
-  buildPredictorTeams(true);
+  clearDerivedCaches();
   showLastUpdated();
   updateSeasonText();
-  renderHitTable();
-  renderPitchTable();
-  renderTeamsGrid();
-  buildTeamsNav();
+  buildDivFilters();
+  buildTeamFilters();
   renderHome();
-  renderScoresPage();
-  renderTeamRankings();
-  renderMatchupPrediction();
-  renderStandings();
+  deferWork(warmHomePowerPreview);
 }
 
 function changeSeason(year, view = null) {
@@ -360,6 +405,7 @@ function changeSeason(year, view = null) {
 }
 
 function setupPlayerScore() {
+  if (playerScoresReady) return;
   HSC.PS = { label:'PS', fmt: v => v.toFixed(1) };
   PSC.PS = { label:'PS', fmt: v => v.toFixed(1), lowerBetter:false };
 
@@ -421,6 +467,7 @@ function setupPlayerScore() {
     p.PS_sos = playerSOSAdjustment(p.team);
     p.PS = clamp(p.PS_base + p.PS_sos);
   });
+  playerScoresReady = true;
 }
 
 function playerSOSAdjustment(team) {
@@ -467,7 +514,7 @@ function renderPagination(kind, total, page, pageSize) {
 
 function teamLogo(team, size = 16) {
   const m = TM[team];
-  if (m && m.logo) return `<img src="${m.logo}" width="${size}" height="${size}" style="object-fit:contain;flex-shrink:0;border-radius:2px">`;
+  if (m && m.logo) return `<img src="${m.logo}" width="${size}" height="${size}" loading="lazy" decoding="async" style="object-fit:contain;flex-shrink:0;border-radius:2px">`;
   return '';
 }
 
@@ -1044,6 +1091,7 @@ function buildGlobalPlayerSearchIndex() {
 function getGlobalSearchMatches(query) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
+  if (!globalPlayerSearchIndex.length) buildGlobalPlayerSearchIndex();
   const terms = q.split(/\s+/).filter(Boolean);
   return globalPlayerSearchIndex
     .filter(p => terms.every(t => p.search.includes(t)))
@@ -1170,6 +1218,7 @@ function buildPredictorTeams(force = false) {
 
 // ── HITTING LEADERBOARD ────────────────────────────────────────────────────────
 function renderHitTable() {
+  setupPlayerScore();
   const isStd = hitMode === 'standard';
   const ss    = document.getElementById('hitStatFilter').value;
   const tf    = document.getElementById('hitTeamFilter').value;
@@ -1270,6 +1319,7 @@ function renderHitTable() {
 
 // ── PITCHING LEADERBOARD ───────────────────────────────────────────────────────
 function renderPitchTable() {
+  setupPlayerScore();
   const isStd = pitMode === 'standard';
   const ss    = document.getElementById('pitStatFilter').value;
   const tf    = document.getElementById('pitTeamFilter').value;
@@ -1373,6 +1423,7 @@ function renderPitchTable() {
 
 // ── PLAYER PAGE ────────────────────────────────────────────────────────────────
 function showPlayer(enc, team, from) {
+  setupPlayerScore();
   const name    = decodeURIComponent(enc);
   prevView      = from || 'leaderboard';
   const hitter  = AP.find(p => p.name === name && p.team === team);
@@ -1482,7 +1533,7 @@ function showPlayer(enc, team, from) {
   document.getElementById('playerContent').innerHTML = `
     <div class="player-hero">
       <div class="player-shield" style="background:${m.bg};border:1px solid ${m.s}55">
-        ${m.logo ? `<img src="${m.logo}" width="48" height="48" style="object-fit:contain;border-radius:4px">` : ''}
+        ${m.logo ? `<img loading="lazy" decoding="async" src="${m.logo}" width="48" height="48" style="object-fit:contain;border-radius:4px">` : ''}
       </div>
       <div class="player-info">
         <div class="player-full-name">${playerName}</div>
@@ -1569,7 +1620,7 @@ function renderTeamsGrid() {
     return `<div class="team-card" onclick="showTeam('${team}','teams')" style="border-color:${m.s}44">
       <div class="team-card-header">
         <div class="team-card-icon" style="background:${m.bg};border:1px solid ${m.s}55">
-          ${m.logo ? `<img src="${m.logo}" width="30" height="30" style="object-fit:contain">` : ''}
+          ${m.logo ? `<img loading="lazy" decoding="async" src="${m.logo}" width="30" height="30" style="object-fit:contain">` : ''}
         </div>
         <div>
           <div class="team-card-name">${team}</div>
@@ -1671,7 +1722,7 @@ function renderUpcomingGamePreview(team, gameIndex) {
     </div>
     <div class="game-scoreboard game-preview-board">
       <button class="game-team-card" onclick="showTeam(decodeURIComponent('${encodeURIComponent(team)}'),'game')" style="border-color:${m.s}55">
-        <span class="game-team-logo" style="background:${m.bg};border-color:${m.s}55">${m.logo ? `<img src="${m.logo}" alt="">` : ''}</span>
+        <span class="game-team-logo" style="background:${m.bg};border-color:${m.s}55">${m.logo ? `<img loading="lazy" decoding="async" src="${m.logo}" alt="">` : ''}</span>
         <span class="game-team-info">
           <span class="game-team-name">${escapeHtml(team)}</span>
           <span class="game-team-sub">${teamPower ? `#${teamPower.rank} · DI ${teamPower.score.toFixed(1)}` : escapeHtml(m.mascot || '')}</span>
@@ -1681,7 +1732,7 @@ function renderUpcomingGamePreview(team, gameIndex) {
       <div class="game-score-divider">vs</div>
       ${opponentTeam ? `
         <button class="game-team-card" onclick="showTeam(decodeURIComponent('${encodeURIComponent(opponentTeam)}'),'game')" style="border-color:${om.s}55">
-          <span class="game-team-logo" style="background:${om.bg};border-color:${om.s}55">${om.logo ? `<img src="${om.logo}" alt="">` : ''}</span>
+          <span class="game-team-logo" style="background:${om.bg};border-color:${om.s}55">${om.logo ? `<img loading="lazy" decoding="async" src="${om.logo}" alt="">` : ''}</span>
           <span class="game-team-info">
             <span class="game-team-name">${escapeHtml(opponentTeam)}</span>
             <span class="game-team-sub">${oppPower ? `#${oppPower.rank} · DI ${oppPower.score.toFixed(1)}` : escapeHtml(om.mascot || '')}</span>
@@ -1768,7 +1819,7 @@ function renderGameDetail(team, gameIndex) {
     </div>
     <div class="game-scoreboard">
       <button class="game-team-card ${teamResultClass}" onclick="showTeam(decodeURIComponent('${encodeURIComponent(team)}'),'game')" style="border-color:${m.s}55">
-        <span class="game-team-logo" style="background:${m.bg};border-color:${m.s}55">${m.logo ? `<img src="${m.logo}" alt="">` : ''}</span>
+        <span class="game-team-logo" style="background:${m.bg};border-color:${m.s}55">${m.logo ? `<img loading="lazy" decoding="async" src="${m.logo}" alt="">` : ''}</span>
         <span class="game-team-info">
           <span class="game-team-name">${escapeHtml(team)}</span>
           <span class="game-team-sub">${escapeHtml(m.mascot || '')}</span>
@@ -1778,7 +1829,7 @@ function renderGameDetail(team, gameIndex) {
       <div class="game-score-divider">${escapeHtml(loc)}</div>
       ${opponentTeam ? `
         <button class="game-team-card ${oppResultClass}" onclick="showTeam(decodeURIComponent('${encodeURIComponent(opponentTeam)}'),'game')" style="border-color:${om.s}55">
-          <span class="game-team-logo" style="background:${om.bg};border-color:${om.s}55">${om.logo ? `<img src="${om.logo}" alt="">` : ''}</span>
+          <span class="game-team-logo" style="background:${om.bg};border-color:${om.s}55">${om.logo ? `<img loading="lazy" decoding="async" src="${om.logo}" alt="">` : ''}</span>
           <span class="game-team-info">
             <span class="game-team-name">${escapeHtml(opponentTeam)}</span>
             <span class="game-team-sub">${escapeHtml(om.mascot || '')}</span>
@@ -1810,6 +1861,7 @@ function renderGameDetail(team, gameIndex) {
 }
 
 function showTeam(team, from) {
+  setupPlayerScore();
   prevView = from || 'teams';
   const m  = TM[team] || { p:'#222', s:'#444', t:'#aaa', bg:'#111', mascot:'', svg:'' };
   const divInfo = teamDivisionInfo(team);
@@ -1893,7 +1945,7 @@ function showTeam(team, from) {
   document.getElementById('teamContent').innerHTML = `
     <div class="team-hero">
       <div class="team-shield-lg" style="background:${m.bg};border-color:${m.s}55">
-        ${m.logo ? `<img src="${m.logo}" width="42" height="42" style="object-fit:contain">` : ''}
+        ${m.logo ? `<img loading="lazy" decoding="async" src="${m.logo}" width="42" height="42" style="object-fit:contain">` : ''}
       </div>
       <div class="team-info">
         <div class="team-name-lg">${team}</div>
@@ -1959,6 +2011,7 @@ function switchTeamPanel(btn, panelId) {
 
 // ── VIEW MANAGEMENT ────────────────────────────────────────────────────────────
 function showView(v, from) {
+  renderViewIfNeeded(v);
   document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
   document.getElementById('view-' + v).classList.add('active');
   window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
@@ -1990,8 +2043,28 @@ function showView(v, from) {
   if (v === 'predictor')                            document.getElementById('tab-predictor')?.classList.add('active');
   if (v === 'standings')                            document.getElementById('tab-standings')?.classList.add('active');
   if (v === 'glossary')                             document.getElementById('tab-glossary')?.classList.add('active');
-  if (v === 'predictor')                            renderMatchupPrediction();
-  if (v === 'scores')                               renderScoresPage();
+}
+
+function renderViewIfNeeded(v, force = false) {
+  if (!force && renderedViews.has(v)) return;
+  if (v === 'leaderboard') {
+    renderHitTable();
+  } else if (v === 'pitching') {
+    renderPitchTable();
+  } else if (v === 'teams') {
+    renderTeamsGrid();
+  } else if (v === 'team-rankings') {
+    renderTeamRankings();
+  } else if (v === 'scores') {
+    renderScoresPage();
+  } else if (v === 'predictor') {
+    if (!TEAM_POWER_RATINGS.length) calculateTeamPowerRatings();
+    buildPredictorTeams();
+    renderMatchupPrediction();
+  } else if (v === 'standings') {
+    renderStandings();
+  }
+  renderedViews.add(v);
 }
 
 function goBack() {
@@ -2136,6 +2209,7 @@ function cleanOpponentLabel(opponent) {
 
 function buildCompletedScoreGames() {
   if (typeof SCHEDULES === 'undefined') return [];
+  if (completedScoreGamesCache) return completedScoreGamesCache;
   const seen = new Set();
   const games = [];
 
@@ -2193,11 +2267,13 @@ function buildCompletedScoreGames() {
     });
   });
 
-  return games;
+  completedScoreGamesCache = games;
+  return completedScoreGamesCache;
 }
 
 function buildUpcomingGames() {
   if (typeof SCHEDULES === 'undefined') return [];
+  if (upcomingGamesCache) return upcomingGamesCache;
   const seen = new Set();
   const games = [];
   const today = new Date();
@@ -2239,16 +2315,17 @@ function buildUpcomingGames() {
     });
   });
 
-  return games.sort((a, b) =>
+  upcomingGamesCache = games.sort((a, b) =>
     Number(b.isFuture) - Number(a.isFuture) ||
     a.date - b.date ||
     b.importance - a.importance
   );
+  return upcomingGamesCache;
 }
 
 function scoreTableHtml(selected, limit = 10, includeDate = false) {
   if (!selected.length) return '<div class="empty">No completed scores available.</div>';
-  const teamLogoSmall = name => TM[name]?.logo ? `<img src="${TM[name].logo}" width="18" height="18" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : '';
+  const teamLogoSmall = name => TM[name]?.logo ? `<img loading="lazy" decoding="async" src="${TM[name].logo}" width="18" height="18" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : '';
 
   return `<table class="home-rankings-table">
     <thead><tr>
@@ -2282,7 +2359,7 @@ function scoreTableHtml(selected, limit = 10, includeDate = false) {
 
 function upcomingTableHtml(selected, limit = 8, includeDate = false) {
   if (!selected.length) return '<div class="empty">No upcoming games available.</div>';
-  const teamLogoSmall = name => TM[name]?.logo ? `<img src="${TM[name].logo}" width="18" height="18" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : '';
+  const teamLogoSmall = name => TM[name]?.logo ? `<img loading="lazy" decoding="async" src="${TM[name].logo}" width="18" height="18" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : '';
 
   return `<table class="home-rankings-table upcoming-table">
     <thead><tr>
@@ -2359,6 +2436,55 @@ function renderHomeUpcoming() {
   container.innerHTML = upcomingTableHtml(selected, 7);
 }
 
+function renderHomeTeamRankingsPreview() {
+  const container = document.getElementById('homeTeamRankings');
+  if (!container) return;
+
+  const teams = TEAM_POWER_RATINGS.length ? TEAM_POWER_RATINGS.slice(0, 10) : [];
+  if (!teams.length) {
+    container.innerHTML = '<div class="empty">Loading power rankings...</div>';
+    return;
+  }
+
+  container.innerHTML =
+    `<table class="home-rankings-table">
+      <thead><tr>
+        <th style="width:28px">#</th>
+        <th>Team</th>
+        <th class="num">Score</th>
+        <th class="num">AdjO</th>
+        <th class="num">AdjD</th>
+      </tr></thead>
+      <tbody>
+        ${teams.slice(0,10).map((t,i) => `
+          <tr onclick="showTeam(decodeURIComponent('${encodeURIComponent(t.team)}'),'home')">
+            <td style="font-family:var(--font-mono);font-weight:700;color:${i<3?'var(--accent)':'var(--muted)'}">${i+1}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                ${t.m?.logo ? `<img loading="lazy" decoding="async" src="${t.m.logo}" width="20" height="20" style="object-fit:contain;border-radius:2px">` : ''}
+                <span style="font-weight:700;color:${t.m?.t||'var(--text)'}">${t.team}</span>
+                <span style="font-size:11px;color:var(--muted)">${t.m?.mascot||''}</span>
+              </div>
+            </td>
+            <td class="num" style="font-weight:700;color:var(--accent)">${t.score.toFixed(1)}</td>
+            <td class="num" style="color:var(--muted2)">${t.adjO.toFixed(2)}</td>
+            <td class="num" style="color:var(--muted2)">${t.adjD.toFixed(2)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function warmHomePowerPreview() {
+  if (!TEAM_POWER_RATINGS.length) calculateTeamPowerRatings();
+  renderHomeScores();
+  renderHomeUpcoming();
+  renderHomeTeamRankingsPreview();
+  buildPredictorTeams();
+  if (document.getElementById('view-scores')?.classList.contains('active')) renderScoresPage();
+  if (document.getElementById('view-team-rankings')?.classList.contains('active')) renderTeamRankings();
+  if (document.getElementById('view-predictor')?.classList.contains('active')) renderMatchupPrediction();
+}
+
 function renderScoresPage() {
   const recent = document.getElementById('scoresRecent');
   const upcoming = document.getElementById('scoresUpcoming');
@@ -2396,7 +2522,7 @@ function renderHome() {
     return `<div class="performer-card" onclick="${isPit ? `showPlayer('${encodeURIComponent(p.name)}','${p.team}','home')` : `showPlayer('${encodeURIComponent(p.name)}','${p.team}','home')`}">
       <div class="performer-rank ${rankColors[idx]}">${idx+1}</div>
       <div style="flex-shrink:0">
-        ${m.logo ? `<img src="${m.logo}" width="28" height="28" style="object-fit:contain;border-radius:3px">` : ''}
+        ${m.logo ? `<img loading="lazy" decoding="async" src="${m.logo}" width="28" height="28" style="object-fit:contain;border-radius:3px">` : ''}
       </div>
       <div class="performer-info">
         <div class="performer-name">${p.name}</div>
@@ -2417,36 +2543,7 @@ function renderHome() {
 
   renderHomeScores();
   renderHomeUpcoming();
-
-  // Power rankings preview (top 10)
-  const teams = TEAM_POWER_RATINGS.length ? TEAM_POWER_RATINGS.slice(0, 10) : [];
-
-  document.getElementById('homeTeamRankings').innerHTML =
-    `<table class="home-rankings-table">
-      <thead><tr>
-        <th style="width:28px">#</th>
-        <th>Team</th>
-        <th class="num">Score</th>
-        <th class="num">AdjO</th>
-        <th class="num">AdjD</th>
-      </tr></thead>
-      <tbody>
-        ${teams.slice(0,10).map((t,i) => `
-          <tr onclick="showTeam(decodeURIComponent('${encodeURIComponent(t.team)}'),'home')">
-            <td style="font-family:var(--font-mono);font-weight:700;color:${i<3?'var(--accent)':'var(--muted)'}">${i+1}</td>
-            <td>
-              <div style="display:flex;align-items:center;gap:8px">
-                ${t.m?.logo ? `<img src="${t.m.logo}" width="20" height="20" style="object-fit:contain;border-radius:2px">` : ''}
-                <span style="font-weight:700;color:${t.m?.t||'var(--text)'}">${t.team}</span>
-                <span style="font-size:11px;color:var(--muted)">${t.m?.mascot||''}</span>
-              </div>
-            </td>
-            <td class="num" style="font-weight:700;color:var(--accent)">${t.score.toFixed(1)}</td>
-            <td class="num" style="color:var(--muted2)">${t.adjO.toFixed(2)}</td>
-            <td class="num" style="color:var(--muted2)">${t.adjD.toFixed(2)}</td>
-          </tr>`).join('')}
-      </tbody>
-    </table>`;
+  renderHomeTeamRankingsPreview();
 }
 
 // ── TEAM RANKINGS PAGE ─────────────────────────────────────────────────────────
@@ -2608,6 +2705,18 @@ function buildTeamPowerRaw() {
 function calculateTeamPowerRatings() {
   const rows = buildTeamPowerRaw();
   const rowByTeam = Object.fromEntries(rows.map(r => [r.team, r]));
+  const percentileCache = new Map();
+  const rowPct = (key, value, lowerBetter = false, filterKey = 'all', predicate = null) => {
+    if (!Number.isFinite(value)) return 50;
+    const cacheKey = `${key}|${filterKey}`;
+    if (!percentileCache.has(cacheKey)) {
+      percentileCache.set(cacheKey, rows
+        .filter(r => !predicate || predicate(r))
+        .map(r => r[key])
+        .filter(Number.isFinite));
+    }
+    return calcPct(percentileCache.get(cacheKey), value, lowerBetter);
+  };
   const allGameResults = rows.flatMap(r => r.gameResults);
   const leagueRPG = allGameResults.length
     ? allGameResults.reduce((s, g) => s + g.ratingRs, 0) / allGameResults.length
@@ -2624,26 +2733,26 @@ function calculateTeamPowerRatings() {
     const hasHit = r.teamPA > 0;
     const hasPit = r.IP > 0;
     const runBase = hasGames ? (
-      percentileFromRows(rows, 'rdiffPG', r.rdiffPG, false, x => x.G > 0) * 0.45 +
-      percentileFromRows(rows, 'pythWpct', r.pythWpct, false, x => x.G > 0) * 0.35 +
-      percentileFromRows(rows, 'wpct', r.wpct, false, x => x.G > 0) * 0.20
+      rowPct('rdiffPG', r.rdiffPG, false, 'games', x => x.G > 0) * 0.45 +
+      rowPct('pythWpct', r.pythWpct, false, 'games', x => x.G > 0) * 0.35 +
+      rowPct('wpct', r.wpct, false, 'games', x => x.G > 0) * 0.20
     ) : 50;
     const offense = hasHit ? (
-      percentileFromRows(rows, 'wRC_plus', r.wRC_plus, false, x => x.teamPA > 0) * 0.40 +
-      percentileFromRows(rows, 'wOBA', r.wOBA, false, x => x.teamPA > 0) * 0.25 +
-      percentileFromRows(rows, 'OPS', r.OPS, false, x => x.teamPA > 0) * 0.20 +
-      percentileFromRows(rows, 'rsPG', r.rsPG, false, x => x.G > 0) * 0.15
+      rowPct('wRC_plus', r.wRC_plus, false, 'hit', x => x.teamPA > 0) * 0.40 +
+      rowPct('wOBA', r.wOBA, false, 'hit', x => x.teamPA > 0) * 0.25 +
+      rowPct('OPS', r.OPS, false, 'hit', x => x.teamPA > 0) * 0.20 +
+      rowPct('rsPG', r.rsPG, false, 'games', x => x.G > 0) * 0.15
     ) : 50;
     const pitching = hasPit ? (
-      percentileFromRows(rows, 'ERA', r.ERA, true, x => x.IP > 0) * 0.30 +
-      percentileFromRows(rows, 'WHIP', r.WHIP, true, x => x.IP > 0) * 0.20 +
-      percentileFromRows(rows, 'FIP', r.FIP, true, x => x.IP > 0) * 0.20 +
-      percentileFromRows(rows, 'K7', r.K7, false, x => x.IP > 0) * 0.15 +
-      percentileFromRows(rows, 'raPG', r.raPG, true, x => x.G > 0) * 0.15
+      rowPct('ERA', r.ERA, true, 'pit', x => x.IP > 0) * 0.30 +
+      rowPct('WHIP', r.WHIP, true, 'pit', x => x.IP > 0) * 0.20 +
+      rowPct('FIP', r.FIP, true, 'pit', x => x.IP > 0) * 0.20 +
+      rowPct('K7', r.K7, false, 'pit', x => x.IP > 0) * 0.15 +
+      rowPct('raPG', r.raPG, true, 'games', x => x.G > 0) * 0.15
     ) : 50;
     const recent = r.last5G ? (
-      percentileFromRows(rows, 'last5Pct', r.last5Pct, false, x => x.last5G > 0) * 0.55 +
-      percentileFromRows(rows, 'last5RDiffPG', r.last5RDiffPG, false, x => x.last5G > 0) * 0.45
+      rowPct('last5Pct', r.last5Pct, false, 'last5', x => x.last5G > 0) * 0.55 +
+      rowPct('last5RDiffPG', r.last5RDiffPG, false, 'last5', x => x.last5G > 0) * 0.45
     ) : 50;
 
     r.runBase = runBase;
@@ -2693,17 +2802,22 @@ function calculateTeamPowerRatings() {
     r.oppAdjD = oppRows.length ? avgNums(oppRows.map(o => o.adjD)) : leagueRPG;
     r.sosPyth = pyth(r.oppAdjO, r.oppAdjD);
     r.sos = r.sosPyth * 100;
-    r.sosComp = percentileFromRows(rows, 'sos', r.sos, false);
     r.adjRDiffPG = r.adjO - r.adjD;
-    r.adjRun = r.G > 0 ? percentileFromRows(rows, 'adjRDiffPG', r.adjRDiffPG, false, x => x.G > 0) : 50;
     r.pywp = pyth(r.adjO, r.adjD);
     r.luck = r.wpct - r.pywp;
     r.score = clamp(r.pywp * 100);
   });
 
+  rows.forEach(r => {
+    r.sosComp = rowPct('sos', r.sos, false);
+    r.adjRun = r.G > 0 ? rowPct('adjRDiffPG', r.adjRDiffPG, false, 'games', x => x.G > 0) : 50;
+  });
+
   TEAM_POWER_RATINGS = rows.sort((a, b) => b.score - a.score || b.adjRDiffPG - a.adjRDiffPG);
   TEAM_POWER_RATINGS.forEach((r, i) => { r.rank = i + 1; });
   TEAM_POWER_BY_TEAM = Object.fromEntries(TEAM_POWER_RATINGS.map(r => [r.team, r]));
+  completedScoreGamesCache = null;
+  upcomingGamesCache = null;
 }
 
 function renderTeamRankings() {
@@ -2746,7 +2860,7 @@ function renderTeamRankings() {
       <td style="font-family:var(--font-sans);font-weight:700;color:${t.rank<=3?'var(--accent)':'var(--muted)'}">${t.rank}</td>
       <td>
         <div style="display:flex;align-items:center;gap:8px">
-          ${t.m?.logo ? `<img src="${t.m.logo}" width="22" height="22" style="object-fit:contain;border-radius:2px">` : ''}
+          ${t.m?.logo ? `<img loading="lazy" decoding="async" src="${t.m.logo}" width="22" height="22" style="object-fit:contain;border-radius:2px">` : ''}
           <span style="font-family:var(--font-sans);font-weight:600;color:${t.m?.t||'var(--text)'}">${t.team}</span>
           <span style="font-size:11px;color:var(--muted)">${t.m?.mascot||''}</span>
         </div>
@@ -2772,7 +2886,7 @@ function sortRankings(col, lowerBetter) {
 
 function teamLogoImg(team, cls = '') {
   const m = TM[team] || {};
-  return m.logo ? `<img class="${cls}" src="${m.logo}" alt="" aria-hidden="true">` : '';
+  return m.logo ? `<img loading="lazy" decoding="async" class="${cls}" src="${m.logo}" alt="" aria-hidden="true">` : '';
 }
 
 function leagueRunEnvironment() {
@@ -3088,7 +3202,7 @@ function renderStandings() {
         <td>
           <div class="standings-team-cell">
             <span class="standings-pos ${i === 0 ? 'leader' : ''}">${i + 1}</span>
-            ${m.logo ? `<img src="${m.logo}" width="22" height="22" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : ''}
+            ${m.logo ? `<img loading="lazy" decoding="async" src="${m.logo}" width="22" height="22" style="object-fit:contain;border-radius:2px;flex-shrink:0">` : ''}
             <span class="standings-team-name">${r.team}</span>
           </div>
         </td>
@@ -3148,20 +3262,12 @@ function renderStandings() {
 initTheme();
 normalizePlayers();
 buildSeasonControls();
-setupPlayerScore();
-calculateTeamPowerRatings();
-buildGlobalPlayerSearchIndex();
 showLastUpdated();
 updateSeasonText();
 buildDivFilters();
 buildTeamFilters();
-buildPredictorTeams();
-renderHitTable();
-renderPitchTable();
-renderTeamsGrid();
-buildTeamsNav();
 renderHome();
-renderScoresPage();
-renderTeamRankings();
-renderMatchupPrediction();
-renderStandings();
+deferWork(() => {
+  warmHomePowerPreview();
+  buildTeamsNav();
+});
