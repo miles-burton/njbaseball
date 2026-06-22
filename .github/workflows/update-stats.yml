@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: update-stats
+  group: stats-data-updates
   cancel-in-progress: false
 
 jobs:

@@ -2,12 +2,14 @@
 """
 Pitch Index boys soccer data scraper.
 
-Pulls real 2025-2026 boys soccer standings, schedules, scoring, and goalkeeping
-data from highschoolsports.nj.com and writes js/pitch-data.js for the static app.
+Pulls real boys soccer standings, schedules, scoring, goalkeeping, and player
+game logs from highschoolsports.nj.com for the current academic season.
 """
 
+import argparse
 import concurrent.futures
 import json
+import os
 import re
 import ssl
 import time
@@ -15,13 +17,21 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from html import unescape
+from zoneinfo import ZoneInfo
 
 import certifi
 
 
-SEASON = "2025-2026"
+def current_soccer_season():
+    now = datetime.now(ZoneInfo("America/New_York"))
+    start_year = now.year if now.month >= 7 else now.year - 1
+    return f"{start_year}-{start_year + 1}"
+
+
+SEASON = os.environ.get("PITCH_SEASON", current_soccer_season())
 SPORT = "boyssoccer"
 BASE = "https://highschoolsports.nj.com"
+OUTPUT_PATH = "js/pitch-data.js"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
 }
@@ -309,6 +319,15 @@ def fetch_player_logs(player_url):
         return player_url, {}
 
 
+def load_existing_payload():
+    try:
+        text = open(OUTPUT_PATH, encoding="utf-8").read()
+        payload_text = text.split("const PITCH_DATA = ", 1)[1].rsplit(";", 1)[0]
+        return json.loads(payload_text)
+    except (OSError, IndexError, json.JSONDecodeError):
+        return {}
+
+
 def compute_ratings(teams):
     by_slug = {team["slug"]: team for team in teams}
     by_name = {}
@@ -486,7 +505,16 @@ def compute_ratings(teams):
 
 
 def main():
-    print("Fetching boys soccer conference standings...")
+    parser = argparse.ArgumentParser(description="Refresh Pitch Index data from NJ.com")
+    parser.add_argument(
+        "--skip-player-logs",
+        action="store_true",
+        help="Refresh teams, schedules, and leaderboards while preserving existing player logs",
+    )
+    args = parser.parse_args()
+    existing_payload = load_existing_payload()
+
+    print(f"Fetching {SEASON} boys soccer conference standings...")
     all_teams = []
     seen = set()
     for conf in CONFERENCES:
@@ -502,6 +530,9 @@ def main():
             print(f"  {conf}: ERROR {exc}")
         time.sleep(0.08)
 
+    if len(all_teams) < 300:
+        raise RuntimeError(f"Refusing to publish incomplete NJ.com data: only {len(all_teams)} teams found")
+
     print(f"Fetching team schedules/stats for {len(all_teams)} teams...")
     payloads = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
@@ -512,27 +543,52 @@ def main():
             if idx % 25 == 0 or idx == len(all_teams):
                 print(f"  {idx}/{len(all_teams)}")
 
+    successful_payloads = [team for team in payloads if not team.get("error")]
+    failed_count = len(payloads) - len(successful_payloads)
+    if len(successful_payloads) < int(len(all_teams) * 0.85):
+        raise RuntimeError(
+            f"Refusing to publish incomplete NJ.com data: only {len(successful_payloads)}/{len(all_teams)} team pages succeeded"
+        )
+
+    existing_by_slug = {
+        team.get("slug"): team
+        for team in existing_payload.get("teams", [])
+        if existing_payload.get("season") == SEASON and team.get("slug")
+    }
+    unrecovered = [team["slug"] for team in payloads if team.get("error") and team["slug"] not in existing_by_slug]
+    if unrecovered:
+        raise RuntimeError(
+            f"Refusing to publish incomplete NJ.com data: {len(unrecovered)} failed team pages have no prior data"
+        )
+    if failed_count:
+        print(f"Preserving last known good data for {failed_count} temporarily unavailable team pages.")
+        payloads = [{**existing_by_slug[team["slug"]]} if team.get("error") else team for team in payloads]
+
+    payloads.sort(key=lambda team: team["slug"])
     compute_ratings(payloads)
     scorers = [player for team in payloads for player in team.get("scorers", [])]
     keepers = [player for team in payloads for player in team.get("keepers", [])]
     games = [game | {"team": team["name"], "teamSlug": team["slug"]} for team in payloads for game in team.get("schedule", [])]
     player_urls = sorted({player.get("playerUrl", "") for player in [*scorers, *keepers] if player.get("playerUrl")})
-    player_logs = {}
-    print(f"Fetching player game logs for {len(player_urls)} players...")
-    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
-        futures = [executor.submit(fetch_player_logs, url) for url in player_urls]
-        for idx, future in enumerate(concurrent.futures.as_completed(futures), start=1):
-            url, logs = future.result()
-            if logs:
-                player_logs[url] = logs
-            if idx % 250 == 0 or idx == len(player_urls):
-                print(f"  {idx}/{len(player_urls)}")
+    existing_logs = existing_payload.get("playerLogs", {})
+    player_logs = {url: existing_logs[url] for url in player_urls if url in existing_logs}
+    if args.skip_player_logs:
+        print(f"Preserving {len(player_logs)} existing player game logs (fast refresh).")
+    else:
+        print(f"Fetching player game logs for {len(player_urls)} players...")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
+            futures = [executor.submit(fetch_player_logs, url) for url in player_urls]
+            for idx, future in enumerate(concurrent.futures.as_completed(futures), start=1):
+                url, logs = future.result()
+                if logs:
+                    player_logs[url] = logs
+                if idx % 250 == 0 or idx == len(player_urls):
+                    print(f"  {idx}/{len(player_urls)}")
 
     payload = {
         "season": SEASON,
         "sport": SPORT,
         "source": "highschoolsports.nj.com",
-        "updated": datetime.now(timezone.utc).isoformat(),
         "teams": payloads,
         "scorers": scorers,
         "keepers": keepers,
@@ -540,11 +596,20 @@ def main():
         "playerLogs": player_logs,
     }
 
-    with open("js/pitch-data.js", "w", encoding="utf-8") as f:
+    comparable_existing = {key: value for key, value in existing_payload.items() if key != "updated"}
+    if payload == comparable_existing:
+        print("NJ.com data is unchanged; keeping the existing data file.")
+        return
+
+    payload["updated"] = datetime.now(timezone.utc).isoformat()
+
+    temp_path = f"{OUTPUT_PATH}.tmp"
+    with open(temp_path, "w", encoding="utf-8") as f:
         f.write("// Auto-generated by pitch_scraper.py from highschoolsports.nj.com boys soccer data.\n")
         f.write("const PITCH_DATA = ")
         json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
         f.write(";\n")
+    os.replace(temp_path, OUTPUT_PATH)
     print(f"Wrote js/pitch-data.js with {len(payloads)} teams, {len(scorers)} scorers, {len(keepers)} keepers, {len(player_logs)} player logs.")
 
 

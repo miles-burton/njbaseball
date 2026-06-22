@@ -1,0 +1,59 @@
+name: Update Pitch Index
+
+on:
+  schedule:
+    # Fast team/score/leader refreshes throughout the day (UTC).
+    - cron: '30 10,14,18,22 * * *'
+    # Full player game-log refresh once overnight (UTC).
+    - cron: '30 6 * * *'
+  workflow_dispatch:
+    inputs:
+      full_player_logs:
+        description: Refresh every player game log
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stats-data-updates
+  cancel-in-progress: false
+
+jobs:
+  scrape-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install certifi
+
+      - name: Refresh Pitch Index data
+        env:
+          FULL_PLAYER_LOGS: ${{ github.event_name == 'workflow_dispatch' && inputs.full_player_logs || github.event.schedule == '30 6 * * *' }}
+        run: |
+          if [ "$FULL_PLAYER_LOGS" = "true" ]; then
+            python3 pitch_scraper.py
+          else
+            python3 pitch_scraper.py --skip-player-logs
+          fi
+
+      - name: Commit and push if data changed
+        run: |
+          git config user.name "Pitch Index Bot"
+          git config user.email "bot@pitchindex.com"
+          git add js/pitch-data.js
+          git diff --staged --quiet || git commit -m "Auto-update Pitch stats $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push
