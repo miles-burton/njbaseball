@@ -2,6 +2,7 @@ const $ = (id) => document.getElementById(id);
 const TEAMS = PITCH_DATA.teams || [];
 const SCORERS = PITCH_DATA.scorers || [];
 const KEEPERS = PITCH_DATA.keepers || [];
+const PLAYER_LOGS = PITCH_DATA.playerLogs || {};
 const TEAM_BY_SLUG = Object.fromEntries(TEAMS.map((team) => [team.slug, team]));
 const CONFERENCES = [...new Set(TEAMS.map((team) => team.conference))].sort();
 const REPORT_ISSUE_URL = 'https://github.com/miles-burton/njbaseball/issues/new';
@@ -250,10 +251,22 @@ function displayPitchDate(date) {
 
 function cleanPitchOpponentLabel(opponent) {
   return String(opponent || '')
-    .replace(/\s+2025\s+Boys Soccer.*$/i, '')
+    .replace(/\s+20\d{2}\s+Boys Soccer.*$/i, '')
     .replace(/\s+NJSIAA.*$/i, '')
     .replace(/\s+Tournament.*$/i, '')
     .trim();
+}
+
+function splitPitchTournamentLabel(opponent) {
+  const text = String(opponent || '').replace(/\s+/g, ' ').trim();
+  const match = text.match(/^(.*?)\s+(20\d{2})\s+Boys Soccer\s+-\s+([^,]+)(?:,.*)?$/i);
+  if (!match) {
+    return { opponent: cleanPitchOpponentLabel(text), tournament: '' };
+  }
+  return {
+    opponent: match[1].trim(),
+    tournament: `${match[2]} ${match[3]}`.toUpperCase(),
+  };
 }
 
 function resolveOpponentTeam(game) {
@@ -542,6 +555,7 @@ function teamScheduleTable(team) {
     <tbody>${games.map((game) => {
       const enriched = { ...game, teamSlug: team.slug, teamName: team.name };
       const opponent = resolveOpponentTeam(enriched);
+      const tournamentInfo = splitPitchTournamentLabel(game.opponent);
       const loc = game.site || '';
       const result = game.result === 'W'
         ? '<span class="pitch-result-win">W</span>'
@@ -558,8 +572,8 @@ function teamScheduleTable(team) {
         <td>
           <div class="pitch-schedule-opponent">
             <span class="pitch-schedule-site">${esc(loc)}</span>
-            ${opponent ? `${logoImg(opponent, 16)}${linkedTeam(opponent)}` : `<span>${esc(cleanPitchOpponentLabel(game.opponent) || game.opponent || '')}</span>`}
-            ${isTournamentGame(game) ? '<span class="home-score-badge">TOURNEY</span>' : ''}
+            ${opponent ? `${logoImg(opponent, 16)}${linkedTeam(opponent)}` : `<span class="pitch-schedule-opponent-name">${esc(tournamentInfo.opponent || game.opponent || '')}</span>`}
+            ${tournamentInfo.tournament ? `<span class="pitch-tourney-badge">${esc(tournamentInfo.tournament)}</span>` : ''}
           </div>
         </td>
         <td class="num">${result}</td>
@@ -567,6 +581,61 @@ function teamScheduleTable(team) {
       </tr>`;
     }).join('')}</tbody>
   </table></div>`;
+}
+
+function playerLogsFor(player) {
+  if (!player) return {};
+  return PLAYER_LOGS[player.playerUrl] || PLAYER_LOGS[playerKey(player)] || {};
+}
+
+function playerLogTable(logs, type) {
+  if (!logs || !logs.length) return '';
+  const isKeeper = type === 'keepers';
+  const cols = isKeeper ? ['Saves', 'GP'] : ['G', 'A', 'P'];
+  const title = isKeeper ? 'Goalkeeper Game Log' : 'Scoring Game Log';
+  return `<div class="player-log-section">
+    <div class="section-title">${title}</div>
+    <div class="lb-table-wrap"><table class="pitch-player-log-table">
+      <thead><tr>
+        <th>Date</th>
+        <th>Opponent</th>
+        <th>Result</th>
+        ${cols.map((col) => `<th class="num">${col}</th>`).join('')}
+      </tr></thead>
+      <tbody>${logs.map((game) => {
+        const tournamentInfo = splitPitchTournamentLabel(game.opponent || game.opp || '');
+        const opponentLabel = tournamentInfo.opponent || game.opponent || game.opp || '';
+        const resultText = game.result || game.res || '';
+        const resultClass = /^W\b/.test(resultText)
+          ? 'pitch-result-win'
+          : /^L\b/.test(resultText)
+            ? 'pitch-result-loss'
+            : /^T\b/.test(resultText)
+              ? 'pitch-result-tie'
+              : '';
+        return `<tr>
+          <td class="pitch-schedule-date">${esc(game.date || '')}</td>
+          <td>
+            <div class="pitch-schedule-opponent">
+              <span class="pitch-schedule-opponent-name">${esc(opponentLabel)}</span>
+              ${tournamentInfo.tournament ? `<span class="pitch-tourney-badge">${esc(tournamentInfo.tournament)}</span>` : ''}
+            </div>
+          </td>
+          <td><span class="${resultClass}">${esc(resultText)}</span></td>
+          ${cols.map((col) => `<td class="num pitch-schedule-score">${esc(game[col] ?? 0)}</td>`).join('')}
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function playerGameLogs(player) {
+  const logs = playerLogsFor(player);
+  const scoring = playerLogTable(logs.scoring || [], 'scoring');
+  const keepers = playerLogTable(logs.keepers || [], 'keepers');
+  return scoring || keepers
+    ? `<div class="player-logs-wrap">${scoring}${keepers}</div>`
+    : '<div class="player-logs-wrap"><div class="empty">No game log data available for this player yet.</div></div>';
 }
 
 function performerCards(scorers, keepers) {
@@ -738,7 +807,8 @@ function renderLeaders() {
     </div>`;
 }
 
-function leaderTable(rows, type, sortable) {
+function leaderTable(rows, type, sortable, options = {}) {
+  const showTeam = options.showTeam !== false;
   const cols = type === 'keepers'
     ? [['GP','GP'], ['Saves','Saves']]
     : [['GP','GP'], ['G','G'], ['A','A'], ['P','P']];
@@ -751,7 +821,7 @@ function leaderTable(rows, type, sortable) {
     <thead><tr>
       <th style="width:64px">#</th>
       <th>Player</th>
-      <th>Team</th>
+      ${showTeam ? '<th>Team</th>' : ''}
       ${cols.map(([label,key]) => `<th ${sort(key)}>${label}${state.leaderSort.key === key ? sortArrow : ''}</th>`).join('')}
     </tr></thead>
     <tbody>${rows.map((player, i) => {
@@ -759,7 +829,7 @@ function leaderTable(rows, type, sortable) {
       return `<tr data-player-key="${encodeURIComponent(playerKey(player))}">
         <td class="rank-cell${i < 3 ? ' top3' : ''}">${i + 1}</td>
         ${leaderPlayerCell(player)}
-        <td>${teamChip(team)}</td>
+        ${showTeam ? `<td>${teamChip(team)}</td>` : ''}
         ${cols.map(([, key]) => {
           const active = state.leaderSort.key === key;
           return `<td class="num" style="${active ? 'font-weight:700;color:var(--accent)' : 'color:var(--muted2)'}">${player[key] ?? 0}</td>`;
@@ -1020,10 +1090,10 @@ function renderTeam() {
       <button class="team-section-tab" data-team-panel-target="pitch-team-schedule-${teamPanelId}" type="button">Schedule</button>
     </div>
     <div id="pitch-team-scoring-${teamPanelId}" class="team-panel active">
-      ${leaderTable(scorers, 'scoring', false)}
+      ${leaderTable(scorers, 'scoring', false, { showTeam: false })}
     </div>
     <div id="pitch-team-keepers-${teamPanelId}" class="team-panel">
-      ${leaderTable(keepers, 'keepers', false)}
+      ${leaderTable(keepers, 'keepers', false, { showTeam: false })}
     </div>
     <div id="pitch-team-schedule-${teamPanelId}" class="team-panel">
       ${teamScheduleTable(team)}
@@ -1062,6 +1132,7 @@ function renderPlayer() {
       <div class="counting-card"><div class="counting-label">Keeper GP</div><div class="counting-value">${keeping?.GP ?? 0}</div></div>
       <div class="counting-card"><div class="counting-label">Team Rank</div><div class="counting-value">${team?.rank ? `#${team.rank}` : '-'}</div></div>
     </div>
+    ${playerGameLogs(player)}
   </div>`;
 }
 

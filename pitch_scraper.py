@@ -231,6 +231,50 @@ def parse_stats(html, team):
     return scorers, keepers
 
 
+def table_rows(table):
+    rows = []
+    for row in re.findall(r"<tr.*?</tr>", table, flags=re.S | re.I):
+        cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, flags=re.S | re.I)
+        if cells:
+            rows.append([clean_text(cell) for cell in cells])
+    return rows
+
+
+def parse_player_game_logs(html):
+    logs = {}
+    for table in re.findall(r"<table.*?</table>", html, flags=re.S | re.I):
+        rows = table_rows(table)
+        if len(rows) < 2:
+            continue
+        header = rows[0]
+        if len(header) < 3 or header[0] != "Date" or header[1] != "Opponent" or header[2] != "Result":
+            continue
+
+        index = {name: idx for idx, name in enumerate(header)}
+        parsed = []
+        for row in rows[1:]:
+            if not row or "total" in row[0].lower():
+                continue
+            row += [""] * (len(header) - len(row))
+            item = {
+                "date": row[index["Date"]],
+                "opponent": row[index["Opponent"]],
+                "result": row[index["Result"]],
+            }
+            for col in ("G", "A", "P", "Saves", "GP"):
+                if col in index:
+                    item[col] = parse_int(row[index[col]])
+            parsed.append(item)
+
+        if not parsed:
+            continue
+        if all(col in index for col in ("G", "A", "P")):
+            logs["scoring"] = parsed
+        elif "Saves" in index:
+            logs["keepers"] = parsed
+    return logs
+
+
 def parse_logo(html):
     match = re.search(r'Logos/(\d+)\.png', html)
     if match:
@@ -253,6 +297,16 @@ def fetch_team_payload(team):
     scorers, keepers = parse_stats(stats_html, team)
     logo = parse_logo(stats_html) or parse_logo(schedule_html)
     return {**team, "schedule": schedule, "scorers": scorers, "keepers": keepers, "logo": logo}
+
+
+def fetch_player_logs(player_url):
+    if not player_url:
+        return player_url, {}
+    try:
+        html = fetch(player_url, timeout=14)
+        return player_url, parse_player_game_logs(html)
+    except Exception:
+        return player_url, {}
 
 
 def compute_ratings(teams):
@@ -462,6 +516,18 @@ def main():
     scorers = [player for team in payloads for player in team.get("scorers", [])]
     keepers = [player for team in payloads for player in team.get("keepers", [])]
     games = [game | {"team": team["name"], "teamSlug": team["slug"]} for team in payloads for game in team.get("schedule", [])]
+    player_urls = sorted({player.get("playerUrl", "") for player in [*scorers, *keepers] if player.get("playerUrl")})
+    player_logs = {}
+    print(f"Fetching player game logs for {len(player_urls)} players...")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
+        futures = [executor.submit(fetch_player_logs, url) for url in player_urls]
+        for idx, future in enumerate(concurrent.futures.as_completed(futures), start=1):
+            url, logs = future.result()
+            if logs:
+                player_logs[url] = logs
+            if idx % 250 == 0 or idx == len(player_urls):
+                print(f"  {idx}/{len(player_urls)}")
+
     payload = {
         "season": SEASON,
         "sport": SPORT,
@@ -471,6 +537,7 @@ def main():
         "scorers": scorers,
         "keepers": keepers,
         "games": games,
+        "playerLogs": player_logs,
     }
 
     with open("js/pitch-data.js", "w", encoding="utf-8") as f:
@@ -478,7 +545,7 @@ def main():
         f.write("const PITCH_DATA = ")
         json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
         f.write(";\n")
-    print(f"Wrote js/pitch-data.js with {len(payloads)} teams, {len(scorers)} scorers, {len(keepers)} keepers.")
+    print(f"Wrote js/pitch-data.js with {len(payloads)} teams, {len(scorers)} scorers, {len(keepers)} keepers, {len(player_logs)} player logs.")
 
 
 if __name__ == "__main__":
