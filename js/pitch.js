@@ -598,7 +598,7 @@ function rankingTable(rows, sortable) {
     </tr></thead>
     <tbody>${rows.map((team) => `<tr class="rankings-row" data-team-slug="${esc(team.slug)}">
       <td style="font-family:var(--font-sans);font-weight:700;color:${team.rank <= 3 ? 'var(--accent)' : 'var(--muted)'}">${team.rank}</td>
-      <td><div class="team-cell">${logo(team)}<div>${teamButton(team)}<div class="muted">${esc(team.division)}</div></div></div></td>
+      <td><div class="team-cell rankings-team-cell">${logo(team, 'team-logo rankings-team-logo')}<div>${teamButton(team)}</div></div></td>
       <td style="font-size:11px;color:var(--muted2);max-width:170px">${esc(team.conference)}</td>
       <td class="num"><span class="standings-record ${team.winPct > 0.5 ? 'over-500' : team.winPct < 0.5 ? 'under-500' : 'even-500'}">${esc(team.record)}</span></td>
       <td class="num" style="${state.rankingSort.key === 'powerScore' ? 'font-weight:700;color:var(--accent)' : ''}">${team.powerScore.toFixed(1)}</td>

@@ -216,6 +216,20 @@
   gap: 10px;
 }
 
+.rankings-team-cell {
+  gap: 9px;
+}
+
+.rankings-team-logo {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  box-shadow: none;
+}
+
 .toolbar {
   display: flex;
   gap: 10px;
