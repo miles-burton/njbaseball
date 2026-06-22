@@ -689,7 +689,7 @@ function leaderTable(rows, type, sortable) {
   };
   return `<div class="lb-table-wrap"><table>
     <thead><tr>
-      <th style="width:36px">#</th>
+      <th style="width:64px">#</th>
       <th>Player</th>
       <th>Team</th>
       ${cols.map(([label,key]) => `<th ${sort(key)}>${label}${state.leaderSort.key === key ? sortArrow : ''}</th>`).join('')}

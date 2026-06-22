@@ -443,13 +443,13 @@
 }
 
 .pitch-leaders-wrap {
-  max-width: none;
-  padding: 14px 14px 60px;
+  max-width: 1440px;
+  padding: 24px 28px 60px;
 }
 
 .pitch-leaders-wrap .controls-row {
   align-items: stretch;
-  border-radius: 18px;
+  border-radius: 12px;
   flex-wrap: nowrap;
   gap: 6px;
   overflow-x: auto;
@@ -457,14 +457,18 @@
   scrollbar-width: thin;
 }
 
+.pitch-leaders-wrap .controls-row::-webkit-scrollbar {
+  display: none;
+}
+
 .pitch-leaders-wrap .search-wrap {
-  flex: 0 0 180px;
-  min-width: 180px;
+  flex: 0 0 164px;
+  min-width: 164px;
 }
 
 .pitch-leaders-wrap .search-input {
   width: 100%;
-  height: 40px;
+  height: 36px;
   border-radius: 10px;
 }
 
@@ -473,7 +477,7 @@
 .pitch-leaders-wrap .pa-filter-input,
 .pitch-leaders-wrap .date-filter-wrap input[type=date],
 .pitch-leaders-wrap .date-clear-btn {
-  height: 40px;
+  height: 36px;
   border-radius: 8px;
 }
 
@@ -482,7 +486,7 @@
 }
 
 .pitch-leaders-wrap .div-filter-btn {
-  width: 104px;
+  width: 100px;
   justify-content: center;
   padding-inline: 10px;
 }
@@ -495,8 +499,8 @@
 }
 
 .pitch-leaders-wrap [data-leader-team] {
-  min-width: 168px;
-  max-width: 176px;
+  min-width: 152px;
+  max-width: 164px;
 }
 
 .pitch-leaders-wrap [data-leader-grade] {
@@ -527,14 +531,14 @@
 }
 
 .pitch-leaders-wrap .date-filter-wrap input[type=date] {
-  width: 92px !important;
+  width: 84px !important;
   min-width: 0;
   padding-inline: 6px;
   font-size: 10px;
 }
 
 .pitch-leaders-wrap .date-clear-btn {
-  padding-inline: 8px;
+  padding-inline: 7px;
 }
 
 .pitch-leaders-wrap .div-filter-option {
@@ -546,7 +550,7 @@
 }
 
 .pitch-leaders-wrap .lb-table-wrap {
-  border-radius: 18px;
+  border-radius: 14px;
   overflow: hidden;
   margin-top: 14px;
 }
@@ -555,9 +559,25 @@
   table-layout: fixed;
 }
 
-.pitch-leaders-wrap th:nth-child(1) { width: 54px; }
+.pitch-leaders-wrap th:nth-child(1) { width: 64px; }
 .pitch-leaders-wrap th:nth-child(2) { width: 340px; }
 .pitch-leaders-wrap th:nth-child(3) { width: 280px; }
+
+.pitch-leaders-wrap th:first-child,
+.pitch-leaders-wrap td:first-child {
+  min-width: 64px;
+  width: 64px;
+  padding-left: 20px;
+  padding-right: 12px;
+  overflow: visible;
+}
+
+.pitch-leaders-wrap .rank-cell {
+  min-width: 64px;
+  width: 64px;
+  text-align: left;
+  overflow: visible;
+}
 
 .pitch-leaders-wrap .team-chip {
   display: inline-flex;
