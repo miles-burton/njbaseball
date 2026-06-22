@@ -346,6 +346,22 @@ function teamOptions(selectedSlug) {
   return TEAMS.map((team) => `<option value="${esc(team.slug)}" ${team.slug === selectedSlug ? 'selected' : ''}>${esc(team.name)} · ${esc(team.record)} · #${team.rank}</option>`).join('');
 }
 
+function predictorTeamInput(slot, team) {
+  const listId = `predictorTeams${slot}`;
+  return `<div class="predictor-search-wrap">
+    <input class="predictor-team-search" data-predict-team-search="${slot}" list="${listId}" type="search" value="${esc(team?.name || '')}" placeholder="Search teams..." autocomplete="off">
+    <datalist id="${listId}">
+      ${TEAMS.map((item) => `<option value="${esc(item.name)}">${esc(item.record)} · #${item.rank} · ${esc(item.conference)}</option>`).join('')}
+    </datalist>
+  </div>`;
+}
+
+function findPredictorTeam(value) {
+  const q = String(value || '').trim().toLowerCase();
+  if (!q) return null;
+  return TEAMS.find((team) => team.name.toLowerCase() === q) || null;
+}
+
 function filterTeamOptions(selected = 'All', conference = 'All') {
   return `<option value="All">All Teams</option>${TEAMS
     .filter((team) => conference === 'All' || team.conference === conference)
@@ -828,7 +844,7 @@ function renderPredictor() {
       <div class="predictor-controls">
         <label class="predictor-field">
           <span>Team A</span>
-          <select class="ctrl-select" data-predict-team="A">${teamOptions(teamA?.slug)}</select>
+          ${predictorTeamInput('A', teamA)}
         </label>
         <label class="predictor-field">
           <span>Venue</span>
@@ -840,7 +856,7 @@ function renderPredictor() {
         </label>
         <label class="predictor-field">
           <span>Team B</span>
-          <select class="ctrl-select" data-predict-team="B">${teamOptions(teamB?.slug)}</select>
+          ${predictorTeamInput('B', teamB)}
         </label>
       </div>
       ${prediction ? `
@@ -1145,6 +1161,13 @@ document.addEventListener('input', (event) => {
     state.leaderFilters.min = Number(event.target.value || 0);
     renderLeaders();
   }
+  if (event.target.matches('[data-predict-team-search]')) {
+    const team = findPredictorTeam(event.target.value);
+    if (!team) return;
+    if (event.target.dataset.predictTeamSearch === 'A') state.predictor.teamA = team.slug;
+    if (event.target.dataset.predictTeamSearch === 'B') state.predictor.teamB = team.slug;
+    renderPredictor();
+  }
 });
 
 document.addEventListener('change', (event) => {
@@ -1185,6 +1208,13 @@ document.addEventListener('change', (event) => {
   if (event.target.matches('[data-predict-team]')) {
     if (event.target.dataset.predictTeam === 'A') state.predictor.teamA = event.target.value;
     if (event.target.dataset.predictTeam === 'B') state.predictor.teamB = event.target.value;
+    renderPredictor();
+  }
+  if (event.target.matches('[data-predict-team-search]')) {
+    const team = findPredictorTeam(event.target.value);
+    if (!team) return;
+    if (event.target.dataset.predictTeamSearch === 'A') state.predictor.teamA = team.slug;
+    if (event.target.dataset.predictTeamSearch === 'B') state.predictor.teamB = team.slug;
     renderPredictor();
   }
   if (event.target.matches('[data-predict-venue]')) {
