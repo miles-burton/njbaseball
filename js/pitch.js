@@ -3,6 +3,9 @@ const TEAMS = PITCH_DATA.teams || [];
 const SCORERS = PITCH_DATA.scorers || [];
 const KEEPERS = PITCH_DATA.keepers || [];
 const PLAYER_LOGS = PITCH_DATA.playerLogs || {};
+const PITCH_GENDER = PITCH_DATA.gender === 'girls' ? 'girls' : 'boys';
+const PITCH_GENDER_LABEL = PITCH_GENDER === 'girls' ? 'Girls' : 'Boys';
+const PITCH_SPORT_LABEL = `${PITCH_GENDER_LABEL} Soccer`;
 const TEAM_BY_SLUG = Object.fromEntries(TEAMS.map((team) => [team.slug, team]));
 const CONFERENCES = [...new Set(TEAMS.map((team) => team.conference))].sort();
 const REPORT_ISSUE_URL = 'https://github.com/miles-burton/njbaseball/issues/new';
@@ -251,7 +254,7 @@ function displayPitchDate(date) {
 
 function cleanPitchOpponentLabel(opponent) {
   return String(opponent || '')
-    .replace(/\s+20\d{2}\s+Boys Soccer.*$/i, '')
+    .replace(/\s+20\d{2}\s+(?:Boys|Girls) Soccer.*$/i, '')
     .replace(/\s+NJSIAA.*$/i, '')
     .replace(/\s+Tournament.*$/i, '')
     .trim();
@@ -259,7 +262,7 @@ function cleanPitchOpponentLabel(opponent) {
 
 function splitPitchTournamentLabel(opponent) {
   const text = String(opponent || '').replace(/\s+/g, ' ').trim();
-  const match = text.match(/^(.*?)\s+(20\d{2})\s+Boys Soccer\s+-\s+([^,]+)(?:,.*)?$/i);
+  const match = text.match(/^(.*?)\s+(20\d{2})\s+(?:Boys|Girls) Soccer\s+-\s+([^,]+)(?:,.*)?$/i);
   if (!match) {
     return { opponent: cleanPitchOpponentLabel(text), tournament: '' };
   }
@@ -406,10 +409,10 @@ function renderHome() {
     <div class="home-hero pitch-hero">
       <div class="home-hero-inner">
         <div class="home-hero-text">
-          <div class="home-hero-eyebrow">New Jersey Boys Soccer · ${esc(PITCH_DATA.season)} Season</div>
+          <div class="home-hero-eyebrow">New Jersey ${esc(PITCH_SPORT_LABEL)} · ${esc(PITCH_DATA.season)} Season</div>
           <h1 class="home-hero-title">PITCH<br>INDEX</h1>
           <div class="home-hero-tagline">Measure the Match.</div>
-          <p class="home-hero-sub">The boys soccer branch of NJ Sports Index, built from real NJ.com standings, schedules, scoring leaders, goalkeeper data, and team rankings.</p>
+          <p class="home-hero-sub">The ${esc(PITCH_GENDER)} soccer branch of NJ Sports Index, built from real NJ.com standings, schedules, scoring leaders, goalkeeper data, and team rankings.</p>
           <div class="home-hero-actions">
             <button class="home-btn-primary" data-view-target="rankings">Power Rankings</button>
             <button class="home-btn-secondary" data-view-target="leaders">Player Leaders</button>
@@ -444,11 +447,11 @@ function renderHome() {
         </button>
         <button class="home-action-card" data-view-target="leaders">
           <span>Player Leaders</span>
-          <strong>Scoring and goalkeeper leaderboards from the 2025 NJ.com season.</strong>
+          <strong>Scoring and goalkeeper leaderboards from the ${esc(PITCH_DATA.season)} NJ.com season.</strong>
         </button>
         <button class="home-action-card" data-view-target="standings">
           <span>Standings</span>
-          <strong>Conference and division tables for every boys soccer team indexed.</strong>
+          <strong>Conference and division tables for every ${esc(PITCH_GENDER)} soccer team indexed.</strong>
         </button>
       </div>
 
@@ -469,7 +472,7 @@ function renderHome() {
             <div class="home-section-header">
               <div>
                 <div class="home-section-title">Power Rankings</div>
-                <div class="home-section-sub">Top 10 boys soccer teams by Pitch Score</div>
+                <div class="home-section-sub">Top 10 ${esc(PITCH_GENDER)} soccer teams by Pitch Score</div>
               </div>
               <button class="home-section-link" data-view-target="rankings">Full Rankings →</button>
             </div>
@@ -785,7 +788,7 @@ function renderLeaders() {
       <div class="page-banner-inner">
         <div>
           <div class="page-title">${pageTitle} <span>Leaders</span></div>
-          <div class="page-meta">New Jersey Boys Soccer <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season <span class="page-meta-dot"></span> ${pageMeta}</div>
+          <div class="page-meta">New Jersey ${esc(PITCH_SPORT_LABEL)} <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season <span class="page-meta-dot"></span> ${pageMeta}</div>
         </div>
         <div class="page-updated">${formatUpdated(PITCH_DATA.updated)}</div>
       </div>
@@ -864,7 +867,7 @@ function renderStandings() {
     <div class="page-banner-inner">
       <div>
         <div class="page-title">Conference <span>Standings</span></div>
-        <div class="page-meta">New Jersey High School Boys Soccer <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season</div>
+        <div class="page-meta">New Jersey High School ${esc(PITCH_SPORT_LABEL)} <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season</div>
       </div>
     </div>
   </div>
@@ -886,7 +889,7 @@ function renderTeams() {
     <div class="page-banner-inner">
       <div>
         <div class="page-title">Team <span>Directory</span></div>
-        <div class="page-meta">New Jersey High School Boys Soccer <span class="page-meta-dot"></span> ${TEAMS.length} teams</div>
+        <div class="page-meta">New Jersey High School ${esc(PITCH_SPORT_LABEL)} <span class="page-meta-dot"></span> ${TEAMS.length} teams</div>
       </div>
     </div>
   </div>
@@ -917,7 +920,7 @@ function renderScores() {
     <div class="page-banner-inner">
       <div>
         <div class="page-title">Scores <span>& Results</span></div>
-        <div class="page-meta">New Jersey High School Boys Soccer <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season <span class="page-meta-dot"></span> Ranked by game importance</div>
+        <div class="page-meta">New Jersey High School ${esc(PITCH_SPORT_LABEL)} <span class="page-meta-dot"></span> ${esc(PITCH_DATA.season)} Season <span class="page-meta-dot"></span> Ranked by game importance</div>
       </div>
     </div>
   </div>

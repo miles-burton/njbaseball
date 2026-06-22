@@ -45,20 +45,22 @@ jobs:
       - name: Install dependencies
         run: pip install certifi
 
-      - name: Refresh Pitch Index data
+      - name: Refresh boys and girls Pitch Index data
         env:
           FULL_PLAYER_LOGS: ${{ github.event_name == 'workflow_dispatch' && inputs.full_player_logs || github.event.schedule == '30 6 * * *' }}
         run: |
           if [ "$FULL_PLAYER_LOGS" = "true" ]; then
-            python3 pitch_scraper.py
+            PITCH_SPORT=boyssoccer python3 pitch_scraper.py
+            PITCH_SPORT=girlssoccer python3 pitch_scraper.py
           else
-            python3 pitch_scraper.py --skip-player-logs
+            PITCH_SPORT=boyssoccer python3 pitch_scraper.py --skip-player-logs
+            PITCH_SPORT=girlssoccer python3 pitch_scraper.py --skip-player-logs
           fi
 
       - name: Commit and push if data changed
         run: |
           git config user.name "Pitch Index Bot"
           git config user.email "bot@pitchindex.com"
-          git add js/pitch-data.js
+          git add js/pitch-data.js js/girls-pitch-data.js
           git diff --staged --quiet || git commit -m "Auto-update Pitch stats $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push
