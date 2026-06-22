@@ -483,13 +483,13 @@ def compute_ratings(teams):
         team["expectedWinPct"] = expected
         team["expectedRecord"] = f"{round(expected * team.get('games', 0), 1)}-{round((1 - expected) * team.get('games', 0), 1)}"
         team["luck"] = team.get("winPct", 0) - expected
-        team["oppWinPct"] = sum(opp_wpcts) / len(opp_wpcts) if opp_wpcts else 0.5
+        team["oppWinPct"] = round(sum(opp_wpcts) / len(opp_wpcts), 8) if opp_wpcts else 0.5
         team["sos"] = round(sos_score, 1)
         team["qualityScore"] = round(quality_score, 1)
         team["qualityWins"] = quality_wins
         team["top25Wins"] = top_25_wins
         team["top50Wins"] = top_50_wins
-        team["rawPower"] = raw_index
+        team["rawPower"] = round(raw_index, 8)
         team["adjO"] = round(team["adjO"], 2)
         team["adjD"] = round(team["adjD"], 2)
         team["expectedWinPct"] = round(team["expectedWinPct"], 3)
