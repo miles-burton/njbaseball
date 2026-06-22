@@ -415,6 +415,24 @@ function renderHome() {
             <button class="home-btn-secondary" data-view-target="leaders">Player Leaders</button>
           </div>
         </div>
+        <aside class="pitch-hero-index" aria-label="Top three Pitch Index teams">
+          <div class="pitch-hero-index-header">
+            <div>
+              <span>Live Index</span>
+              <strong>State Top 3</strong>
+            </div>
+            <button data-view-target="rankings" type="button">View all</button>
+          </div>
+          <div class="pitch-hero-index-list">
+            ${topTeams.slice(0, 3).map((team) => `<button class="pitch-hero-index-row" data-team-slug="${esc(team.slug)}" type="button">
+              <span class="pitch-hero-index-rank">${team.rank}</span>
+              <span class="pitch-hero-index-logo">${logoImg(team, 30)}</span>
+              <span class="pitch-hero-index-team"><strong>${esc(team.name)}</strong><small>${esc(team.record)} · ${esc(team.conference)}</small></span>
+              <span class="pitch-hero-index-score">${team.powerScore.toFixed(1)}</span>
+            </button>`).join('')}
+          </div>
+          <div class="pitch-hero-index-updated">${esc(formatUpdated(PITCH_DATA.updated))}</div>
+        </aside>
       </div>
     </div>
 
@@ -811,7 +829,7 @@ function leaderTable(rows, type, sortable, options = {}) {
   const showTeam = options.showTeam !== false;
   const cols = type === 'keepers'
     ? [['GP','GP'], ['Saves','Saves']]
-    : [['GP','GP'], ['G','G'], ['A','A'], ['P','P']];
+    : [['G','G'], ['A','A'], ['P','P']];
   const sortArrow = state.leaderSort.asc ? ' ▴' : ' ▾';
   const sort = (key) => {
     const active = sortable && state.leaderSort.key === key;
@@ -1108,7 +1126,20 @@ function renderPlayer() {
   const team = TEAM_BY_SLUG[player.teamSlug];
   const scoring = SCORERS.find((item) => playerKey(item) === state.playerKey);
   const keeping = KEEPERS.find((item) => playerKey(item) === state.playerKey);
-  $('view-player').innerHTML = `<div class="leaderboard-wrap">
+  const statCards = [
+    ...(scoring ? [
+      ['Goals', scoring.G ?? 0],
+      ['Assists', scoring.A ?? 0],
+      ['Points', scoring.P ?? 0],
+    ] : []),
+    ...(keeping ? [
+      ['Saves', keeping.Saves ?? 0],
+      ['Keeper GP', keeping.GP ?? 0],
+    ] : []),
+    ['Team Rank', team?.rank ? `#${team.rank}` : '-'],
+    ['Pitch Score', Number.isFinite(team?.powerScore) ? team.powerScore.toFixed(1) : '-'],
+  ];
+  $('view-player').innerHTML = `<div class="leaderboard-wrap pitch-player-page">
     <button class="btn" data-view-target="leaders" style="margin-bottom:14px">Back to Leaders</button>
     <div class="player-hero">
       <div class="player-shield">
@@ -1125,12 +1156,7 @@ function renderPlayer() {
       </div>
     </div>
     <div class="counting-grid">
-      <div class="counting-card"><div class="counting-label">Goals</div><div class="counting-value">${scoring?.G ?? 0}</div></div>
-      <div class="counting-card"><div class="counting-label">Assists</div><div class="counting-value">${scoring?.A ?? 0}</div></div>
-      <div class="counting-card"><div class="counting-label">Points</div><div class="counting-value">${scoring?.P ?? 0}</div></div>
-      <div class="counting-card"><div class="counting-label">Saves</div><div class="counting-value">${keeping?.Saves ?? 0}</div></div>
-      <div class="counting-card"><div class="counting-label">Keeper GP</div><div class="counting-value">${keeping?.GP ?? 0}</div></div>
-      <div class="counting-card"><div class="counting-label">Team Rank</div><div class="counting-value">${team?.rank ? `#${team.rank}` : '-'}</div></div>
+      ${statCards.map(([label, value]) => `<div class="counting-card"><div class="counting-label">${esc(label)}</div><div class="counting-value">${esc(value)}</div></div>`).join('')}
     </div>
     ${playerGameLogs(player)}
   </div>`;
