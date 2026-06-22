@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pitch Index — Girls Soccer Analytics</title>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/pitch.css?v=20260622-cohesive-ui">
+  <link rel="stylesheet" href="css/pitch.css?v=20260622-gender-switch">
 </head>
 <body>
   <header class="site-header">
@@ -56,7 +56,20 @@
       <button class="nav-tab" id="tab-predictor" data-view="predictor" type="button">Predictor</button>
       <button class="nav-tab" id="tab-standings" data-view="standings" type="button">Standings</button>
       <button class="nav-tab" id="tab-glossary" data-view="glossary" type="button">Glossary</button>
-      <a class="nav-tab" href="index.html" title="Sports Home">Sports</a>
+      <div class="nav-dropdown pitch-gender-switcher">
+        <button class="nav-tab nav-dropdown-trigger pitch-gender-trigger" type="button" aria-label="Switch soccer category">
+          Girls
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true"><path d="M2 3.5L5 6.5L8 3.5"/></svg>
+        </button>
+        <div class="nav-dropdown-menu pitch-gender-menu">
+          <a class="nav-dropdown-item pitch-gender-option" href="pitch-index.html">Boys Soccer</a>
+          <a class="nav-dropdown-item pitch-gender-option active" href="girls-pitch-index.html" aria-current="page">
+            <span>Girls Soccer</span><span class="pitch-gender-current">Current</span>
+          </a>
+          <div class="nav-dropdown-divider"></div>
+          <a class="nav-dropdown-item pitch-gender-option" href="index.html">Sports Home</a>
+        </div>
+      </div>
       <button class="nav-tab nav-tab-report" id="tab-report" onclick="openReportProblem()" type="button">Report</button>
     </nav>
 
