@@ -3226,11 +3226,9 @@ function renderStandings() {
       </tr>`;
     }).join('');
 
-      return `<div class="standings-division standings-division-nested">
-      <div class="standings-division-header">
-        <span class="standings-division-name">${divName}</span>
-        <span class="standings-division-sub">${rows.length} teams</span>
-      </div>
+      return `<div class="standings-division-block">
+      <div class="division-label">${divName} <span>${rows.length} teams</span></div>
+      <div class="standings-table-wrap">
       <table class="standings-table">
         <thead><tr>
           <th>Team</th>
@@ -3245,13 +3243,14 @@ function renderStandings() {
         </tr></thead>
         <tbody>${tableRows}</tbody>
       </table>
+      </div>
     </div>`;
     }).join('');
 
-    return `<div class="standings-conference">
-      <div class="standings-conference-header">
-        <span class="standings-conference-name">${conf}</span>
-        <span class="standings-conference-sub">${conferenceSummary}</span>
+    return `<div class="card standings-group">
+      <div class="standings-heading">
+        <span>${conf}</span>
+        <span>${conferenceSummary}</span>
       </div>
       ${divisionTables}
     </div>`;

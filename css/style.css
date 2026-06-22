@@ -2783,6 +2783,74 @@ td { padding: 9px 14px; font-size: 13px; white-space: nowrap; }
   color: var(--accent);
 }
 
+.standings-page-wrap .standings-wrap {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.standings-controls-row {
+  margin-bottom: 18px;
+}
+
+.standings-controls-row .search-input {
+  width: 260px;
+}
+
+.standings-group.card,
+.card.standings-group {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+  margin: 0;
+}
+
+.standings-heading,
+.division-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 800;
+}
+
+.standings-heading {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.standings-heading span:last-child,
+.division-label span {
+  color: var(--muted2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.division-label {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.standings-table-wrap {
+  overflow-x: auto;
+}
+
+.standings-division-block + .standings-division-block {
+  border-top: 1px solid var(--border);
+}
+
 .over-500  { color: #4ade80; }
 .under-500 { color: #f87171; }
 .even-500  { color: var(--muted2); }

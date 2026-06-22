@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Diamond Index — Measure the Game.</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20260621-standings">
 </head>
 <body>
 
@@ -569,21 +569,22 @@
 
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="search-wrap" style="margin-top:4px">
-          <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
-          </svg>
-          <input class="search-input" type="text" id="standingsConfFilter"
-            placeholder="Search conference..."
-            oninput="renderStandings()"
-            style="width:200px">
-        </div>
-        <div class="page-updated" id="standingsUpdated"></div>
-      </div>
+      <div class="page-updated" id="standingsUpdated"></div>
     </div>
   </div>
-  <div class="standings-wrap" id="standingsContent"></div>
+  <div class="leaderboard-wrap standings-page-wrap">
+    <div class="controls-row standings-controls-row">
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/>
+        </svg>
+        <input class="search-input" type="text" id="standingsConfFilter"
+          placeholder="Search conference..."
+          oninput="renderStandings()">
+      </div>
+    </div>
+    <div class="standings-wrap" id="standingsContent"></div>
+  </div>
 </div>
 
 
@@ -718,6 +719,6 @@
 <script src="js/data.js"></script>
 <script src="js/divisions.js"></script>
 <script src="js/seasons/manifest.js"></script>
-<script src="js/app.js"></script>
+<script src="js/app.js?v=20260621-standings"></script>
 </body>
 </html>
