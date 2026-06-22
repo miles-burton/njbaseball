@@ -348,7 +348,7 @@ def compute_team_ratings(teams):
         # Predictive efficiency leads, but schedule and earned quality carry
         # enough weight to prevent undefeated low-SOS profiles from floating
         # above teams that proved themselves against elite opposition.
-        team["rawPower"] = 0.42 * expected * 100 + 0.15 * team["winPct"] * 100 + 0.23 * team["sos"] + 0.20 * team["qualityScore"]
+        team["rawPower"] = round(0.42 * expected * 100 + 0.15 * team["winPct"] * 100 + 0.23 * team["sos"] + 0.20 * team["qualityScore"], 8)
 
     raw_values = sorted(team["rawPower"] for team in teams)
     low = raw_values[0]
