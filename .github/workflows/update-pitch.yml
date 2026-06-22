@@ -1,6 +1,11 @@
 name: Update Pitch Index
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - pitch_scraper.py
+      - .github/workflows/update-pitch.yml
   schedule:
     # Fast team/score/leader refreshes throughout the day (UTC).
     - cron: '30 10,14,18,22 * * *'
