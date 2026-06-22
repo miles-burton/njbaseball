@@ -275,6 +275,35 @@ def compute_ratings(teams):
                 return team
         return None
 
+    def clamp(value, low, high):
+        return max(low, min(high, value))
+
+    def normalize(value, low, high):
+        if high == low:
+            return 0.5
+        return clamp((value - low) / (high - low), 0, 1)
+
+    def game_result_value(game):
+        result = game.get("result")
+        if result == "W":
+            return 1
+        if result == "T":
+            return 0.5
+        if result == "L":
+            return 0
+        return None
+
+    def team_margin(game):
+        team_score = game.get("teamScore")
+        opponent_score = game.get("opponentScore")
+        if team_score is None or opponent_score is None:
+            return 0
+        if game.get("result") == "W":
+            return team_score - opponent_score
+        if game.get("result") == "L":
+            return opponent_score - team_score
+        return 0
+
     total_games = sum(team.get("games", 0) for team in teams) or 1
     league_gf_pg = sum(team.get("gf", 0) for team in teams) / total_games
     league_ga_pg = sum(team.get("ga", 0) for team in teams) / total_games
@@ -318,6 +347,11 @@ def compute_ratings(teams):
         opponents = [opp for opp in opponents if opp and opp["slug"] != team["slug"]]
         opp_wpcts = []
         opp_exp = []
+        quality_games = []
+        quality_wins = 0
+        top_25_wins = 0
+        top_50_wins = 0
+        elite_result_bonus = 0
         for opp in opponents:
             opp_o = max(opp.get("adjO", league_runs), 0.01)
             opp_d = max(opp.get("adjD", league_runs), 0.01)
@@ -325,21 +359,74 @@ def compute_ratings(teams):
             opp_wpcts.append(opp.get("winPct", 0.5))
             opp_exp.append(opp_expected)
 
+        for game in team.get("schedule", []):
+            opp = opponent_for(game)
+            result_value = game_result_value(game)
+            if not opp or result_value is None or opp["slug"] == team["slug"]:
+                continue
+            opp_o = max(opp.get("adjO", league_runs), 0.01)
+            opp_d = max(opp.get("adjD", league_runs), 0.01)
+            opp_expected = (opp_o ** exponent) / ((opp_o ** exponent) + (opp_d ** exponent))
+            margin_score = clamp(team_margin(game) / 4, -1, 1)
+            quality_games.append(((result_value - 0.5) * 2 * (0.65 + 0.70 * opp_expected)) + (0.12 * margin_score))
+            opp_strength = opp_expected * 100
+            if result_value == 1 and opp_strength >= 80:
+                quality_wins += 1
+                top_50_wins += 1
+                elite_result_bonus += 0.75
+            if result_value == 1 and opp_strength >= 85:
+                top_25_wins += 1
+                elite_result_bonus += 1.00
+            if result_value == 1 and opp_strength >= 90:
+                elite_result_bonus += 0.75
+            if result_value == 0.5 and opp_strength >= 85:
+                elite_result_bonus += 0.50
+            if result_value == 0 and opp_strength >= 90 and abs(team_margin(game)) <= 1:
+                elite_result_bonus += 0.25
+
         adj_o = max(team.get("adjO", 0), 0.01)
         adj_d = max(team.get("adjD", 0), 0.01)
         expected = (adj_o ** exponent) / ((adj_o ** exponent) + (adj_d ** exponent))
+        gd_per_game = team.get("gd", 0) / max(team.get("games", 0), 1)
+        efficiency_score = expected * 100
+        result_score = team.get("winPct", 0) * 100
+        sos_score = (sum(opp_exp) / len(opp_exp) if opp_exp else 0.5) * 100
+        goal_profile_score = normalize(gd_per_game, -1.5, 4.0) * 100
+        quality_score = clamp(50 + ((sum(quality_games) / len(quality_games)) / 2.2 * 100 if quality_games else 0), 0, 100)
+        elite_result_bonus = min(elite_result_bonus, 10)
+
+        # Pitch Score blends predictive efficiency with earned results. The
+        # efficiency component keeps the model stable, while record, schedule,
+        # quality wins, and goal profile prevent low-SOS blowout profiles from
+        # outranking teams that proved it against elite opponents.
+        raw_index = (
+            0.42 * efficiency_score
+            + 0.18 * result_score
+            + 0.16 * sos_score
+            + 0.16 * quality_score
+            + 0.08 * goal_profile_score
+            + elite_result_bonus
+        )
         team["expectedWinPct"] = expected
         team["expectedRecord"] = f"{round(expected * team.get('games', 0), 1)}-{round((1 - expected) * team.get('games', 0), 1)}"
         team["luck"] = team.get("winPct", 0) - expected
         team["oppWinPct"] = sum(opp_wpcts) / len(opp_wpcts) if opp_wpcts else 0.5
-        team["sos"] = round((sum(opp_exp) / len(opp_exp) if opp_exp else 0.5) * 100, 1)
-        team["powerScore"] = round(max(0, min(100, expected * 100)), 1)
+        team["sos"] = round(sos_score, 1)
+        team["qualityScore"] = round(quality_score, 1)
+        team["qualityWins"] = quality_wins
+        team["top25Wins"] = top_25_wins
+        team["top50Wins"] = top_50_wins
+        team["rawPower"] = raw_index
         team["adjO"] = round(team["adjO"], 2)
         team["adjD"] = round(team["adjD"], 2)
         team["expectedWinPct"] = round(team["expectedWinPct"], 3)
         team["luck"] = round(team["luck"], 3)
 
-    teams.sort(key=lambda t: (t["powerScore"], t["winPct"], t["gd"]), reverse=True)
+    max_raw = max((team.get("rawPower", 0) for team in teams), default=100) or 100
+    for team in teams:
+        team["powerScore"] = round(max(0, min(100, team.get("rawPower", 0) / max_raw * 100)), 1)
+
+    teams.sort(key=lambda t: (t["powerScore"], t["winPct"], t["sos"], t["gd"]), reverse=True)
     for idx, team in enumerate(teams, start=1):
         team["rank"] = idx
 

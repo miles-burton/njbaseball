@@ -606,6 +606,8 @@ function rankingTable(rows, sortable) {
       ${head('AdjO', 'adjO', 'num')}
       ${head('AdjD', 'adjD', 'num')}
       ${head('SOS', 'sos', 'num')}
+      ${head('QUAL', 'qualityScore', 'num')}
+      ${head('QW', 'qualityWins', 'num')}
       ${head('Luck', 'luck', 'num')}
       ${head('PCT', 'winPct', 'num')}
       ${head('GF/G', 'gfPerGame', 'num')}
@@ -621,6 +623,8 @@ function rankingTable(rows, sortable) {
       <td class="num" style="${state.rankingSort.key === 'adjO' ? 'font-weight:700;color:var(--accent)' : ''}">${team.adjO.toFixed(2)}</td>
       <td class="num" style="${state.rankingSort.key === 'adjD' ? 'font-weight:700;color:var(--accent)' : ''}">${team.adjD.toFixed(2)}</td>
       <td class="num" style="${state.rankingSort.key === 'sos' ? 'font-weight:700;color:var(--accent)' : ''}">${team.sos.toFixed(1)}</td>
+      <td class="num" style="${state.rankingSort.key === 'qualityScore' ? 'font-weight:700;color:var(--accent)' : ''}">${(team.qualityScore ?? 0).toFixed(1)}</td>
+      <td class="num" style="${state.rankingSort.key === 'qualityWins' ? 'font-weight:700;color:var(--accent)' : ''}">${team.qualityWins ?? 0}</td>
       <td class="num" style="${state.rankingSort.key === 'luck' ? 'font-weight:700;color:var(--accent)' : ''}">${signed(team.luck)}</td>
       <td class="num" style="${state.rankingSort.key === 'winPct' ? 'font-weight:700;color:var(--accent)' : ''}">${pct(team.winPct)}</td>
       <td class="num" style="${state.rankingSort.key === 'gfPerGame' ? 'font-weight:700;color:var(--accent)' : ''}">${team.gfPerGame.toFixed(2)}</td>
@@ -918,10 +922,12 @@ function renderGlossary() {
     <div class="glossary-section">
       <div class="glossary-section-title">Team Ratings</div>
       <div class="glossary-grid">
-        <div class="glossary-card gc-highlight"><div class="gc-stat">PITCH</div><div class="gc-name">Pitch Score</div><div class="gc-def">0-100 team rating based on adjusted goal efficiency, record, goal differential, and schedule context.</div></div>
+        <div class="glossary-card gc-highlight"><div class="gc-stat">PITCH</div><div class="gc-name">Pitch Score</div><div class="gc-def">0-100 team rating blending adjusted efficiency, actual record, strength of schedule, quality results, goal differential, and elite-win bonuses. The top raw index is scaled to 100.</div></div>
         <div class="glossary-card"><div class="gc-stat">AdjO</div><div class="gc-name">Adjusted Offense</div><div class="gc-def">Goals scored per game adjusted for opponent defensive strength and normalized to the state environment.</div></div>
         <div class="glossary-card"><div class="gc-stat">AdjD</div><div class="gc-name">Adjusted Defense</div><div class="gc-def">Goals allowed per game adjusted for opponent attacking strength. Lower is better.</div></div>
         <div class="glossary-card"><div class="gc-stat">SOS</div><div class="gc-name">Strength of Schedule</div><div class="gc-def">Opponent quality on a 0-100 scale using opponents' adjusted team strength.</div></div>
+        <div class="glossary-card"><div class="gc-stat">QUAL</div><div class="gc-name">Quality Score</div><div class="gc-def">Game-by-game result quality adjusted for opponent strength and capped margin. Beating strong teams raises it; losses to weak teams lower it.</div></div>
+        <div class="glossary-card"><div class="gc-stat">QW</div><div class="gc-name">Quality Wins</div><div class="gc-def">Wins over opponents with strong adjusted profiles, roughly equivalent to top-50 caliber teams by the model.</div></div>
         <div class="glossary-card"><div class="gc-stat">Luck</div><div class="gc-name">Luck</div><div class="gc-def">Difference between actual winning percentage and expected winning percentage from adjusted goal profile.</div></div>
       </div>
     </div>
@@ -967,6 +973,8 @@ function renderTeam() {
       <div class="team-stat-card"><div class="team-stat-card-label">AdjO</div><div class="team-stat-card-val">${team.adjO.toFixed(2)}</div></div>
       <div class="team-stat-card"><div class="team-stat-card-label">AdjD</div><div class="team-stat-card-val">${team.adjD.toFixed(2)}</div></div>
       <div class="team-stat-card"><div class="team-stat-card-label">SOS</div><div class="team-stat-card-val">${team.sos.toFixed(1)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">Quality</div><div class="team-stat-card-val">${(team.qualityScore ?? 0).toFixed(1)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">Q Wins</div><div class="team-stat-card-val">${team.qualityWins ?? 0}</div></div>
       <div class="team-stat-card"><div class="team-stat-card-label">Luck</div><div class="team-stat-card-val">${signed(team.luck)}</div></div>
     </div>
     <div class="subgrid">
