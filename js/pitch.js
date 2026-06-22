@@ -529,6 +529,46 @@ function gameList(rows, ownerTeam = null, limit = null, includeDate = false) {
   }).join('')}</tbody></table>`;
 }
 
+function teamScheduleTable(team) {
+  const games = team.schedule || [];
+  if (!games.length) return '<div class="empty">No schedule data available.</div>';
+  return `<div class="lb-table-wrap"><table class="pitch-team-schedule-table">
+    <thead><tr>
+      <th>Date</th>
+      <th>Opponent</th>
+      <th class="num">W/L</th>
+      <th class="num">Score</th>
+    </tr></thead>
+    <tbody>${games.map((game) => {
+      const enriched = { ...game, teamSlug: team.slug, teamName: team.name };
+      const opponent = resolveOpponentTeam(enriched);
+      const loc = game.site || '';
+      const result = game.result === 'W'
+        ? '<span class="pitch-result-win">W</span>'
+        : game.result === 'L'
+          ? '<span class="pitch-result-loss">L</span>'
+          : game.result === 'T'
+            ? '<span class="pitch-result-tie">T</span>'
+            : '—';
+      const score = game.teamScore !== null && game.teamScore !== undefined && game.opponentScore !== null && game.opponentScore !== undefined
+        ? `${game.teamScore}-${game.opponentScore}`
+        : '—';
+      return `<tr>
+        <td class="pitch-schedule-date">${esc(game.date || '')}</td>
+        <td>
+          <div class="pitch-schedule-opponent">
+            <span class="pitch-schedule-site">${esc(loc)}</span>
+            ${opponent ? `${logoImg(opponent, 16)}${linkedTeam(opponent)}` : `<span>${esc(cleanPitchOpponentLabel(game.opponent) || game.opponent || '')}</span>`}
+            ${isTournamentGame(game) ? '<span class="home-score-badge">TOURNEY</span>' : ''}
+          </div>
+        </td>
+        <td class="num">${result}</td>
+        <td class="num pitch-schedule-score">${esc(score)}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
 function performerCards(scorers, keepers) {
   const rankColors = ['gold', 'silver', 'bronze'];
   const card = (player, stat, label, idx) => {
@@ -948,42 +988,45 @@ function renderTeam() {
   if (!team) return;
   const scorers = sortRows(team.scorers || [], 'P').slice(0, 15);
   const keepers = sortRows(team.keepers || [], 'Saves').slice(0, 8);
-  $('view-team').innerHTML = `<div class="leaderboard-wrap">
-    <button class="btn" data-view-target="teams" style="margin-bottom:14px">Back to Teams</button>
+  const teamPanelId = esc(team.slug);
+  $('view-team').innerHTML = `<div class="team-wrap pitch-team-page">
     <div class="team-hero">
       <div class="team-shield-lg">
         ${logo(team, 'team-logo-large')}
       </div>
       <div class="team-info">
         <div class="team-name-lg">${esc(team.name)}</div>
-        <div class="team-mascot-lg">${esc(team.conference)}</div>
         <div class="team-details">
           <span class="team-meta-pill team-meta-pill-accent"><span>Record</span>${esc(team.record)}</span>
+          <span class="team-meta-pill"><span>Conference</span>${esc(team.conference)}</span>
           <span class="team-meta-pill"><span>Division</span>${esc(team.division)}</span>
           <span class="team-meta-pill team-meta-pill-accent"><span>Div Record</span>${esc(team.divisionRecord)}</span>
-          <span class="team-meta-pill"><span>Rank</span>#${team.rank}</span>
         </div>
       </div>
     </div>
     <div class="team-stat-cards">
       <div class="team-stat-card team-score-card"><div class="team-stat-card-label">Pitch Score</div><div class="team-stat-card-val">${team.powerScore.toFixed(1)}</div></div>
       <div class="team-stat-card"><div class="team-stat-card-label">State Rank</div><div class="team-stat-card-val">#${team.rank}</div></div>
-      <div class="team-stat-card"><div class="team-stat-card-label">GF</div><div class="team-stat-card-val">${team.gf}</div></div>
-      <div class="team-stat-card"><div class="team-stat-card-label">GA</div><div class="team-stat-card-val">${team.ga}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">Win Pct</div><div class="team-stat-card-val">${pct(team.winPct)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">Goal Diff</div><div class="team-stat-card-val">${team.gd > 0 ? '+' : ''}${team.gd}</div></div>
       <div class="team-stat-card"><div class="team-stat-card-label">AdjO</div><div class="team-stat-card-val">${team.adjO.toFixed(2)}</div></div>
       <div class="team-stat-card"><div class="team-stat-card-label">AdjD</div><div class="team-stat-card-val">${team.adjD.toFixed(2)}</div></div>
       <div class="team-stat-card"><div class="team-stat-card-label">SOS</div><div class="team-stat-card-val">${team.sos.toFixed(1)}</div></div>
       <div class="team-stat-card"><div class="team-stat-card-label">Quality</div><div class="team-stat-card-val">${(team.qualityScore ?? 0).toFixed(1)}</div></div>
-      <div class="team-stat-card"><div class="team-stat-card-label">Q Wins</div><div class="team-stat-card-val">${team.qualityWins ?? 0}</div></div>
-      <div class="team-stat-card"><div class="team-stat-card-label">Luck</div><div class="team-stat-card-val">${signed(team.luck)}</div></div>
     </div>
-    <div class="subgrid">
-      <div class="home-section"><div class="home-section-header"><div><div class="home-section-title">Schedule & Results</div><div class="home-section-sub">${team.schedule?.length || 0} games</div></div></div>${gameList(team.schedule || [], team)}</div>
-      <div>
-        <div class="home-section"><div class="home-section-header"><div><div class="home-section-title">Scoring Leaders</div></div></div>${leaderTable(scorers, 'scoring', false)}</div>
-        <div style="height:20px"></div>
-        <div class="home-section"><div class="home-section-header"><div><div class="home-section-title">Goalkeepers</div></div></div>${leaderTable(keepers, 'keepers', false)}</div>
-      </div>
+    <div class="team-section-tabs">
+      <button class="team-section-tab active" data-team-panel-target="pitch-team-scoring-${teamPanelId}" type="button">Scoring Roster</button>
+      <button class="team-section-tab" data-team-panel-target="pitch-team-keepers-${teamPanelId}" type="button">Goalkeeper Roster</button>
+      <button class="team-section-tab" data-team-panel-target="pitch-team-schedule-${teamPanelId}" type="button">Schedule</button>
+    </div>
+    <div id="pitch-team-scoring-${teamPanelId}" class="team-panel active">
+      ${leaderTable(scorers, 'scoring', false)}
+    </div>
+    <div id="pitch-team-keepers-${teamPanelId}" class="team-panel">
+      ${leaderTable(keepers, 'keepers', false)}
+    </div>
+    <div id="pitch-team-schedule-${teamPanelId}" class="team-panel">
+      ${teamScheduleTable(team)}
     </div>
   </div>`;
 }
@@ -1082,6 +1125,16 @@ document.addEventListener('click', (event) => {
   if (viewTarget) {
     closeDropdowns();
     setView(viewTarget.dataset.viewTarget);
+    return;
+  }
+
+  const teamPanelTarget = event.target.closest('[data-team-panel-target]');
+  if (teamPanelTarget) {
+    const wrap = teamPanelTarget.closest('.team-wrap');
+    wrap?.querySelectorAll('.team-section-tab').forEach((tab) => tab.classList.remove('active'));
+    wrap?.querySelectorAll('.team-panel').forEach((panel) => panel.classList.remove('active'));
+    teamPanelTarget.classList.add('active');
+    $(teamPanelTarget.dataset.teamPanelTarget)?.classList.add('active');
     return;
   }
 

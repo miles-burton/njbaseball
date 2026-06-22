@@ -440,6 +440,54 @@
   font: inherit;
 }
 
+.pitch-team-page .lb-table-wrap {
+  border-radius: 14px;
+}
+
+.pitch-team-page .team-section-tabs {
+  margin-top: 2px;
+}
+
+.pitch-team-schedule-table th:first-child,
+.pitch-team-schedule-table td:first-child {
+  width: 138px;
+}
+
+.pitch-schedule-date {
+  color: var(--muted2);
+  font-size: 12px;
+}
+
+.pitch-schedule-opponent {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.pitch-schedule-site {
+  color: var(--muted);
+  font-size: 11px;
+  min-width: 18px;
+  text-align: right;
+}
+
+.pitch-result-win,
+.pitch-result-loss,
+.pitch-result-tie {
+  font-weight: 800;
+}
+
+.pitch-result-win { color: #4ade80; }
+.pitch-result-loss { color: #f87171; }
+.pitch-result-tie { color: var(--accent); }
+
+.pitch-schedule-score {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
 .predictor-panel .predictor-controls {
   grid-template-columns: minmax(220px, 1fr) 180px minmax(220px, 1fr);
 }
