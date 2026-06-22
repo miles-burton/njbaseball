@@ -573,7 +573,7 @@ function teamScheduleTable(team) {
           <div class="pitch-schedule-opponent">
             <span class="pitch-schedule-site">${esc(loc)}</span>
             ${opponent ? `${logoImg(opponent, 16)}${linkedTeam(opponent)}` : `<span class="pitch-schedule-opponent-name">${esc(tournamentInfo.opponent || game.opponent || '')}</span>`}
-            ${tournamentInfo.tournament ? `<span class="pitch-tourney-badge">${esc(tournamentInfo.tournament)}</span>` : ''}
+            ${tournamentInfo.tournament ? `<span class="tournament-badge schedule-tournament-badge">${esc(tournamentInfo.tournament)}</span>` : ''}
           </div>
         </td>
         <td class="num">${result}</td>
@@ -618,7 +618,7 @@ function playerLogTable(logs, type) {
           <td>
             <div class="pitch-schedule-opponent">
               <span class="pitch-schedule-opponent-name">${esc(opponentLabel)}</span>
-              ${tournamentInfo.tournament ? `<span class="pitch-tourney-badge">${esc(tournamentInfo.tournament)}</span>` : ''}
+              ${tournamentInfo.tournament ? `<span class="tournament-badge schedule-tournament-badge">${esc(tournamentInfo.tournament)}</span>` : ''}
             </div>
           </td>
           <td><span class="${resultClass}">${esc(resultText)}</span></td>
