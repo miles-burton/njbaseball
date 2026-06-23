@@ -32,6 +32,17 @@ const footballMetricLabels = {
   KORAtt: 'Kick Returns', KORYds: 'Kick Return Yards', KORLng: 'Longest Kick Return', PRAtt: 'Punt Returns', PRYds: 'Punt Return Yards', PRLng: 'Longest Punt Return', ReturnAvg: 'Return Average', KORTD: 'Kick Return TD', PRTD: 'Punt Return TD',
   TotalYds: 'Total Yards', TotalTD: 'Total TD',
 };
+const footballShortMetricLabels = {
+  Cmp: 'CMP', PassAtt: 'ATT', INT: 'INT', PassLng: 'LNG',
+  AdjYPA: 'ADJ Y/A', CmpPct: 'CMP%', PassTD: 'PASS TD', PassYds: 'PASS YDS', INTPct: 'INT%',
+  RushAtt: 'CAR', RushYds: 'RUSH YDS', RushYPA: 'Y/C', RushTD: 'RUSH TD', RushLng: 'RUSH LNG',
+  RecYds: 'REC YDS', RecYPR: 'Y/REC', RecTD: 'REC TD', Rec: 'REC', RecLng: 'REC LNG',
+  DefImpact: 'DEF IMP', Tackles: 'TACK', TFL: 'TFL', Sacks: 'SACK', Solo: 'SOLO', Ast: 'AST', DefINT: 'INT', FF: 'FF', FR: 'FR', FumTD: 'FUM TD', IntTD: 'INT TD', Safety: 'SFTY', KB: 'KB',
+  FGM: 'FGM', FGA: 'FGA', XPM: 'XPM', XPA: 'XPA', TwoPT: '2PT', KickPoints: 'PTS', FGPct: 'FG%', XPPct: 'XP%', FGLng: 'FG LNG',
+  Punts: 'PUNTS', PuntYds: 'PUNT YDS', PuntAvg: 'PUNT AVG', Inside20: 'IN20', PuntLng: 'PUNT LNG',
+  KORAtt: 'KR', KORYds: 'KR YDS', KORLng: 'KR LNG', PRAtt: 'PR', PRYds: 'PR YDS', PRLng: 'PR LNG', ReturnAvg: 'RET AVG', KORTD: 'KR TD', PRTD: 'PR TD',
+  TotalYds: 'TOT YDS', TotalTD: 'TOT TD',
+};
 
 function footballEl(id) { return document.getElementById(id); }
 function footballEsc(value) {
@@ -590,35 +601,77 @@ function footballPctColor(value) {
   if (value >= 25) return '#3a6ea8';
   return '#2a5080';
 }
+function footballIsRateStat(stat) {
+  return ['CmpPct', 'INTPct', 'FGPct', 'XPPct', 'AdjYPA', 'RushYPA', 'RecYPR', 'PuntAvg', 'ReturnAvg'].includes(stat);
+}
+function footballFormatStat(player, stat, digits = 0) {
+  const value = player[stat];
+  return Number.isFinite(Number(value)) ? footballNum(value, digits) : '-';
+}
+function footballPercentileSections(player) {
+  const metricEntries = Object.entries(player.metricPercentiles || {});
+  if (!metricEntries.length) return '<div class="empty">No percentile metrics available for this role.</div>';
+  const rateStats = new Set(['AdjYPA', 'CmpPct', 'INTPct', 'RushYPA', 'RecYPR', 'PuntAvg', 'ReturnAvg', 'FGPct', 'XPPct']);
+  const productionStats = new Set(['PassYds', 'PassTD', 'RushYds', 'RushTD', 'Rec', 'RecYds', 'RecTD', 'Tackles', 'TFL', 'Sacks', 'DefINT', 'KickPoints', 'FGM', 'XPM', 'PuntYds', 'Inside20', 'TotalYds', 'TotalTD', 'DefImpact']);
+  const groups = [
+    ['Advanced Rate', metricEntries.filter(([metric]) => rateStats.has(metric))],
+    ['Production', metricEntries.filter(([metric]) => productionStats.has(metric))],
+    ['Traditional', metricEntries.filter(([metric]) => !rateStats.has(metric) && !productionStats.has(metric))],
+  ].filter(([, rows]) => rows.length);
+  return groups.map(([title, rows]) => `<div class="pct-section">
+    <div class="pct-section-title">${footballEsc(title)}</div>
+    ${rows.map(([metric, pct]) => `<div class="pct-row">
+      <span class="pct-label">${footballEsc(footballShortMetricLabels[metric] || footballMetricLabels[metric] || metric)}</span>
+      <div class="pct-bar-outer">
+        <div class="pct-bar-track">
+          <div class="pct-bar-fill" style="width:${pct}%;background:${footballPctColor(pct)}"></div>
+          <div class="pct-bubble" style="left:${pct}%;background:${footballPctColor(pct)}">${Math.round(pct)}</div>
+        </div>
+      </div>
+      <span class="pct-raw">${footballFormatStat(player, metric, footballIsRateStat(metric) ? 1 : 1)}</span>
+    </div>`).join('')}
+  </div>`).join('');
+}
+function footballCountingStats(stats) {
+  if (!stats.length) return '';
+  return `<div class="counting-section">
+    <div class="counting-title">Season Counting Stats</div>
+    <div class="counting-grid">
+      ${stats.map(([label, value]) => `<div class="counting-card">
+        <div class="counting-label">${footballEsc(label)}</div>
+        <div class="counting-value">${footballNum(value, Number.isInteger(Number(value)) ? 0 : 1)}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
 function footballRenderPlayer() {
   const player = footballPlayer(decodeURIComponent(footballState.playerKey));
   if (!player) return footballSetView('leaders');
   const team = FOOTBALL_TEAM_BY_SLUG[player.teamSlug];
   const summary = footballPlayerSummary(player);
-  const percentileRows = Object.entries(player.metricPercentiles || {}).map(([metric, pct]) => `<div class="pct-row"><span class="pct-label">${footballEsc(footballMetricLabels[metric] || metric)}</span><div class="pct-bar-outer"><div class="pct-bar-track"><div class="pct-bar-fill" style="width:${pct}%;background:${footballPctColor(pct)}"></div><div class="pct-bubble" style="left:${pct}%;background:${footballPctColor(pct)}">${Math.round(pct)}</div></div></div><span class="pct-raw">${footballNum(player[metric], ['CmpPct', 'INTPct', 'FGPct', 'XPPct'].includes(metric) ? 1 : 1)}</span></div>`).join('');
   const countingKeys = ['Cmp', 'PassAtt', 'PassYds', 'PassTD', 'INT', 'PassLng', 'RushAtt', 'RushYds', 'RushTD', 'RushLng', 'Rec', 'RecYds', 'RecTD', 'RecLng', 'Sacks', 'TFL', 'Solo', 'Ast', 'Tackles', 'FF', 'FR', 'FumTD', 'DefINT', 'IntTD', 'Safety', 'KB', 'KORAtt', 'KORYds', 'KORLng', 'KORTD', 'PRAtt', 'PRYds', 'PRLng', 'PRTD', 'FGM', 'FGA', 'FGLng', 'XPM', 'XPA', 'TwoPT', 'Punts', 'PuntYds', 'PuntLng', 'Inside20'];
-  const allStats = countingKeys.filter((key) => Number.isFinite(Number(player[key])) && Number(player[key]) !== 0).map((key) => [key, player[key]]);
-  footballEl('view-player').innerHTML = `<main class="player-wrap pitch-player-page football-player-page">
+  const allStats = countingKeys
+    .filter((key) => Number.isFinite(Number(player[key])) && Number(player[key]) !== 0)
+    .map((key) => [footballShortMetricLabels[key] || key, player[key]]);
+  footballEl('view-player').innerHTML = `<main class="player-wrap football-player-page">
     <div class="player-hero">
-      <div class="player-shield">${footballLogo(team, 64)}</div>
+      <div class="player-shield">${footballLogo(team, 48)}</div>
       <div class="player-info">
         <div class="player-full-name">${footballEsc(player.name)}</div>
         <div class="player-details">
-          <button class="p-tag pa player-team-link" data-team-slug="${footballEsc(team.slug)}">${footballEsc(team.name)}</button>
+          <button class="p-tag pa player-team-link" data-team-slug="${footballEsc(team.slug)}">${footballLogo(team, 12)}${footballEsc(team.name)}</button>
           ${player.grade ? `<span class="p-tag">${footballEsc(player.grade)}</span>` : ''}
           ${player.position ? `<span class="p-tag">${footballEsc(player.position)}</span>` : ''}
           <span class="p-tag">${footballEsc(player.role)}</span>
         </div>
       </div>
     </div>
-    <div class="team-stat-cards football-player-summary">
-      <div class="team-stat-card team-score-card"><div class="team-stat-card-label">Player Score</div><div class="team-stat-card-val">${player.playerScore.toFixed(1)}</div></div>
-      ${summary.map(([stat, label]) => `<div class="team-stat-card"><div class="team-stat-card-label">${footballEsc(label)}</div><div class="team-stat-card-val">${footballNum(player[stat], ['CmpPct', 'AdjYPA', 'RushYPA', 'RecYPR', 'PuntAvg', 'ReturnAvg', 'FGPct'].includes(stat) ? 1 : 0)}</div></div>`).join('')}
+    <div class="stat-mini-grid football-player-summary">
+      <div class="stat-mini"><div class="stat-mini-label">PS</div><div class="stat-mini-val">${player.playerScore.toFixed(1)}</div></div>
+      ${summary.map(([stat, label]) => `<div class="stat-mini"><div class="stat-mini-label">${footballEsc(label)}</div><div class="stat-mini-val">${footballFormatStat(player, stat, footballIsRateStat(stat) ? 1 : 0)}</div></div>`).join('')}
     </div>
-    <section class="football-player-layout">
-      <div class="card pad"><div class="pct-section-title">${footballEsc(player.role)} Percentile Rankings</div><p class="football-percentile-note">Compared only with qualified ${footballEsc(player.role.toLowerCase())} players statewide. Player Score is shown above and is not itself a percentile.</p><div class="football-percentiles">${percentileRows || '<div class="empty">No percentile metrics available for this role.</div>'}</div></div>
-      <div class="card pad"><div class="pct-section-title">Season Counting Stats</div><div class="counting-grid">${allStats.map(([stat, value]) => `<div class="counting-card"><div class="counting-value">${footballNum(value, Number.isInteger(value) ? 0 : 1)}</div><div class="counting-label">${footballEsc(footballMetricLabels[stat] || stat)}</div></div>`).join('')}</div></div>
-    </section>
+    ${footballCountingStats(allStats)}
+    ${footballPercentileSections(player)}
   </main>`;
 }
 
