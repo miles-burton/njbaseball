@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pitch Index — Girls Soccer Analytics</title>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/pitch.css?v=20260622-gender-switch">
+  <link rel="stylesheet" href="css/pitch.css?v=20260623-uniform-shell">
 </head>
 <body>
   <header class="site-header">
@@ -56,6 +56,7 @@
       <button class="nav-tab" id="tab-predictor" data-view="predictor" type="button">Predictor</button>
       <button class="nav-tab" id="tab-standings" data-view="standings" type="button">Standings</button>
       <button class="nav-tab" id="tab-glossary" data-view="glossary" type="button">Glossary</button>
+      <a class="nav-tab" href="index.html" title="Sports Home">Sports</a>
       <div class="nav-dropdown pitch-gender-switcher">
         <button class="nav-tab nav-dropdown-trigger pitch-gender-trigger" type="button" aria-label="Switch soccer category">
           Girls
@@ -72,6 +73,13 @@
       </div>
       <button class="nav-tab nav-tab-report" id="tab-report" onclick="openReportProblem()" type="button">Report</button>
     </nav>
+
+    <div class="season-switcher">
+      <span>Yr</span>
+      <select id="pitchSeasonSelect" aria-label="Season">
+        <option>2025</option>
+      </select>
+    </div>
 
     <button class="theme-toggle" id="themeToggle" type="button" onclick="toggleTheme()" aria-label="Toggle light and dark mode">
       <span class="theme-toggle-icon theme-toggle-sun" aria-hidden="true">
@@ -94,6 +102,13 @@
       <input class="global-search-input" id="globalSearch" type="search" placeholder="Search..." autocomplete="off">
       <div id="searchResults" class="global-search-results search-results"></div>
     </div>
+
+    <button class="back-btn" id="backBtn" onclick="pitchGoBack()" type="button">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10 3L5 8l5 5"/>
+      </svg>
+      <span id="backLabel">Back</span>
+    </button>
   </header>
 
   <section id="view-home" class="view active"></section>
@@ -144,6 +159,6 @@
 
   <script src="js/team-logos.js"></script>
   <script src="js/girls-pitch-data.js?v=20260622-girls-launch"></script>
-  <script src="js/pitch.js?v=20260622-cohesive-ui"></script>
+  <script src="js/pitch.js?v=20260623-uniform-shell"></script>
 </body>
 </html>

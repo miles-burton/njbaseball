@@ -11,6 +11,7 @@ const CONFERENCES = [...new Set(TEAMS.map((team) => team.conference))].sort();
 const REPORT_ISSUE_URL = 'https://github.com/miles-burton/njbaseball/issues/new';
 const state = {
   view: 'home',
+  previousView: 'home',
   teamSlug: '',
   playerKey: '',
   rankingSort: { key: 'powerScore', asc: false },
@@ -61,6 +62,7 @@ function logoImg(team, size = 22) {
 }
 
 function setView(view, detail = '') {
+  state.previousView = state.view;
   state.view = view;
   document.querySelectorAll('.view').forEach((el) => el.classList.remove('active'));
   $(`view-${view}`)?.classList.add('active');
@@ -72,8 +74,14 @@ function setView(view, detail = '') {
   });
   if (view === 'team') state.teamSlug = detail;
   if (view === 'player') state.playerKey = decodeURIComponent(detail);
+  $('backBtn')?.classList.toggle('show', ['team', 'player'].includes(view));
   render();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}
+
+function pitchGoBack() {
+  const previous = state.previousView && state.previousView !== state.view ? state.previousView : 'home';
+  setView(['team', 'player'].includes(previous) ? 'home' : previous);
 }
 
 function applyTheme(theme) {
@@ -406,7 +414,7 @@ function renderHome() {
   const upcomingGames = upcomingPitchGames().slice(0, 8);
   const recentDate = recentGames[0]?.dateObj;
   $('view-home').innerHTML = `
-    <div class="home-hero pitch-hero">
+    <div class="home-hero" style="position:relative;overflow:hidden">
       <div class="home-hero-inner">
         <div class="home-hero-text">
           <div class="home-hero-eyebrow">New Jersey ${esc(PITCH_SPORT_LABEL)} · ${esc(PITCH_DATA.season)} Season</div>
@@ -418,24 +426,6 @@ function renderHome() {
             <button class="home-btn-secondary" data-view-target="leaders">Player Leaders</button>
           </div>
         </div>
-        <aside class="pitch-hero-index" aria-label="Top three Pitch Index teams">
-          <div class="pitch-hero-index-header">
-            <div>
-              <span>Live Index</span>
-              <strong>State Top 3</strong>
-            </div>
-            <button data-view-target="rankings" type="button">View all</button>
-          </div>
-          <div class="pitch-hero-index-list">
-            ${topTeams.slice(0, 3).map((team) => `<button class="pitch-hero-index-row" data-team-slug="${esc(team.slug)}" type="button">
-              <span class="pitch-hero-index-rank">${team.rank}</span>
-              <span class="pitch-hero-index-logo">${logoImg(team, 30)}</span>
-              <span class="pitch-hero-index-team"><strong>${esc(team.name)}</strong><small>${esc(team.record)} · ${esc(team.conference)}</small></span>
-              <span class="pitch-hero-index-score">${team.powerScore.toFixed(1)}</span>
-            </button>`).join('')}
-          </div>
-          <div class="pitch-hero-index-updated">${esc(formatUpdated(PITCH_DATA.updated))}</div>
-        </aside>
       </div>
     </div>
 
