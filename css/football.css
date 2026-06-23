@@ -1237,13 +1237,53 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+.football-player-page .stat-mini,
+.football-player-page .counting-card,
+.football-team-page .team-stat-card,
+.football-team-page .counting-card {
+  min-width: 0;
+}
+
+.football-player-page .stat-mini-label,
+.football-player-page .counting-label,
+.football-team-page .team-stat-card-label,
+.football-team-page .counting-label {
+  display: block;
+  max-width: 100%;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.football-player-page .stat-mini-val,
+.football-player-page .counting-value,
+.football-team-page .team-stat-card-val,
+.football-team-page .counting-value {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: clamp(18px, 2.3vw, 28px);
+}
+
+.football-player-page .counting-grid,
+.football-team-page .counting-grid {
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+}
+
 .football-player-page .pct-label {
-  width: 72px;
+  width: 96px;
   white-space: nowrap;
 }
 
 .football-player-page .pct-row {
+  display: grid;
+  align-items: center;
+  grid-template-columns: 96px minmax(0, 1fr) minmax(48px, max-content);
   gap: 12px;
+}
+
+.football-player-page .pct-raw {
+  white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .football-win-bar {
