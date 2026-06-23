@@ -311,7 +311,10 @@ def compute_team_ratings(teams):
             opponents = [opponent for opponent in opponents if opponent and opponent["slug"] != team["slug"]]
             average_defense = sum(opponent["adjD"] for opponent in opponents) / len(opponents) if opponents else league_points
             average_offense = sum(opponent["adjO"] for opponent in opponents) / len(opponents) if opponents else league_points
-            adjusted_offense = team["rawOffense"] * (average_defense / max(league_points, 1)) ** 0.55
+            # Reward scoring against strong defenses (low opponent adjD) and
+            # holding strong offenses (high opponent adjO) down. Both terms must
+            # point the same way: opponent strength raises your adjusted rating.
+            adjusted_offense = team["rawOffense"] * (max(league_points, 1) / max(average_defense, 1)) ** 0.55
             adjusted_defense = team["rawDefense"] * (league_points / max(average_offense, 1)) ** 0.55
             next_values.append((team, max(0, min(adjusted_offense, 60)), max(1, min(adjusted_defense, 60))))
         for team, offense, defense in next_values:
@@ -345,10 +348,12 @@ def compute_team_ratings(teams):
         team["sos"] = round(sos * 100, 1)
         team["qualityScore"] = round(max(0, min(100, quality)), 1)
         team["qualityWins"] = quality_wins
-        # Predictive efficiency leads, but schedule and earned quality carry
-        # enough weight to prevent undefeated low-SOS profiles from floating
-        # above teams that proved themselves against elite opposition.
-        team["rawPower"] = round(0.42 * expected * 100 + 0.15 * team["winPct"] * 100 + 0.23 * team["sos"] + 0.20 * team["qualityScore"], 8)
+        # Predictive efficiency leads; strength of schedule carries heavy weight
+        # so the powers that survive NJ's elite (largely Non-Public) gauntlet are
+        # not buried by undefeated teams from soft conferences. Raw win% is kept
+        # low on purpose — winning is already rewarded through quality and
+        # efficiency, so a few losses to elite opponents shouldn't sink a team.
+        team["rawPower"] = round(0.40 * expected * 100 + 0.05 * team["winPct"] * 100 + 0.35 * team["sos"] + 0.20 * team["qualityScore"], 8)
 
     raw_values = sorted(team["rawPower"] for team in teams)
     low = raw_values[0]
