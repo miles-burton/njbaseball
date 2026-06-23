@@ -277,9 +277,6 @@ function footballRenderHome() {
   const latestLabel = scores[0]?.date || completed[0]?.date || '';
   footballEl('view-home').innerHTML = `
     <section class="home-hero football-home-hero" style="position:relative;overflow:hidden">
-      <div class="home-hero-img-wrap">
-        <img src="hero.jpg" alt="New Jersey high school sports">
-      </div>
       <div class="home-hero-inner">
         <div class="home-hero-text">
           <div class="home-hero-eyebrow">New Jersey Football &middot; ${footballEsc(FOOTBALL_DATA.season)} Season</div>
