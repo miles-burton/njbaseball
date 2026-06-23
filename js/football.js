@@ -32,7 +32,7 @@ const footballMetricLabels = {
   Punts: 'Punts', PuntYds: 'Punt Yards', PuntAvg: 'Punt Average', Inside20: 'Inside 20', PuntLng: 'Longest Punt',
   KORAtt: 'Kick Returns', KORYds: 'Kick Return Yards', KORLng: 'Longest Kick Return', PRAtt: 'Punt Returns', PRYds: 'Punt Return Yards', PRLng: 'Longest Punt Return', ReturnAvg: 'Return Average', KORTD: 'Kick Return TD', PRTD: 'Punt Return TD',
   TotalYds: 'Total Yards', TotalTD: 'Total TD',
-  TDINT: 'TD:INT', NCAARating: 'NCAA Rating', QBTotalTD: 'Total TD', QBTotalYds: 'Total Yards', QBUsage: 'QB Usage %', QBEffPlus: 'QB Efficiency+',
+  TDINT: 'TD:INT', NFLRating: 'NFL Rating', QBTotalTD: 'Total TD', QBTotalYds: 'Total Yards', QBUsage: 'QB Usage %', QBEffPlus: 'QB Efficiency+',
   YardsPerTouch: 'Yards / Touch', ScrimYds: 'Scrimmage Yards', ScrimTD: 'Scrimmage TD', TouchShare: 'Touch Share', RushYardShare: 'Rush Yard Share', ExplosiveRun: 'Explosive Run', RBImpact: 'RB Impact',
   RecYardShare: 'Receiving Yard Share', ReceptionShare: 'Reception Share', RecTDShare: 'Receiving TD Share', BigPlayScore: 'Big Play Score', TotalTouches: 'Total Touches', WREffPlus: 'WR Efficiency+',
   TFLPerTackle: 'TFL / Tackle', SackPerTackle: 'Sack / Tackle', HavocPlays: 'Havoc Plays', HavocRate: 'Havoc Rate', TurnoversCreated: 'Turnovers Created', DLImpact: 'DL Impact',
@@ -50,7 +50,7 @@ const footballShortMetricLabels = {
   Punts: 'PUNTS', PuntYds: 'PUNT YDS', PuntAvg: 'PUNT AVG', Inside20: 'IN20', PuntLng: 'PUNT LNG',
   KORAtt: 'KR', KORYds: 'KR YDS', KORLng: 'KR LNG', PRAtt: 'PR', PRYds: 'PR YDS', PRLng: 'PR LNG', ReturnAvg: 'RET AVG', KORTD: 'KR TD', PRTD: 'PR TD',
   TotalYds: 'TOT YDS', TotalTD: 'TOT TD',
-  TDINT: 'TD:INT', NCAARating: 'RATE', QBTotalTD: 'TOT TD', QBTotalYds: 'TOT YDS', QBUsage: 'USG%', QBEffPlus: 'EFF+',
+  TDINT: 'TD:INT', NFLRating: 'RATE', QBTotalTD: 'TOT TD', QBTotalYds: 'TOT YDS', QBUsage: 'USG%', QBEffPlus: 'EFF+',
   YardsPerTouch: 'Y/TCH', ScrimYds: 'SCRIM YDS', ScrimTD: 'SCRIM TD', TouchShare: 'TCH%', RushYardShare: 'RYD%', ExplosiveRun: 'EXP RUN', RBImpact: 'RB IMP',
   RecYardShare: 'REC YD%', ReceptionShare: 'REC%', RecTDShare: 'TD%', BigPlayScore: 'BIG PLAY', TotalTouches: 'TCH', WREffPlus: 'EFF+',
   TFLPerTackle: 'TFL/T', SackPerTackle: 'SACK/T', HavocPlays: 'HAVOC', HavocRate: 'HAVOC%', TurnoversCreated: 'TO', DLImpact: 'DL IMP',
@@ -131,10 +131,15 @@ function footballHasPosition(player, positions) {
   return positions.some((position) => tokens.includes(position));
 }
 
-function footballNCAAPasserRating(player) {
+function footballNFLPasserRating(player) {
   const att = footballVal(player, 'PassAtt');
   if (!att) return 0;
-  return ((8.4 * footballVal(player, 'PassYds')) + (330 * footballVal(player, 'PassTD')) + (100 * footballVal(player, 'Cmp')) - (200 * footballVal(player, 'INT'))) / att;
+  const cap = (value) => Math.max(0, Math.min(2.375, value));
+  const completion = cap(((footballVal(player, 'Cmp') / att) - 0.3) * 5);
+  const yards = cap(((footballVal(player, 'PassYds') / att) - 3) * 0.25);
+  const touchdowns = cap((footballVal(player, 'PassTD') / att) * 20);
+  const interceptions = cap(2.375 - ((footballVal(player, 'INT') / att) * 25));
+  return ((completion + yards + touchdowns + interceptions) / 6) * 100;
 }
 
 function footballBuildTeamAdvanced() {
@@ -195,7 +200,7 @@ function footballDeriveAdvancedStats() {
   footballBuildTeamAdvanced();
   const qbRatings = FOOTBALL_PLAYERS
     .filter((player) => footballVal(player, 'PassAtt') >= 20)
-    .map(footballNCAAPasserRating)
+    .map(footballNFLPasserRating)
     .filter((value) => value > 0);
   const stateQBRating = qbRatings.length ? qbRatings.reduce((sum, value) => sum + value, 0) / qbRatings.length : 100;
   const wrYpr = FOOTBALL_PLAYERS
@@ -220,11 +225,11 @@ function footballDeriveAdvancedStats() {
     const longestReturn = Math.max(footballVal(player, 'KORLng'), footballVal(player, 'PRLng'));
 
     player.TDINT = footballVal(player, 'INT') ? footballVal(player, 'PassTD') / footballVal(player, 'INT') : footballVal(player, 'PassTD');
-    player.NCAARating = footballNCAAPasserRating(player);
+    player.NFLRating = footballNFLPasserRating(player);
     player.QBTotalTD = footballVal(player, 'PassTD') + footballVal(player, 'RushTD');
     player.QBTotalYds = footballVal(player, 'PassYds') + footballVal(player, 'RushYds');
     player.QBUsage = footballSafeDiv(passAtt + rushAtt, footballVal(team, 'passAtt') + footballVal(team, 'rushAtt'), 100);
-    player.QBEffPlus = stateQBRating ? footballSafeDiv(player.NCAARating, stateQBRating, 100) : 0;
+    player.QBEffPlus = stateQBRating ? footballSafeDiv(player.NFLRating, stateQBRating, 100) : 0;
 
     player.YardsPerTouch = footballSafeDiv(scrimYds, touches);
     player.ScrimYds = scrimYds;
@@ -297,7 +302,7 @@ function footballPercentileFromSorted(clean, value, lowerIsBetter = false) {
 }
 
 function footballPercentileEligible(player, stat) {
-  if (['CmpPct', 'PassYPA', 'PassTDPct', 'INTPct', 'TDINT', 'NCAARating', 'QBEffPlus'].includes(stat)) return footballVal(player, 'PassAtt') > 0;
+  if (['CmpPct', 'PassYPA', 'PassTDPct', 'INTPct', 'TDINT', 'NFLRating', 'QBEffPlus'].includes(stat)) return footballVal(player, 'PassAtt') > 0;
   if (['RushYPA', 'RushTDRate', 'YardsPerTouch', 'TouchShare', 'RushYardShare', 'ExplosiveRun', 'RBImpact'].includes(stat)) return footballVal(player, 'RushAtt') + footballVal(player, 'Rec') > 0;
   if (['RecYPR', 'RecTDRate', 'RecYardShare', 'ReceptionShare', 'RecTDShare', 'BigPlayScore', 'WREffPlus'].includes(stat)) return footballVal(player, 'Rec') > 0;
   if (['TFLPerTackle', 'SackPerTackle', 'HavocRate', 'TacklesPerGame', 'TFLRate'].includes(stat)) return footballVal(player, 'Tackles') > 0;
@@ -654,7 +659,7 @@ function footballPlayerInLeaderGroup(player, group) {
 
 function footballLeaderColumns(group) {
   const map = {
-    QB: [['playerScore', 'PS', 1], ['CmpPct', 'CMP%', 1], ['PassYPA', 'Y/A', 2], ['PassTDPct', 'TD%', 1], ['INTPct', 'INT%', 1], ['TDINT', 'TD:INT', 1], ['NCAARating', 'RATE', 1], ['QBTotalTD', 'TOT TD', 0], ['QBTotalYds', 'TOT YDS', 0], ['QBUsage', 'USG%', 1], ['QBEffPlus', 'EFF+', 0]],
+    QB: [['playerScore', 'PS', 1], ['CmpPct', 'CMP%', 1], ['PassYPA', 'Y/A', 2], ['PassTDPct', 'TD%', 1], ['INTPct', 'INT%', 1], ['TDINT', 'TD:INT', 1], ['NFLRating', 'RATE', 1], ['QBTotalTD', 'TOT TD', 0], ['QBTotalYds', 'TOT YDS', 0], ['QBUsage', 'USG%', 1], ['QBEffPlus', 'EFF+', 0]],
     RB: [['playerScore', 'PS', 1], ['RushYPA', 'Y/C', 2], ['RushTDRate', 'TD%', 1], ['YardsPerTouch', 'Y/TCH', 2], ['ScrimYds', 'SCRIM YDS', 0], ['ScrimTD', 'SCRIM TD', 0], ['TouchShare', 'TCH%', 1], ['RushYardShare', 'RYD%', 1], ['ExplosiveRun', 'EXP RUN', 1], ['RBImpact', 'RB IMP', 1]],
     WRTE: [['playerScore', 'PS', 1], ['RecYPR', 'Y/REC', 2], ['RecTDRate', 'TD%', 1], ['RecYardShare', 'REC YD%', 1], ['ReceptionShare', 'REC%', 1], ['RecTDShare', 'TD SHR', 1], ['BigPlayScore', 'BIG', 1], ['TotalTouches', 'TCH', 0], ['ScrimYds', 'SCRIM YDS', 0], ['WREffPlus', 'EFF+', 0]],
     DL: [['playerScore', 'PS', 1], ['Tackles', 'TACK', 0], ['TFL', 'TFL', 0], ['Sacks', 'SACK', 1], ['TFLPerTackle', 'TFL/T', 1], ['SackPerTackle', 'SACK/T', 1], ['HavocPlays', 'HAVOC', 1], ['HavocRate', 'HAVOC%', 1], ['TurnoversCreated', 'TO', 0], ['DLImpact', 'DL IMP', 1]],
@@ -836,7 +841,7 @@ function footballRenderGlossary() {
     ['TD Rate', 'Touchdowns divided by attempts or touches, depending on position group.'],
     ['INT Rate', 'Interceptions divided by passing attempts. Lower is better in percentiles.'],
     ['TD:INT', 'Passing touchdowns divided by interceptions. If interceptions are zero, the value is passing touchdowns.'],
-    ['NCAA Rating', '((8.4 x pass yards) + (330 x pass TD) + (100 x completions) - (200 x INT)) / pass attempts.'],
+    ['NFL Rating', 'NFL passer rating using completion rate, yards per attempt, touchdown rate, and interception rate. Each component is capped between 0 and 2.375; 158.3 is perfect.'],
     ['Efficiency+', 'Position efficiency compared with the statewide average. 100 is state average.'],
     ['QB Usage %', 'QB passing attempts plus rushing attempts divided by team offensive plays.'],
     ['Yards / Touch', 'Rushing plus receiving yards divided by carries plus catches.'],
@@ -968,7 +973,7 @@ function footballPctColor(value) {
   return '#2a5080';
 }
 function footballIsRateStat(stat) {
-  return ['CmpPct', 'PassYPA', 'PassTDPct', 'INTPct', 'TDINT', 'NCAARating', 'QBEffPlus', 'QBUsage', 'FGPct', 'XPPct', 'AdjYPA', 'RushYPA', 'RushTDRate', 'YardsPerTouch', 'TouchShare', 'RushYardShare', 'ExplosiveRun', 'RBImpact', 'RecYPR', 'RecTDRate', 'RecYardShare', 'ReceptionShare', 'RecTDShare', 'BigPlayScore', 'WREffPlus', 'TFLPerTackle', 'SackPerTackle', 'HavocRate', 'TacklesPerGame', 'TFLRate', 'PuntAvg', 'Inside20Pct', 'FieldPositionScore', 'ReturnAvg', 'KickReturnAvg', 'PuntReturnAvg', 'ExplosiveReturn', 'SpecialTeamsImpact'].includes(stat);
+  return ['CmpPct', 'PassYPA', 'PassTDPct', 'INTPct', 'TDINT', 'NFLRating', 'QBEffPlus', 'QBUsage', 'FGPct', 'XPPct', 'AdjYPA', 'RushYPA', 'RushTDRate', 'YardsPerTouch', 'TouchShare', 'RushYardShare', 'ExplosiveRun', 'RBImpact', 'RecYPR', 'RecTDRate', 'RecYardShare', 'ReceptionShare', 'RecTDShare', 'BigPlayScore', 'WREffPlus', 'TFLPerTackle', 'SackPerTackle', 'HavocRate', 'TacklesPerGame', 'TFLRate', 'PuntAvg', 'Inside20Pct', 'FieldPositionScore', 'ReturnAvg', 'KickReturnAvg', 'PuntReturnAvg', 'ExplosiveReturn', 'SpecialTeamsImpact'].includes(stat);
 }
 function footballFormatStat(player, stat, digits = 0) {
   const value = player[stat];
@@ -977,7 +982,7 @@ function footballFormatStat(player, stat, digits = 0) {
 function footballPercentileSections(player) {
   const metricEntries = Object.entries(player.metricPercentiles || {});
   if (!metricEntries.length) return '<div class="empty">No percentile metrics available for this role.</div>';
-  const rateStats = new Set(['AdjYPA', 'CmpPct', 'PassYPA', 'PassTDPct', 'INTPct', 'TDINT', 'NCAARating', 'QBUsage', 'QBEffPlus', 'RushYPA', 'RushTDRate', 'YardsPerTouch', 'TouchShare', 'RushYardShare', 'ExplosiveRun', 'RBImpact', 'RecYPR', 'RecTDRate', 'RecYardShare', 'ReceptionShare', 'RecTDShare', 'BigPlayScore', 'WREffPlus', 'TFLPerTackle', 'SackPerTackle', 'HavocRate', 'TacklesPerGame', 'TFLRate', 'PuntAvg', 'Inside20Pct', 'FieldPositionScore', 'ReturnAvg', 'KickReturnAvg', 'PuntReturnAvg', 'ExplosiveReturn', 'SpecialTeamsImpact', 'FGPct', 'XPPct']);
+  const rateStats = new Set(['AdjYPA', 'CmpPct', 'PassYPA', 'PassTDPct', 'INTPct', 'TDINT', 'NFLRating', 'QBUsage', 'QBEffPlus', 'RushYPA', 'RushTDRate', 'YardsPerTouch', 'TouchShare', 'RushYardShare', 'ExplosiveRun', 'RBImpact', 'RecYPR', 'RecTDRate', 'RecYardShare', 'ReceptionShare', 'RecTDShare', 'BigPlayScore', 'WREffPlus', 'TFLPerTackle', 'SackPerTackle', 'HavocRate', 'TacklesPerGame', 'TFLRate', 'PuntAvg', 'Inside20Pct', 'FieldPositionScore', 'ReturnAvg', 'KickReturnAvg', 'PuntReturnAvg', 'ExplosiveReturn', 'SpecialTeamsImpact', 'FGPct', 'XPPct']);
   const productionStats = new Set(['PassYds', 'PassTD', 'QBTotalTD', 'QBTotalYds', 'RushYds', 'RushTD', 'Rec', 'RecYds', 'RecTD', 'ScrimYds', 'ScrimTD', 'TotalTouches', 'Tackles', 'TFL', 'Sacks', 'DefINT', 'TurnoversCreated', 'HavocPlays', 'DLImpact', 'DefensiveImpactScore', 'DBTurnovers', 'TakeawayTD', 'DBPlaymaker', 'KickPoints', 'FGM', 'XPM', 'PuntYds', 'Inside20', 'ReturnTD', 'ReturnYds', 'TotalYds', 'TotalTD', 'DefImpact']);
   const groups = [
     ['Advanced Rate', metricEntries.filter(([metric]) => rateStats.has(metric))],
