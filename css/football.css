@@ -1077,6 +1077,16 @@
   color: #160b08;
 }
 
+.football-position-switch {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.football-position-switch button {
+  white-space: nowrap;
+}
+
 .football-pagination {
   display: flex;
   align-items: center;
@@ -1159,6 +1169,10 @@
   overflow: visible;
   text-overflow: clip;
   white-space: nowrap;
+}
+
+.football-team-advanced {
+  margin-top: 18px;
 }
 
 .football-team-page,

@@ -10,6 +10,7 @@ const footballState = {
   teamSlug: '',
   playerKey: '',
   leaderSide: 'offense',
+  leaderGroup: 'QB',
   leaderSort: { key: 'playerScore', asc: false },
   leaderPage: 1,
   rankingSort: { key: 'powerScore', asc: false },
@@ -31,6 +32,13 @@ const footballMetricLabels = {
   Punts: 'Punts', PuntYds: 'Punt Yards', PuntAvg: 'Punt Average', Inside20: 'Inside 20', PuntLng: 'Longest Punt',
   KORAtt: 'Kick Returns', KORYds: 'Kick Return Yards', KORLng: 'Longest Kick Return', PRAtt: 'Punt Returns', PRYds: 'Punt Return Yards', PRLng: 'Longest Punt Return', ReturnAvg: 'Return Average', KORTD: 'Kick Return TD', PRTD: 'Punt Return TD',
   TotalYds: 'Total Yards', TotalTD: 'Total TD',
+  TDINT: 'TD:INT', NCAARating: 'NCAA Rating', QBTotalTD: 'Total TD', QBTotalYds: 'Total Yards', QBUsage: 'QB Usage %', QBEffPlus: 'QB Efficiency+',
+  YardsPerTouch: 'Yards / Touch', ScrimYds: 'Scrimmage Yards', ScrimTD: 'Scrimmage TD', TouchShare: 'Touch Share', RushYardShare: 'Rush Yard Share', ExplosiveRun: 'Explosive Run', RBImpact: 'RB Impact',
+  RecYardShare: 'Receiving Yard Share', ReceptionShare: 'Reception Share', RecTDShare: 'Receiving TD Share', BigPlayScore: 'Big Play Score', TotalTouches: 'Total Touches', WREffPlus: 'WR Efficiency+',
+  TFLPerTackle: 'TFL / Tackle', SackPerTackle: 'Sack / Tackle', HavocPlays: 'Havoc Plays', HavocRate: 'Havoc Rate', TurnoversCreated: 'Turnovers Created', DLImpact: 'DL Impact',
+  TacklesPerGame: 'Tackles / Game', TFLRate: 'TFL Rate', DefensiveImpactScore: 'Defensive Impact Score',
+  DBTurnovers: 'Turnovers Created', TakeawayTD: 'Takeaway TD', DBPlaymaker: 'DB Playmaker Score',
+  Inside20Pct: 'Inside 20 %', FieldPositionScore: 'Field Position Score', KickReturnAvg: 'Kick Return Avg', PuntReturnAvg: 'Punt Return Avg', ReturnTD: 'Return TD', ReturnYds: 'Return Yards', ExplosiveReturn: 'Explosive Return', SpecialTeamsImpact: 'Special Teams Impact',
 };
 const footballShortMetricLabels = {
   Cmp: 'CMP', PassAtt: 'ATT', INT: 'INT', PassLng: 'LNG',
@@ -42,7 +50,25 @@ const footballShortMetricLabels = {
   Punts: 'PUNTS', PuntYds: 'PUNT YDS', PuntAvg: 'PUNT AVG', Inside20: 'IN20', PuntLng: 'PUNT LNG',
   KORAtt: 'KR', KORYds: 'KR YDS', KORLng: 'KR LNG', PRAtt: 'PR', PRYds: 'PR YDS', PRLng: 'PR LNG', ReturnAvg: 'RET AVG', KORTD: 'KR TD', PRTD: 'PR TD',
   TotalYds: 'TOT YDS', TotalTD: 'TOT TD',
+  TDINT: 'TD:INT', NCAARating: 'RATE', QBTotalTD: 'TOT TD', QBTotalYds: 'TOT YDS', QBUsage: 'USG%', QBEffPlus: 'EFF+',
+  YardsPerTouch: 'Y/TCH', ScrimYds: 'SCRIM YDS', ScrimTD: 'SCRIM TD', TouchShare: 'TCH%', RushYardShare: 'RYD%', ExplosiveRun: 'EXP RUN', RBImpact: 'RB IMP',
+  RecYardShare: 'REC YD%', ReceptionShare: 'REC%', RecTDShare: 'TD%', BigPlayScore: 'BIG PLAY', TotalTouches: 'TCH', WREffPlus: 'EFF+',
+  TFLPerTackle: 'TFL/T', SackPerTackle: 'SACK/T', HavocPlays: 'HAVOC', HavocRate: 'HAVOC%', TurnoversCreated: 'TO', DLImpact: 'DL IMP',
+  TacklesPerGame: 'T/G', TFLRate: 'TFL%', DefensiveImpactScore: 'DEF IMP',
+  DBTurnovers: 'TO', TakeawayTD: 'TO TD', DBPlaymaker: 'PLAYMK',
+  Inside20Pct: 'IN20%', FieldPositionScore: 'FP SCORE', KickReturnAvg: 'KR AVG', PuntReturnAvg: 'PR AVG', ReturnTD: 'RET TD', ReturnYds: 'RET YDS', ExplosiveReturn: 'EXP RET', SpecialTeamsImpact: 'ST IMP',
 };
+const FOOTBALL_LEADER_GROUPS = [
+  ['QB', 'QB'],
+  ['RB', 'RB'],
+  ['WRTE', 'WR / TE'],
+  ['DL', 'DL'],
+  ['LB', 'LB'],
+  ['DB', 'DB'],
+  ['K', 'K'],
+  ['P', 'P'],
+  ['RET', 'Returners'],
+];
 
 function footballEl(id) { return document.getElementById(id); }
 function footballEsc(value) {
@@ -85,6 +111,158 @@ function footballGroupBy(items, keyFor) {
     (groups[key] ||= []).push(item);
     return groups;
   }, {});
+}
+
+function footballVal(row, key) {
+  const value = Number(row?.[key]);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function footballSafeDiv(num, den, scale = 1) {
+  return den ? (num / den) * scale : 0;
+}
+
+function footballPositionTokens(player) {
+  return String(player.position || '').split(',').map((part) => part.trim().toUpperCase()).filter(Boolean);
+}
+
+function footballHasPosition(player, positions) {
+  const tokens = footballPositionTokens(player);
+  return positions.some((position) => tokens.includes(position));
+}
+
+function footballNCAAPasserRating(player) {
+  const att = footballVal(player, 'PassAtt');
+  if (!att) return 0;
+  return ((8.4 * footballVal(player, 'PassYds')) + (330 * footballVal(player, 'PassTD')) + (100 * footballVal(player, 'Cmp')) - (200 * footballVal(player, 'INT'))) / att;
+}
+
+function footballBuildTeamAdvanced() {
+  const bySlug = Object.fromEntries(FOOTBALL_TEAMS.map((team) => [team.slug, {
+    passAtt: 0, rushAtt: 0, rec: 0,
+    passYds: 0, rushYds: 0, recYds: 0,
+    passTD: 0, rushTD: 0, recTD: 0,
+    tackles: 0, tfl: 0, sacks: 0, ff: 0, fr: 0, int: 0,
+    xpm: 0, xpa: 0, punts: 0, puntYds: 0,
+  }]));
+  FOOTBALL_PLAYERS.forEach((player) => {
+    const team = bySlug[player.teamSlug];
+    if (!team) return;
+    team.passAtt += footballVal(player, 'PassAtt');
+    team.rushAtt += footballVal(player, 'RushAtt');
+    team.rec += footballVal(player, 'Rec');
+    team.passYds += footballVal(player, 'PassYds');
+    team.rushYds += footballVal(player, 'RushYds');
+    team.recYds += footballVal(player, 'RecYds');
+    team.passTD += footballVal(player, 'PassTD');
+    team.rushTD += footballVal(player, 'RushTD');
+    team.recTD += footballVal(player, 'RecTD');
+    team.tackles += footballVal(player, 'Tackles');
+    team.tfl += footballVal(player, 'TFL');
+    team.sacks += footballVal(player, 'Sacks');
+    team.ff += footballVal(player, 'FF');
+    team.fr += footballVal(player, 'FR');
+    team.int += footballVal(player, 'DefINT');
+    team.xpm += footballVal(player, 'XPM');
+    team.xpa += footballVal(player, 'XPA');
+    team.punts += footballVal(player, 'Punts');
+    team.puntYds += footballVal(player, 'PuntYds');
+  });
+  Object.entries(bySlug).forEach(([slug, totals]) => {
+    const team = FOOTBALL_TEAM_BY_SLUG[slug];
+    if (!team) return;
+    const plays = totals.passAtt + totals.rushAtt;
+    const offensiveTouches = totals.rushAtt + totals.rec;
+    const yards = totals.passYds + totals.rushYds;
+    const offensiveTD = totals.passTD + totals.rushTD;
+    const havoc = totals.tfl + totals.sacks + totals.ff + totals.fr;
+    team.teamAdvanced = totals;
+    team.YardsPerPlay = footballSafeDiv(yards, plays);
+    team.RunRate = footballSafeDiv(totals.rushAtt, plays, 100);
+    team.PassRate = footballSafeDiv(totals.passAtt, plays, 100);
+    team.RushYPC = footballSafeDiv(totals.rushYds, totals.rushAtt);
+    team.PassYPA = footballSafeDiv(totals.passYds, totals.passAtt);
+    team.OffTDRate = footballSafeDiv(offensiveTD, plays, 100);
+    team.HavocRate = footballSafeDiv(havoc, totals.tackles, 100);
+    team.Takeaways = totals.int + totals.fr;
+    team.XPPct = footballSafeDiv(totals.xpm, totals.xpa, 100);
+    team.PuntAvg = footballSafeDiv(totals.puntYds, totals.punts);
+    team.OffensiveTouches = offensiveTouches;
+  });
+}
+
+function footballDeriveAdvancedStats() {
+  footballBuildTeamAdvanced();
+  const qbRatings = FOOTBALL_PLAYERS
+    .filter((player) => footballVal(player, 'PassAtt') >= 20)
+    .map(footballNCAAPasserRating)
+    .filter((value) => value > 0);
+  const stateQBRating = qbRatings.length ? qbRatings.reduce((sum, value) => sum + value, 0) / qbRatings.length : 100;
+  const wrYpr = FOOTBALL_PLAYERS
+    .filter((player) => footballVal(player, 'Rec') >= 5)
+    .map((player) => footballSafeDiv(footballVal(player, 'RecYds'), footballVal(player, 'Rec')))
+    .filter((value) => value > 0);
+  const stateYPR = wrYpr.length ? wrYpr.reduce((sum, value) => sum + value, 0) / wrYpr.length : 10;
+
+  FOOTBALL_PLAYERS.forEach((player) => {
+    const team = FOOTBALL_TEAM_BY_SLUG[player.teamSlug]?.teamAdvanced || {};
+    const passAtt = footballVal(player, 'PassAtt');
+    const rushAtt = footballVal(player, 'RushAtt');
+    const rec = footballVal(player, 'Rec');
+    const touches = rushAtt + rec;
+    const scrimYds = footballVal(player, 'RushYds') + footballVal(player, 'RecYds');
+    const scrimTD = footballVal(player, 'RushTD') + footballVal(player, 'RecTD');
+    const tackles = footballVal(player, 'Tackles');
+    const havoc = footballVal(player, 'TFL') + footballVal(player, 'Sacks') + footballVal(player, 'FF') + footballVal(player, 'FR');
+    const returnYds = footballVal(player, 'KORYds') + footballVal(player, 'PRYds');
+    const returnAtt = footballVal(player, 'KORAtt') + footballVal(player, 'PRAtt');
+    const returnTD = footballVal(player, 'KORTD') + footballVal(player, 'PRTD');
+    const longestReturn = Math.max(footballVal(player, 'KORLng'), footballVal(player, 'PRLng'));
+
+    player.TDINT = footballVal(player, 'INT') ? footballVal(player, 'PassTD') / footballVal(player, 'INT') : footballVal(player, 'PassTD');
+    player.NCAARating = footballNCAAPasserRating(player);
+    player.QBTotalTD = footballVal(player, 'PassTD') + footballVal(player, 'RushTD');
+    player.QBTotalYds = footballVal(player, 'PassYds') + footballVal(player, 'RushYds');
+    player.QBUsage = footballSafeDiv(passAtt + rushAtt, footballVal(team, 'passAtt') + footballVal(team, 'rushAtt'), 100);
+    player.QBEffPlus = stateQBRating ? footballSafeDiv(player.NCAARating, stateQBRating, 100) : 0;
+
+    player.YardsPerTouch = footballSafeDiv(scrimYds, touches);
+    player.ScrimYds = scrimYds;
+    player.ScrimTD = scrimTD;
+    player.TouchShare = footballSafeDiv(touches, footballVal(team, 'rushAtt') + footballVal(team, 'rec'), 100);
+    player.RushYardShare = footballSafeDiv(footballVal(player, 'RushYds'), footballVal(team, 'rushYds'), 100);
+    player.ExplosiveRun = footballSafeDiv(footballVal(player, 'RushLng'), footballVal(player, 'RushYds'), 100);
+    player.RBImpact = player.YardsPerTouch + player.RushTDRate + player.RushYardShare;
+
+    player.RecYardShare = footballSafeDiv(footballVal(player, 'RecYds'), footballVal(team, 'recYds'), 100);
+    player.ReceptionShare = footballSafeDiv(rec, footballVal(team, 'rec'), 100);
+    player.RecTDShare = footballSafeDiv(footballVal(player, 'RecTD'), footballVal(team, 'recTD'), 100);
+    player.BigPlayScore = footballSafeDiv(footballVal(player, 'RecLng'), footballVal(player, 'RecYds'), 100);
+    player.TotalTouches = touches;
+    player.WREffPlus = stateYPR ? footballSafeDiv(player.RecYPR, stateYPR, 100) : 0;
+
+    player.TFLPerTackle = footballSafeDiv(footballVal(player, 'TFL'), tackles, 100);
+    player.SackPerTackle = footballSafeDiv(footballVal(player, 'Sacks'), tackles, 100);
+    player.HavocPlays = havoc;
+    player.HavocRate = footballSafeDiv(havoc, tackles, 100);
+    player.TurnoversCreated = footballVal(player, 'FF') + footballVal(player, 'FR');
+    player.DLImpact = footballVal(player, 'Sacks') + footballVal(player, 'TFL') + footballVal(player, 'FF') + footballVal(player, 'FR');
+    player.TacklesPerGame = footballSafeDiv(tackles, FOOTBALL_TEAM_BY_SLUG[player.teamSlug]?.games || 0);
+    player.TFLRate = footballSafeDiv(footballVal(player, 'TFL'), tackles, 100);
+    player.DefensiveImpactScore = player.DefImpact;
+    player.DBTurnovers = footballVal(player, 'DefINT') + footballVal(player, 'FR');
+    player.TakeawayTD = footballVal(player, 'IntTD') + footballVal(player, 'FumTD');
+    player.DBPlaymaker = footballVal(player, 'DefINT') + footballVal(player, 'FR') + footballVal(player, 'FF') + footballVal(player, 'IntTD');
+
+    player.Inside20Pct = footballSafeDiv(footballVal(player, 'Inside20'), footballVal(player, 'Punts'), 100);
+    player.FieldPositionScore = player.PuntAvg + player.Inside20Pct;
+    player.KickReturnAvg = footballSafeDiv(footballVal(player, 'KORYds'), footballVal(player, 'KORAtt'));
+    player.PuntReturnAvg = footballSafeDiv(footballVal(player, 'PRYds'), footballVal(player, 'PRAtt'));
+    player.ReturnTD = returnTD;
+    player.ReturnYds = returnYds;
+    player.ExplosiveReturn = footballSafeDiv(longestReturn, returnYds, 100);
+    player.SpecialTeamsImpact = player.ReturnAvg + (returnTD * 6) + player.ExplosiveReturn;
+  });
 }
 
 function footballGameKey(game) {
@@ -389,16 +567,50 @@ function footballScoreRow(game, rank = '', includeDate = false) {
 }
 
 function footballFilteredPlayers() {
-  const sideRoles = footballState.leaderSide === 'defense' ? ['Defender'] : ['QB', 'Rusher', 'Receiver', 'Kicker', 'Punter', 'Returner', 'Utility'];
   const query = footballState.search.toLowerCase();
-  return FOOTBALL_PLAYERS.filter((player) => sideRoles.includes(player.role))
+  return FOOTBALL_PLAYERS.filter((player) => footballPlayerInLeaderGroup(player, footballState.leaderGroup))
     .filter((player) => footballState.conference === 'All' || player.conference === footballState.conference)
-    .filter((player) => footballState.role === 'All' || player.role === footballState.role)
     .filter((player) => !query || player.name.toLowerCase().includes(query) || player.team.toLowerCase().includes(query));
 }
 
+function footballPlayerInLeaderGroup(player, group) {
+  const isDefenseOnly = player.role === 'Defender' || player.groups?.includes('defense');
+  if (group === 'QB') return player.role === 'QB';
+  if (group === 'RB') return player.role === 'Rusher' || (!isDefenseOnly && footballHasPosition(player, ['RB']));
+  if (group === 'WRTE') return player.role === 'Receiver' || (!isDefenseOnly && footballHasPosition(player, ['WR', 'TE']));
+  if (group === 'DL') return player.role === 'Defender' && footballHasPosition(player, ['DL']);
+  if (group === 'LB') return player.role === 'Defender' && footballHasPosition(player, ['LB']);
+  if (group === 'DB') return player.role === 'Defender' && footballHasPosition(player, ['DB']);
+  if (group === 'K') return player.role === 'Kicker' || footballHasPosition(player, ['K']);
+  if (group === 'P') return player.role === 'Punter' || footballHasPosition(player, ['P']);
+  if (group === 'RET') return player.role === 'Returner' || footballVal(player, 'KORAtt') + footballVal(player, 'PRAtt') > 0;
+  return true;
+}
+
+function footballLeaderColumns(group) {
+  const map = {
+    QB: [['playerScore', 'PS', 1], ['CmpPct', 'CMP%', 1], ['PassYPA', 'Y/A', 2], ['PassTDPct', 'TD%', 1], ['INTPct', 'INT%', 1], ['TDINT', 'TD:INT', 1], ['NCAARating', 'RATE', 1], ['QBTotalTD', 'TOT TD', 0], ['QBTotalYds', 'TOT YDS', 0], ['QBUsage', 'USG%', 1], ['QBEffPlus', 'EFF+', 0]],
+    RB: [['playerScore', 'PS', 1], ['RushYPA', 'Y/C', 2], ['RushTDRate', 'TD%', 1], ['YardsPerTouch', 'Y/TCH', 2], ['ScrimYds', 'SCRIM YDS', 0], ['ScrimTD', 'SCRIM TD', 0], ['TouchShare', 'TCH%', 1], ['RushYardShare', 'RYD%', 1], ['ExplosiveRun', 'EXP RUN', 1], ['RBImpact', 'RB IMP', 1]],
+    WRTE: [['playerScore', 'PS', 1], ['RecYPR', 'Y/REC', 2], ['RecTDRate', 'TD%', 1], ['RecYardShare', 'REC YD%', 1], ['ReceptionShare', 'REC%', 1], ['RecTDShare', 'TD SHR', 1], ['BigPlayScore', 'BIG', 1], ['TotalTouches', 'TCH', 0], ['ScrimYds', 'SCRIM YDS', 0], ['WREffPlus', 'EFF+', 0]],
+    DL: [['playerScore', 'PS', 1], ['Tackles', 'TACK', 0], ['TFL', 'TFL', 0], ['Sacks', 'SACK', 1], ['TFLPerTackle', 'TFL/T', 1], ['SackPerTackle', 'SACK/T', 1], ['HavocPlays', 'HAVOC', 1], ['HavocRate', 'HAVOC%', 1], ['TurnoversCreated', 'TO', 0], ['DLImpact', 'DL IMP', 1]],
+    LB: [['playerScore', 'PS', 1], ['Tackles', 'TACK', 0], ['TacklesPerGame', 'T/G', 1], ['TFL', 'TFL', 0], ['Sacks', 'SACK', 1], ['TFLRate', 'TFL%', 1], ['HavocPlays', 'HAVOC', 1], ['FF', 'FF', 0], ['FR', 'FR', 0], ['DefINT', 'INT', 0], ['DefensiveImpactScore', 'DEF IMP', 1]],
+    DB: [['playerScore', 'PS', 1], ['DefINT', 'INT', 0], ['IntTD', 'INT TD', 0], ['Tackles', 'TACK', 0], ['FF', 'FF', 0], ['FR', 'FR', 0], ['DBTurnovers', 'TO', 0], ['TakeawayTD', 'TO TD', 0], ['DBPlaymaker', 'PLAYMK', 0]],
+    K: [['playerScore', 'PS', 1], ['XPPct', 'XP%', 1], ['XPM', 'XP', 0], ['KickPoints', 'PTS', 0], ['TwoPT', '2PT', 0], ['FGPct', 'FG%', 1], ['FGM', 'FGM', 0], ['FGA', 'FGA', 0]],
+    P: [['playerScore', 'PS', 1], ['PuntAvg', 'AVG', 2], ['Inside20Pct', 'IN20%', 1], ['PuntLng', 'LONG', 0], ['PuntYds', 'YDS', 0], ['FieldPositionScore', 'FP SCORE', 1]],
+    RET: [['playerScore', 'PS', 1], ['KickReturnAvg', 'KR AVG', 2], ['PuntReturnAvg', 'PR AVG', 2], ['ReturnTD', 'RET TD', 0], ['ReturnYds', 'RET YDS', 0], ['ExplosiveReturn', 'EXP RET', 1], ['SpecialTeamsImpact', 'ST IMP', 1]],
+  };
+  return map[group] || map.QB;
+}
+
+function footballFormatLeaderValue(player, stat, digits) {
+  return footballNum(player[stat], digits);
+}
+
 function footballRenderLeaders() {
-  const roles = footballState.leaderSide === 'defense' ? ['All', 'Defender'] : ['All', 'QB', 'Rusher', 'Receiver', 'Kicker', 'Punter', 'Returner', 'Utility'];
+  const stats = footballLeaderColumns(footballState.leaderGroup);
+  if (!stats.some(([stat]) => stat === footballState.leaderSort.key)) {
+    footballState.leaderSort = { key: 'playerScore', asc: false };
+  }
   const rows = footballFilteredPlayers();
   const { key, asc } = footballState.leaderSort;
   rows.sort((a, b) => ((Number(a[key]) || 0) - (Number(b[key]) || 0)) * (asc ? 1 : -1));
@@ -406,21 +618,18 @@ function footballRenderLeaders() {
   const pages = Math.max(1, Math.ceil(rows.length / pageSize));
   footballState.leaderPage = Math.min(footballState.leaderPage, pages);
   const visible = rows.slice((footballState.leaderPage - 1) * pageSize, footballState.leaderPage * pageSize);
-  const stats = footballState.leaderSide === 'defense'
-    ? [['playerScore', 'PS'], ['DefImpact', 'Impact'], ['Tackles', 'Tackles'], ['TFL', 'TFL'], ['Sacks', 'Sacks'], ['DefINT', 'INT'], ['FF', 'FF']]
-    : [['playerScore', 'PS'], ['TotalYds', 'Total Yds'], ['TotalTD', 'Total TD'], ['PassYds', 'Pass Yds'], ['RushYds', 'Rush Yds'], ['RecYds', 'Rec Yds']];
-  footballEl('view-leaders').innerHTML = `${footballPageHeader(`${footballState.leaderSide === 'defense' ? 'Defensive' : 'Offensive'} Leaders`, footballMeta('New Jersey High School Football', `${FOOTBALL_DATA.season} Season`, `${rows.length.toLocaleString()} qualified players`))}
+  const groupLabel = FOOTBALL_LEADER_GROUPS.find(([group]) => group === footballState.leaderGroup)?.[1] || 'Football';
+  footballEl('view-leaders').innerHTML = `${footballPageHeader(`${groupLabel} Leaders`, footballMeta('New Jersey High School Football', `${FOOTBALL_DATA.season} Season`, `${rows.length.toLocaleString()} players`))}
     <main class="leaderboard-wrap pitch-leaders-wrap football-leaders-wrap">
       <div class="controls-row">
-        <div class="football-side-switch"><button class="${footballState.leaderSide === 'offense' ? 'active' : ''}" data-leader-side="offense">Offense</button><button class="${footballState.leaderSide === 'defense' ? 'active' : ''}" data-leader-side="defense">Defense</button></div>
+        <div class="football-side-switch football-position-switch">${FOOTBALL_LEADER_GROUPS.map(([group, label]) => `<button class="${footballState.leaderGroup === group ? 'active' : ''}" data-leader-group="${footballEsc(group)}">${footballEsc(label)}</button>`).join('')}</div>
         <div class="search-wrap"><input class="search-input" data-football-search type="search" value="${footballEsc(footballState.search)}" placeholder="Search player..."></div>
         <select class="ctrl-select" data-football-conference><option>All</option>${FOOTBALL_CONFERENCES.map((conference) => `<option ${footballState.conference === conference ? 'selected' : ''}>${footballEsc(conference)}</option>`).join('')}</select>
-        <select class="ctrl-select" data-football-role>${roles.map((role) => `<option ${footballState.role === role ? 'selected' : ''}>${footballEsc(role)}</option>`).join('')}</select>
       </div>
       <div class="lb-count">Showing <strong>${rows.length.toLocaleString()}</strong> players</div>
       <div class="lb-table-wrap"><table><thead><tr><th>#</th><th>Player</th><th>Team</th><th>Role</th>${stats.map(([stat, label]) => `<th class="num sortable" data-player-sort="${stat}">${label}${key === stat ? (asc ? ' &#9650;' : ' &#9660;') : ''}</th>`).join('')}</tr></thead><tbody>${visible.map((player, index) => {
         const team = FOOTBALL_TEAM_BY_SLUG[player.teamSlug];
-        return `<tr><td class="rank-cell">${(footballState.leaderPage - 1) * pageSize + index + 1}</td><td class="player-cell">${footballPlayerButton(player)}<div class="player-sub">${footballEsc(player.grade)}${player.position ? ` &middot; ${footballEsc(player.position)}` : ''}</div></td><td><button class="team-chip" data-team-slug="${footballEsc(player.teamSlug)}">${footballLogo(team, 18)}${footballEsc(player.team)}</button></td><td>${footballEsc(player.role)}</td>${stats.map(([stat]) => `<td class="num ${stat === 'playerScore' ? 'score-good' : ''}">${footballNum(player[stat], stat === 'playerScore' ? 1 : 0)}</td>`).join('')}</tr>`;
+        return `<tr><td class="rank-cell">${(footballState.leaderPage - 1) * pageSize + index + 1}</td><td class="player-cell">${footballPlayerButton(player)}<div class="player-sub">${footballEsc(player.grade)}${player.position ? ` &middot; ${footballEsc(player.position)}` : ''}</div></td><td><button class="team-chip" data-team-slug="${footballEsc(player.teamSlug)}">${footballLogo(team, 18)}${footballEsc(player.team)}</button></td><td>${footballEsc(player.position || player.role)}</td>${stats.map(([stat, , digits]) => `<td class="num ${stat === 'playerScore' ? 'score-good' : ''}">${footballFormatLeaderValue(player, stat, digits)}</td>`).join('')}</tr>`;
       }).join('')}</tbody></table></div>
       <div class="football-pagination"><button data-player-page="prev" ${footballState.leaderPage <= 1 ? 'disabled' : ''}>Previous</button><span>Page ${footballState.leaderPage} of ${pages}</span><button data-player-page="next" ${footballState.leaderPage >= pages ? 'disabled' : ''}>Next</button></div>
     </main>`;
@@ -587,6 +796,18 @@ function footballRenderTeam() {
   const team = FOOTBALL_TEAM_BY_SLUG[footballState.teamSlug];
   if (!team) return footballSetView('teams');
   const players = FOOTBALL_PLAYERS.filter((player) => player.teamSlug === team.slug);
+  const teamAdvancedCards = [
+    ['Yards / Play', team.YardsPerPlay, 2],
+    ['Run Rate', team.RunRate, 1],
+    ['Pass Rate', team.PassRate, 1],
+    ['Rush YPC', team.RushYPC, 2],
+    ['Pass Y/A', team.PassYPA, 2],
+    ['Off TD Rate', team.OffTDRate, 1],
+    ['Havoc Rate', team.HavocRate, 1],
+    ['Takeaways', team.Takeaways, 0],
+    ['XP%', team.XPPct, 1],
+    ['Punt Avg', team.PuntAvg, 2],
+  ];
   footballEl('view-team').innerHTML = `<main class="team-wrap football-team-page">
     <div class="team-hero">
       <div class="team-shield-lg">${footballLogo(team, 70)}</div>
@@ -609,6 +830,12 @@ function footballRenderTeam() {
       <div class="team-stat-card"><div class="team-stat-card-label">PF/G</div><div class="team-stat-card-val">${team.pfPerGame.toFixed(1)}</div></div>
       <div class="team-stat-card"><div class="team-stat-card-label">PA/G</div><div class="team-stat-card-val">${team.paPerGame.toFixed(1)}</div></div>
       <div class="team-stat-card"><div class="team-stat-card-label">Quality Wins</div><div class="team-stat-card-val">${team.qualityWins}</div></div>
+    </div>
+    <div class="counting-section football-team-advanced">
+      <div class="counting-title">Team Advanced Stats</div>
+      <div class="counting-grid">
+        ${teamAdvancedCards.map(([label, value, digits]) => `<div class="counting-card"><div class="counting-label">${footballEsc(label)}</div><div class="counting-value">${footballNum(value, digits)}</div></div>`).join('')}
+      </div>
     </div>
     <div class="team-section-tabs">
       <button class="team-section-tab ${footballState.teamPanel === 'offense' ? 'active' : ''}" data-team-panel-target="offense">Offense</button>
@@ -680,6 +907,42 @@ function footballCountingStats(stats) {
     </div>
   </div>`;
 }
+
+function footballStatCards(title, stats, player) {
+  if (!stats.length) return '';
+  return `<div class="counting-section">
+    <div class="counting-title">${footballEsc(title)}</div>
+    <div class="counting-grid">
+      ${stats.map(([stat, label, digits]) => `<div class="counting-card">
+        <div class="counting-label">${footballEsc(label)}</div>
+        <div class="counting-value">${footballFormatLeaderValue(player, stat, digits)}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function footballPrimaryLeaderGroup(player) {
+  if (player.role === 'QB') return 'QB';
+  if (player.role === 'Rusher') return 'RB';
+  if (player.role === 'Receiver') return 'WRTE';
+  if (player.role === 'Defender') {
+    if (footballHasPosition(player, ['DL'])) return 'DL';
+    if (footballHasPosition(player, ['LB'])) return 'LB';
+    if (footballHasPosition(player, ['DB'])) return 'DB';
+    return 'LB';
+  }
+  if (player.role === 'Kicker') return 'K';
+  if (player.role === 'Punter') return 'P';
+  if (player.role === 'Returner') return 'RET';
+  return FOOTBALL_LEADER_GROUPS.find(([group]) => footballPlayerInLeaderGroup(player, group))?.[0] || 'QB';
+}
+
+function footballAdvancedCardsForPlayer(player) {
+  const group = footballPrimaryLeaderGroup(player);
+  const stats = footballLeaderColumns(group).filter(([stat]) => stat !== 'playerScore');
+  return footballStatCards(`${FOOTBALL_LEADER_GROUPS.find(([key]) => key === group)?.[1] || player.role} Advanced Stats`, stats, player);
+}
+
 function footballRenderPlayer() {
   const player = footballPlayer(decodeURIComponent(footballState.playerKey));
   if (!player) return footballSetView('leaders');
@@ -707,6 +970,7 @@ function footballRenderPlayer() {
       ${summary.map(([stat, label]) => `<div class="stat-mini"><div class="stat-mini-label">${footballEsc(label)}</div><div class="stat-mini-val">${footballFormatStat(player, stat, footballIsRateStat(stat) ? 1 : 0)}</div></div>`).join('')}
     </div>
     ${footballCountingStats(allStats)}
+    ${footballAdvancedCardsForPlayer(player)}
     ${footballPercentileSections(player)}
   </main>`;
 }
@@ -837,6 +1101,14 @@ document.addEventListener('click', (event) => {
   if (panel) { footballState.teamPanel = panel.dataset.teamPanelTarget; footballRenderTeam(); return; }
   const side = event.target.closest('[data-leader-side]');
   if (side) { footballState.leaderSide = side.dataset.leaderSide; footballState.role = 'All'; footballState.leaderPage = 1; footballRenderLeaders(); return; }
+  const group = event.target.closest('[data-leader-group]');
+  if (group) {
+    footballState.leaderGroup = group.dataset.leaderGroup;
+    footballState.leaderSort = { key: 'playerScore', asc: false };
+    footballState.leaderPage = 1;
+    footballRenderLeaders();
+    return;
+  }
   const playerSort = event.target.closest('[data-player-sort]');
   if (playerSort) { const key = playerSort.dataset.playerSort; footballState.leaderSort = { key, asc: footballState.leaderSort.key === key ? !footballState.leaderSort.asc : false }; footballRenderLeaders(); return; }
   const rankingSort = event.target.closest('[data-ranking-sort]');
@@ -877,6 +1149,7 @@ document.addEventListener('change', (event) => {
 document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { footballCloseDropdowns(); closeReportProblem(); } });
 document.addEventListener('click', (event) => { if (!event.target.closest('.pitch-global-search')) footballEl('searchResults')?.classList.remove('open'); });
 
+footballDeriveAdvancedStats();
 initFootballTheme();
 footballBuildTeamNav();
 footballRenderHome();
