@@ -1,92 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Spline+Sans+Mono:wght@500;700&display=swap');
+/* NJ Sports Index — landing hub.
+   Uses the shared Diamond Index design system (css/style.css). The only
+   per-sport difference is the accent color applied to each sport card. */
 
-:root {
-  --bg: #0d1117;
-  --surface: #141a22;
-  --surface2: #1a222d;
-  --line: rgba(255,255,255,.1);
-  --line2: rgba(255,255,255,.16);
-  --text: #f2f5f8;
-  --muted: #8d99a8;
-  --gold: #c89b3c;
-  --green: #33d17a;
-  --font: 'Archivo', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --mono: 'Spline Sans Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at 14% 8%, rgba(200,155,60,.14), transparent 28rem),
-    radial-gradient(circle at 88% 14%, rgba(51,209,122,.12), transparent 30rem),
-    linear-gradient(180deg, #0d1117 0%, #111720 48%, #0b0f14 100%);
-  color: var(--text);
-  font-family: var(--font);
-  -webkit-font-smoothing: antialiased;
-}
-a { color: inherit; text-decoration: none; }
-
-.hub-header {
-  height: 64px;
-  padding: 0 30px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 22px;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: rgba(13,17,23,.88);
-  border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(18px);
-}
-.hub-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 21px;
-  font-weight: 900;
-  letter-spacing: .035em;
-  text-transform: uppercase;
-}
-.hub-brand strong { color: var(--gold); }
-.hub-logo,
-.sport-logo {
-  display: block;
-  background: currentColor;
-  -webkit-mask: url('../assets/diamond-index-logo.png') center / contain no-repeat;
-  mask: url('../assets/diamond-index-logo.png') center / contain no-repeat;
-}
-.hub-logo {
-  width: 32px;
-  height: 38px;
-  color: var(--gold);
-}
-.hub-nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.hub-nav a {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-  padding: 10px 12px;
-  border-radius: 6px;
-}
-.hub-nav a:hover {
-  color: var(--text);
-  background: rgba(255,255,255,.055);
-}
+/* Hub header: reuse the shared .site-header shell; just push the toggle right. */
+.hub-nav { margin-right: auto; }
+.site-logo { border: 0; background: transparent; }
 
 main {
   max-width: 1240px;
   margin: 0 auto;
   padding: 42px 26px 70px;
 }
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 14% 8%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 28rem),
+    radial-gradient(circle at 88% 14%, color-mix(in srgb, var(--good) 10%, transparent), transparent 30rem),
+    var(--bg);
+}
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
 .hero {
   min-height: 520px;
   display: grid;
@@ -98,8 +32,8 @@ main {
 .hero-panel,
 .sport-card,
 .roadmap-card {
-  border: 1px solid var(--line2);
-  background: rgba(20,26,34,.78);
+  border: 1px solid var(--border2);
+  background: var(--surface);
   border-radius: 14px;
 }
 .hero-copy {
@@ -114,12 +48,12 @@ main {
   bottom: -32%;
   width: min(440px, 48vw);
   aspect-ratio: 1;
-  border: 1px solid rgba(200,155,60,.23);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
   transform: rotate(45deg);
 }
 .eyebrow {
-  font-family: var(--mono);
-  color: var(--gold);
+  font-family: var(--font-mono);
+  color: var(--accent);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: .12em;
@@ -127,10 +61,13 @@ main {
   margin-bottom: 18px;
 }
 h1 {
+  font-family: var(--font-sans);
   font-size: clamp(56px, 9vw, 118px);
+  font-weight: 800;
   line-height: .85;
   letter-spacing: -.01em;
   max-width: 760px;
+  color: var(--text);
 }
 .tagline {
   margin-top: 22px;
@@ -141,35 +78,11 @@ h1 {
 .intro {
   max-width: 680px;
   margin-top: 16px;
-  color: var(--muted);
+  color: var(--muted2);
   font-size: 17px;
   line-height: 1.65;
 }
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 30px;
-}
-.btn {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--line2);
-  border-radius: 7px;
-  padding: 0 16px;
-  color: var(--text);
-  background: rgba(255,255,255,.055);
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-}
-.btn.primary {
-  color: #111720;
-  background: var(--gold);
-  border-color: var(--gold);
-}
+
 .hero-panel {
   padding: 28px;
   display: flex;
@@ -177,12 +90,12 @@ h1 {
   justify-content: flex-end;
   gap: 14px;
   background:
-    linear-gradient(145deg, rgba(200,155,60,.13), transparent 45%),
-    linear-gradient(180deg, rgba(51,209,122,.09), rgba(255,255,255,.025));
+    linear-gradient(145deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 45%),
+    var(--surface);
 }
 .panel-kicker {
-  font-family: var(--mono);
-  color: var(--green);
+  font-family: var(--font-mono);
+  color: var(--accent);
   text-transform: uppercase;
   letter-spacing: .12em;
   font-weight: 700;
@@ -191,23 +104,25 @@ h1 {
 }
 .network-stat {
   padding: 18px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: rgba(0,0,0,.16);
+  background: var(--surface2);
 }
 .network-stat strong {
   display: block;
   font-size: 34px;
   line-height: 1;
+  color: var(--text);
 }
 .network-stat span {
   display: block;
-  color: var(--muted);
+  color: var(--muted2);
   margin-top: 6px;
   font-weight: 700;
   letter-spacing: .04em;
 }
 
+/* ── Sports grid ────────────────────────────────────────────────────────── */
 .sports-wrap { margin-top: 28px; }
 .section-heading {
   display: flex;
@@ -217,12 +132,15 @@ h1 {
   margin-bottom: 16px;
 }
 .section-heading h2 {
+  font-family: var(--font-sans);
   font-size: 42px;
+  font-weight: 800;
   line-height: .92;
+  color: var(--text);
 }
 .section-heading p {
   max-width: 430px;
-  color: var(--muted);
+  color: var(--muted2);
   line-height: 1.5;
 }
 .sports-grid {
@@ -235,38 +153,49 @@ h1 {
   padding: 24px;
   display: flex;
   flex-direction: column;
+  text-decoration: none;
   transition: transform .16s, border-color .16s, background .16s;
 }
 .sport-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(255,255,255,.28);
+  border-color: color-mix(in srgb, var(--card, var(--accent)) 55%, var(--border2));
   background: var(--surface2);
 }
-.sport-card.baseball { color: var(--gold); }
-.sport-card.soccer { color: var(--green); }
-.sport-card.coming-soon { color: #83a4d8; }
+
+/* Per-sport accent — the one and only thing that differs between sports.
+   Values match each sport page's --accent exactly. */
+.sport-card.baseball    { --card: oklch(0.80 0.12 86); }   /* Diamond  — gold  */
+.sport-card.soccer      { --card: oklch(0.78 0.15 154); }  /* Pitch    — green */
+.sport-card.coming-soon { --card: oklch(0.72 0.17 31); }   /* Gridiron — red   */
+
 .sport-logo {
   width: 44px;
   height: 52px;
   margin-bottom: auto;
+  display: block;
+  background: var(--card, var(--accent));
+  -webkit-mask: url('../assets/diamond-index-logo.png') center / contain no-repeat;
+  mask: url('../assets/diamond-index-logo.png') center / contain no-repeat;
 }
 .sport-meta,
 .soon-label {
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: .11em;
   text-transform: uppercase;
-  color: currentColor;
+  color: var(--card, var(--accent));
   margin-bottom: 10px;
 }
 .sport-card h3 {
+  font-family: var(--font-sans);
   color: var(--text);
   font-size: 34px;
+  font-weight: 800;
   line-height: .95;
 }
 .sport-card p {
-  color: var(--muted);
+  color: var(--muted2);
   line-height: 1.55;
   margin-top: 12px;
 }
@@ -280,30 +209,32 @@ h1 {
   min-height: 26px;
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 99px;
   color: var(--text);
   padding: 0 9px;
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 11px;
 }
+
+/* ── Roadmap ────────────────────────────────────────────────────────────── */
 .roadmap { margin-top: 16px; }
-.roadmap-card {
-  padding: 26px;
-}
+.roadmap-card { padding: 26px; }
 .roadmap-card h2 {
+  font-family: var(--font-sans);
   font-size: 30px;
+  font-weight: 800;
+  color: var(--text);
 }
 .roadmap-card p {
   max-width: 860px;
-  color: var(--muted);
+  color: var(--muted2);
   line-height: 1.65;
   margin-top: 10px;
 }
 
 @media (max-width: 920px) {
-  .hub-header { height: auto; min-height: 64px; flex-wrap: wrap; padding: 12px 18px; }
-  .hub-nav { width: 100%; overflow-x: auto; }
+  .hub-nav { overflow-x: auto; }
   main { padding: 24px 16px 52px; }
   .hero,
   .sports-grid { grid-template-columns: 1fr; }

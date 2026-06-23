@@ -95,8 +95,9 @@ function footballSiteLabel(site) {
 }
 
 function initFootballTheme() {
-  const saved = localStorage.getItem('sports-index-theme');
-  const theme = saved || 'dark';
+  const saved = localStorage.getItem('diamondIndexTheme');
+  const preferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  const theme = saved || preferred;
   document.documentElement.dataset.theme = theme;
   const label = footballEl('themeToggleLabel');
   if (label) label.textContent = theme === 'light' ? 'Light' : 'Dark';
@@ -104,7 +105,7 @@ function initFootballTheme() {
 function toggleTheme() {
   const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
   document.documentElement.dataset.theme = next;
-  localStorage.setItem('sports-index-theme', next);
+  localStorage.setItem('diamondIndexTheme', next);
   const label = footballEl('themeToggleLabel');
   if (label) label.textContent = next === 'light' ? 'Light' : 'Dark';
 }

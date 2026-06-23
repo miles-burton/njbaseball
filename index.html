@@ -4,20 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NJ Sports Index</title>
-  <link rel="stylesheet" href="css/sports-home.css?v=20260622-sport-hub">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('diamondIndexTheme');
+        if (!t) t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+        document.documentElement.dataset.theme = (t === 'light' ? 'light' : 'dark');
+      } catch (e) { document.documentElement.dataset.theme = 'dark'; }
+    })();
+  </script>
+  <link rel="stylesheet" href="css/style.css?v=20260622-hub-unify">
+  <link rel="stylesheet" href="css/sports-home.css?v=20260622-hub-unify">
 </head>
 <body>
-  <header class="hub-header">
-    <a class="hub-brand" href="index.html">
-      <span class="hub-logo" aria-hidden="true"></span>
-      <span><strong>NJ</strong> Sports Index</span>
+  <header class="site-header">
+    <a class="site-logo" href="index.html">
+      <span class="logo-icon" aria-hidden="true"></span>
+      <span class="logo-wordmark"><span class="logo-accent">NJ</span><span>SPORTS&nbsp;INDEX</span></span>
     </a>
-    <nav class="hub-nav">
-      <a href="#sports">Sports</a>
-      <a href="diamond-index.html">Diamond Index</a>
-      <a href="pitch-index.html">Pitch Index</a>
-      <a href="gridiron-index.html">Gridiron Index</a>
+    <nav class="nav-tabs hub-nav" id="navTabs">
+      <a class="nav-tab" href="#sports">Sports</a>
+      <a class="nav-tab" href="diamond-index.html">Diamond</a>
+      <a class="nav-tab" href="pitch-index.html">Pitch</a>
+      <a class="nav-tab" href="gridiron-index.html">Gridiron</a>
     </nav>
+    <button class="theme-toggle" id="themeToggle" type="button" onclick="toggleTheme()" aria-label="Toggle light and dark mode">
+      <span class="theme-toggle-icon theme-toggle-sun" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+      </span>
+      <span class="theme-toggle-icon theme-toggle-moon" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.5 6.5 0 0 0 21 12.8Z"/>
+        </svg>
+      </span>
+      <span id="themeToggleLabel">Dark</span>
+    </button>
   </header>
 
   <main>
@@ -99,5 +122,19 @@
       </div>
     </section>
   </main>
+
+  <script>
+    function toggleTheme() {
+      var next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+      document.documentElement.dataset.theme = next;
+      try { localStorage.setItem('diamondIndexTheme', next); } catch (e) {}
+      var label = document.getElementById('themeToggleLabel');
+      if (label) label.textContent = next === 'light' ? 'Light' : 'Dark';
+    }
+    (function () {
+      var label = document.getElementById('themeToggleLabel');
+      if (label) label.textContent = document.documentElement.dataset.theme === 'light' ? 'Light' : 'Dark';
+    })();
+  </script>
 </body>
 </html>
