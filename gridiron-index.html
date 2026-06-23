@@ -60,6 +60,13 @@
       <button class="nav-tab nav-tab-report" id="tab-report" onclick="openReportProblem()" type="button">Report</button>
     </nav>
 
+    <div class="season-switcher">
+      <span>Yr</span>
+      <select id="footballSeasonSelect" aria-label="Season">
+        <option>2026</option>
+      </select>
+    </div>
+
     <button class="theme-toggle" id="themeToggle" type="button" onclick="toggleTheme()" aria-label="Toggle light and dark mode">
       <span class="theme-toggle-icon theme-toggle-sun" aria-hidden="true">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -81,6 +88,13 @@
       <input class="global-search-input" id="globalSearch" type="search" placeholder="Search..." autocomplete="off">
       <div id="searchResults" class="global-search-results search-results"></div>
     </div>
+
+    <button class="back-btn" id="backBtn" onclick="footballGoBack()" type="button">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10 3L5 8l5 5"/>
+      </svg>
+      <span id="backLabel">Back</span>
+    </button>
   </header>
 
   <section id="view-home" class="view active"></section>

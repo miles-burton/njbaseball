@@ -128,8 +128,15 @@ function footballSetView(view) {
   document.querySelectorAll('.pitch-nav .nav-tab').forEach((tab) => tab.classList.remove('active'));
   const navMap = { rankings: 'tab-team-rankings', scores: 'tab-scores', predictor: 'tab-predictor', standings: 'tab-standings', glossary: 'tab-glossary' };
   if (navMap[view]) footballEl(navMap[view])?.classList.add('active');
+  const back = footballEl('backBtn');
+  if (back) back.classList.toggle('show', ['team', 'player', 'game'].includes(view));
   footballRender();
   window.scrollTo({ top: 0, behavior: 'auto' });
+}
+
+function footballGoBack() {
+  const previous = footballState.previousView && footballState.previousView !== footballState.view ? footballState.previousView : 'home';
+  footballSetView(['team', 'player', 'game'].includes(previous) ? 'home' : previous);
 }
 
 function footballPageHeader(kicker, title, description) {
@@ -148,48 +155,183 @@ function footballUniqueGames() {
   });
 }
 
+function footballGameImportance(game) {
+  const teamPower = FOOTBALL_TEAM_BY_SLUG[game.teamSlug]?.powerScore || 50;
+  const opponentPower = FOOTBALL_TEAM_BY_SLUG[game.opponentSlug]?.powerScore || 50;
+  const margin = Number.isFinite(game.teamScore) && Number.isFinite(game.opponentScore) ? Math.abs(game.teamScore - game.opponentScore) : 0;
+  const closeBonus = Math.max(0, 8 - margin) * 1.2;
+  const rankedBonus = (FOOTBALL_TEAM_BY_SLUG[game.teamSlug]?.rank <= 25 ? 6 : 0) + (FOOTBALL_TEAM_BY_SLUG[game.opponentSlug]?.rank <= 25 ? 6 : 0);
+  return (teamPower + opponentPower) / 2 + closeBonus + rankedBonus + (game.tournament ? 5 : 0);
+}
+
+function footballSortedCompletedGames() {
+  return footballUniqueGames().sort((a, b) => {
+    const dateDiff = footballDateValue(b.date) - footballDateValue(a.date);
+    if (dateDiff) return dateDiff;
+    return footballGameImportance(b) - footballGameImportance(a);
+  });
+}
+
+function footballUpcomingGames() {
+  const seen = new Set();
+  return FOOTBALL_GAMES.filter((game) => game.teamScore == null || game.opponentScore == null).filter((game) => {
+    const pair = [game.teamSlug, game.opponentSlug || game.opponent].sort().join('::');
+    const key = `${game.date}::${pair}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).sort((a, b) => footballDateValue(a.date) - footballDateValue(b.date) || footballGameImportance(b) - footballGameImportance(a));
+}
+
+function footballScoreTableHtml(games, limit = 10, includeDate = false) {
+  if (!games.length) return '<div class="empty">No completed scores available.</div>';
+  return `<table class="home-rankings-table">
+    <thead><tr>
+      <th style="width:32px">#</th>
+      ${includeDate ? '<th>Date</th>' : ''}
+      <th>Game</th>
+      <th class="num">Score</th>
+      <th class="num">GI</th>
+    </tr></thead>
+    <tbody>${games.slice(0, limit).map((game, index) => footballScoreRow(game, index + 1, includeDate)).join('')}</tbody>
+  </table>`;
+}
+
+function footballUpcomingTableHtml(games, limit = 8, includeDate = false) {
+  if (!games.length) return '<div class="empty">No upcoming or unscored games available.</div>';
+  return `<table class="home-rankings-table upcoming-table">
+    <thead><tr>
+      ${includeDate ? '<th>Date</th>' : ''}
+      <th>Matchup</th>
+      <th>Site</th>
+      <th class="num">GI</th>
+    </tr></thead>
+    <tbody>${games.slice(0, limit).map((game) => {
+      const team = FOOTBALL_TEAM_BY_SLUG[game.teamSlug];
+      const opponent = FOOTBALL_TEAM_BY_SLUG[game.opponentSlug];
+      return `<tr>
+        ${includeDate ? `<td class="football-date-cell">${footballDisplayDate(game)}</td>` : ''}
+        <td><div class="home-score-game">
+          ${game.tournament ? '<span class="home-score-badge">TOURNEY</span>' : ''}
+          <span class="home-score-team home-score-primary">${footballLogo(team, 18)}<span>${footballEsc(team?.name || game.team)}</span></span>
+          <span class="home-score-vs">vs.</span>
+          <span class="home-score-team home-score-primary">${opponent ? footballLogo(opponent, 18) : ''}<span>${footballEsc(opponent?.name || game.opponent)}</span></span>
+        </div></td>
+        <td class="football-date-cell">${footballEsc(footballSiteLabel(game.site) || '-')}</td>
+        <td class="num">${Number.isFinite(team?.powerScore) && Number.isFinite(opponent?.powerScore) ? `${team.powerScore.toFixed(1)} / ${opponent.powerScore.toFixed(1)}` : Number.isFinite(team?.powerScore) ? team.powerScore.toFixed(1) : '-'}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function footballHomeRankingsHtml() {
+  const teams = FOOTBALL_TEAMS.slice(0, 10);
+  return `<table class="home-rankings-table">
+    <thead><tr>
+      <th style="width:28px">#</th>
+      <th>Team</th>
+      <th class="num">Score</th>
+      <th class="num">AdjO</th>
+      <th class="num">AdjD</th>
+    </tr></thead>
+    <tbody>${teams.map((team, index) => `<tr data-team-slug="${footballEsc(team.slug)}">
+      <td style="font-family:var(--font-mono);font-weight:700;color:${index < 3 ? 'var(--accent)' : 'var(--muted)'}">${team.rank}</td>
+      <td><div style="display:flex;align-items:center;gap:8px">${footballLogo(team, 20)}<span style="font-weight:700;color:var(--text)">${footballEsc(team.name)}</span><span style="font-size:11px;color:var(--muted)">${footballEsc(team.conference)}</span></div></td>
+      <td class="num" style="font-weight:700;color:var(--accent)">${team.powerScore.toFixed(1)}</td>
+      <td class="num" style="color:var(--muted2)">${team.adjO.toFixed(1)}</td>
+      <td class="num" style="color:var(--muted2)">${team.adjD.toFixed(1)}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function footballHomePerformersHtml() {
+  const rankColors = ['gold', 'silver', 'bronze'];
+  const offense = FOOTBALL_PLAYERS.filter((player) => ['QB', 'Rusher', 'Receiver'].includes(player.role)).sort((a, b) => b.playerScore - a.playerScore).slice(0, 3);
+  const defense = FOOTBALL_PLAYERS.filter((player) => player.role === 'Defender').sort((a, b) => b.playerScore - a.playerScore).slice(0, 3);
+  const card = (player, stat, label, index) => {
+    const team = FOOTBALL_TEAM_BY_SLUG[player.teamSlug];
+    return `<div class="performer-card" data-player-key="${encodeURIComponent(footballPlayerKey(player))}">
+      <div class="performer-rank ${rankColors[index]}">${index + 1}</div>
+      <div style="flex-shrink:0">${footballLogo(team, 28)}</div>
+      <div class="performer-info">
+        <div class="performer-name">${footballEsc(player.name)}</div>
+        <div class="performer-team">${footballEsc(player.team)} &middot; ${footballEsc(player.grade || '')} ${footballEsc(player.position || player.role)}</div>
+      </div>
+      <div class="performer-stat">
+        <div class="performer-stat-val">${footballNum(player[stat], stat === 'playerScore' ? 1 : 0)}</div>
+        <div class="performer-stat-label">${footballEsc(label)}</div>
+      </div>
+    </div>`;
+  };
+  return `<div class="performer-group-label">Offense — Player Score</div>${offense.map((player, index) => card(player, 'playerScore', 'PS', index)).join('')}
+    <div class="performer-group-label performer-group-label-spaced">Defense — Impact</div>${defense.map((player, index) => card(player, 'DefImpact', 'Impact', index)).join('')}`;
+}
+
 function footballRenderHome() {
-  const top = FOOTBALL_TEAMS.slice(0, 10);
-  const completed = footballUniqueGames();
+  const completed = footballSortedCompletedGames();
   const latestDate = Math.max(...completed.map((game) => footballDateValue(game.date)), 0);
   const scores = completed.filter((game) => footballDateValue(game.date) === latestDate).sort((a, b) => {
-    const importanceA = (FOOTBALL_TEAM_BY_SLUG[a.teamSlug]?.powerScore || 0) + (FOOTBALL_TEAM_BY_SLUG[a.opponentSlug]?.powerScore || 0);
-    const importanceB = (FOOTBALL_TEAM_BY_SLUG[b.teamSlug]?.powerScore || 0) + (FOOTBALL_TEAM_BY_SLUG[b.opponentSlug]?.powerScore || 0);
-    return importanceB - importanceA;
-  }).slice(0, 5);
-  const offense = FOOTBALL_PLAYERS.filter((player) => ['QB', 'Rusher', 'Receiver'].includes(player.role)).sort((a, b) => b.playerScore - a.playerScore).slice(0, 5);
-  const defense = FOOTBALL_PLAYERS.filter((player) => player.role === 'Defender').sort((a, b) => b.playerScore - a.playerScore).slice(0, 5);
+    return footballGameImportance(b) - footballGameImportance(a);
+  });
+  const upcoming = footballUpcomingGames();
+  const latestLabel = scores[0]?.date || completed[0]?.date || '';
   footballEl('view-home').innerHTML = `
-    <section class="home-hero pitch-hero football-home-hero">
+    <section class="home-hero football-home-hero" style="position:relative;overflow:hidden">
+      <div class="home-hero-img-wrap">
+        <img src="hero.jpg" alt="New Jersey high school sports">
+      </div>
       <div class="home-hero-inner">
         <div class="home-hero-text">
           <div class="home-hero-eyebrow">New Jersey Football &middot; ${footballEsc(FOOTBALL_DATA.season)} Season</div>
           <h1 class="home-hero-title">GRIDIRON<br>INDEX</h1>
           <div class="home-hero-tagline">Measure Every Down.</div>
-          <p class="home-hero-sub">Statewide team ratings and role-based player analytics built from real NJ.com schedules, results, and seven football stat groups.</p>
+          <p class="home-hero-sub">New Jersey high school football analytics: opponent-adjusted team ratings, player scores, schedules, results, and statewide rankings.</p>
           <div class="home-hero-actions">
             <button class="home-btn-primary" data-view-target="rankings">Power Rankings</button>
             <button class="home-btn-secondary" data-view-target="leaders">Player Leaders</button>
           </div>
         </div>
-        <aside class="pitch-hero-index" aria-label="Top three Gridiron Index teams">
-          <div class="pitch-hero-index-header"><div><span>Live Index</span><strong>State Top 3</strong></div><button data-view-target="rankings">View all</button></div>
-          <div class="pitch-hero-index-list">${top.slice(0, 3).map((team) => `<button class="pitch-hero-index-row" data-team-slug="${footballEsc(team.slug)}"><span class="pitch-hero-index-rank">${team.rank}</span><span class="pitch-hero-index-logo">${footballLogo(team, 30)}</span><span class="pitch-hero-index-team"><strong>${footballEsc(team.name)}</strong><small>${footballEsc(team.record)} &middot; ${footballEsc(team.conference)}</small></span><span class="pitch-hero-index-score">${team.powerScore.toFixed(1)}</span></button>`).join('')}</div>
-          <div class="pitch-hero-index-updated">${footballEsc(footballUpdated())}</div>
-        </aside>
       </div>
     </section>
-    <main class="shell football-home-shell">
-      <div class="pitch-grid-3 football-action-grid">
+    <main class="home-wrap football-home-shell">
+      <div class="home-action-grid">
         <button class="home-action-card" data-view-target="rankings"><span>Gridiron Score</span><strong>Opponent-adjusted team ratings with schedule quality and capped margins.</strong></button>
-        <button class="home-action-card" data-view-target="leaders"><span>Player Analytics</span><strong>Role-specific scores and percentiles across seven statistical groups.</strong></button>
-        <button class="home-action-card" data-view-target="predictor"><span>Matchup Predictor</span><strong>Expected score and win probability from adjusted offense and defense.</strong></button>
+        <button class="home-action-card" data-view-target="predictor"><span>Matchup Predictor</span><strong>Compare teams and project expected score and win probability.</strong></button>
+        <button class="home-action-card" data-view-target="standings"><span>Standings</span><strong>Conference records, division records, scoring margin, and team strength.</strong></button>
       </div>
-      <div class="football-dashboard-grid">
-        <section class="card"><div class="card-title">Recent Scores <button class="linkish" data-view-target="scores">All Scores</button></div><div class="table-wrap"><table><thead><tr><th>#</th><th>Game</th><th class="num">Score</th><th class="num">GI</th></tr></thead><tbody>${scores.map((game, index) => footballScoreRow(game, index + 1)).join('')}</tbody></table></div></section>
-        <section class="card"><div class="card-title">Power Rankings <button class="linkish" data-view-target="rankings">Top 10</button></div><div class="table-wrap"><table><thead><tr><th>#</th><th>Team</th><th class="num">Score</th><th class="num">AdjO</th><th class="num">AdjD</th></tr></thead><tbody>${top.slice(0, 6).map((team) => `<tr><td class="rank-cell">${team.rank}</td><td><div class="football-table-team">${footballLogo(team, 24)}${footballTeamButton(team)}</div></td><td class="num score-good">${team.powerScore.toFixed(1)}</td><td class="num">${team.adjO.toFixed(1)}</td><td class="num">${team.adjD.toFixed(1)}</td></tr>`).join('')}</tbody></table></div></section>
-        ${footballHomeLeaders('Offensive Leaders', offense)}
-        ${footballHomeLeaders('Defensive Leaders', defense)}
+      <div class="home-dashboard">
+        <div class="home-main-column">
+          <div class="home-section">
+            <div class="home-section-header">
+              <div><div class="home-section-title">Recent Scores</div><div class="home-section-sub">${scores.length ? `Latest completed scores &middot; ${footballEsc(latestLabel)} &middot; ranked by game importance` : 'No completed scores available.'}</div></div>
+              <button class="home-section-link" data-view-target="scores">Scores Page →</button>
+            </div>
+            ${footballScoreTableHtml(scores, 8)}
+          </div>
+          <div class="home-section">
+            <div class="home-section-header">
+              <div class="home-section-title">Power Rankings</div>
+              <button class="home-section-link" data-view-target="rankings">Full Rankings →</button>
+            </div>
+            ${footballHomeRankingsHtml()}
+          </div>
+        </div>
+        <div class="home-side-column">
+          <div class="home-section">
+            <div class="home-section-header">
+              <div><div class="home-section-title">Upcoming Games</div><div class="home-section-sub">${upcoming.length ? `${upcoming.length.toLocaleString()} scheduled or unscored games` : 'No upcoming games available.'}</div></div>
+              <button class="home-section-link" data-view-target="scores">All Games →</button>
+            </div>
+            ${footballUpcomingTableHtml(upcoming, 7)}
+          </div>
+          <div class="home-section">
+            <div class="home-section-header">
+              <div class="home-section-title">Top Performers</div>
+              <button class="home-section-link" data-view-target="leaders">All Leaders →</button>
+            </div>
+            <div class="home-performers-grid">${footballHomePerformersHtml()}</div>
+          </div>
+        </div>
       </div>
     </main>`;
 }
@@ -279,15 +421,32 @@ function footballRenderRankings() {
 }
 
 function footballRenderScores() {
-  const games = footballUniqueGames().sort((a, b) => {
-    const dateDiff = footballDateValue(b.date) - footballDateValue(a.date);
-    if (dateDiff) return dateDiff;
-    const importanceA = (FOOTBALL_TEAM_BY_SLUG[a.teamSlug]?.powerScore || 0) + (FOOTBALL_TEAM_BY_SLUG[a.opponentSlug]?.powerScore || 0) + (a.tournament ? 8 : 0);
-    const importanceB = (FOOTBALL_TEAM_BY_SLUG[b.teamSlug]?.powerScore || 0) + (FOOTBALL_TEAM_BY_SLUG[b.opponentSlug]?.powerScore || 0) + (b.tournament ? 8 : 0);
-    return importanceB - importanceA;
-  });
-  footballEl('view-scores').innerHTML = `${footballPageHeader('Scoreboard', 'Recent Scores', 'Completed games from the NJ.com statewide schedule')}
-    <main class="shell football-scores"><div class="card"><div class="table-wrap"><table class="home-rankings-table"><thead><tr><th>#</th><th>Date</th><th>Game</th><th class="num">Score</th><th class="num">GI</th></tr></thead><tbody>${games.slice(0, 300).map((game, index) => footballScoreRow(game, index + 1, true)).join('')}</tbody></table></div></div></main>`;
+  const games = footballSortedCompletedGames();
+  const upcoming = footballUpcomingGames();
+  footballEl('view-scores').innerHTML = `<div class="page-banner">
+    <div class="page-banner-inner">
+      <div>
+        <div class="page-title">Scores <span>&amp; Games</span></div>
+        <div class="page-meta">New Jersey High School Football <span class="page-meta-dot"></span> ${footballEsc(FOOTBALL_DATA.season)} Season <span class="page-meta-dot"></span> Ranked by game importance</div>
+      </div>
+    </div>
+  </div>
+  <main class="scores-wrap football-scores">
+    <div class="scores-grid">
+      <div class="home-section">
+        <div class="home-section-header">
+          <div><div class="home-section-title">Recent Scores</div><div class="home-section-sub">${games.length ? `${games.length.toLocaleString()} completed games &middot; newest first` : 'No completed scores available.'}</div></div>
+        </div>
+        ${footballScoreTableHtml(games, 60, true)}
+      </div>
+      <div class="home-section">
+        <div class="home-section-header">
+          <div><div class="home-section-title">Upcoming Games</div><div class="home-section-sub">${upcoming.length ? `${upcoming.length.toLocaleString()} scheduled or unscored games` : 'No upcoming games available.'}</div></div>
+        </div>
+        ${footballUpcomingTableHtml(upcoming, 40, true)}
+      </div>
+    </div>
+  </main>`;
 }
 
 function footballRenderTeams() {

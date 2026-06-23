@@ -1,14 +1,14 @@
 /* Gridiron Index uses the shared Sports Index design system. */
 :root {
-  --accent: oklch(0.72 0.17 31);
-  --accent2: oklch(0.72 0.17 31 / 0.16);
-  --accent3: oklch(0.72 0.17 31 / 0.09);
+  --accent: oklch(0.80 0.12 86);
+  --accent2: oklch(0.80 0.12 86 / 0.16);
+  --accent3: oklch(0.80 0.12 86 / 0.09);
 }
 
 :root[data-theme="light"] {
-  --accent: oklch(0.52 0.17 31);
-  --accent2: oklch(0.52 0.17 31 / 0.13);
-  --accent3: oklch(0.52 0.17 31 / 0.08);
+  --accent: oklch(0.56 0.11 72);
+  --accent2: oklch(0.56 0.11 72 / 0.13);
+  --accent3: oklch(0.56 0.11 72 / 0.08);
 }
 
 .pitch-site-logo {
@@ -957,12 +957,9 @@
 }
 
 /* Football-specific surfaces */
-.football-home-hero .home-hero-title {
-  font-size: clamp(58px, 8.5vw, 112px);
-}
-
 .football-home-shell {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 22px;
 }
 
@@ -1100,11 +1097,12 @@
 
 .football-rankings,
 .football-scores {
-  max-width: 1540px;
+  max-width: 1440px;
 }
 
 .football-rankings .lb-table-wrap,
-.football-scores .card {
+.football-scores .card,
+.football-scores .home-section {
   margin-top: 14px;
 }
 
@@ -1340,10 +1338,6 @@
 }
 
 @media (max-width: 520px) {
-  .football-home-hero .home-hero-title {
-    font-size: 50px;
-  }
-
   .football-win-labels {
     display: grid;
   }
