@@ -69,6 +69,17 @@ const FOOTBALL_LEADER_GROUPS = [
   ['P', 'P'],
   ['RET', 'Returners'],
 ];
+const FOOTBALL_QUALIFYING_MINIMUMS = {
+  QB: 'Min 75 pass attempts',
+  RB: 'Min 50 touches',
+  WRTE: 'Min 20 receptions',
+  DL: 'Min 20 tackles',
+  LB: 'Min 35 tackles',
+  DB: 'Min 15 tackles',
+  K: 'Min 15 kicks',
+  P: 'Min 15 punts',
+  RET: 'Min 8 returns',
+};
 
 function footballEl(id) { return document.getElementById(id); }
 function footballEsc(value) {
@@ -313,11 +324,42 @@ function footballPercentileEligible(player, stat) {
   return Number.isFinite(Number(player[stat]));
 }
 
+function footballTouches(player) {
+  return footballVal(player, 'RushAtt') + footballVal(player, 'Rec');
+}
+
+function footballReturnAttempts(player) {
+  return footballVal(player, 'KORAtt') + footballVal(player, 'PRAtt');
+}
+
+function footballKickingAttempts(player) {
+  return footballVal(player, 'XPA') + footballVal(player, 'FGA');
+}
+
+function footballQualifiesForLeaderGroup(player, group) {
+  if (!footballPlayerInLeaderGroup(player, group)) return false;
+  if (group === 'QB') return footballVal(player, 'PassAtt') >= 75;
+  if (group === 'RB') return footballTouches(player) >= 50;
+  if (group === 'WRTE') return footballVal(player, 'Rec') >= 20;
+  if (group === 'DL') return footballVal(player, 'Tackles') >= 20;
+  if (group === 'LB') return footballVal(player, 'Tackles') >= 35;
+  if (group === 'DB') return footballVal(player, 'Tackles') >= 15;
+  if (group === 'K') return footballKickingAttempts(player) >= 15;
+  if (group === 'P') return footballVal(player, 'Punts') >= 15;
+  if (group === 'RET') return footballReturnAttempts(player) >= 8;
+  return true;
+}
+
+function footballQualifiesForAnyGroup(player, groups) {
+  return groups.some((group) => footballQualifiesForLeaderGroup(player, group));
+}
+
 function footballAssignAdvancedPercentiles() {
   const lowerIsBetter = new Set(['INTPct']);
+  FOOTBALL_PLAYERS.forEach((player) => { player.metricPercentiles = {}; });
   FOOTBALL_LEADER_GROUPS.forEach(([group]) => {
     const metrics = footballLeaderColumns(group).map(([stat]) => stat).filter((stat) => stat !== 'playerScore');
-    const peers = FOOTBALL_PLAYERS.filter((player) => footballPlayerInLeaderGroup(player, group));
+    const peers = FOOTBALL_PLAYERS.filter((player) => footballQualifiesForLeaderGroup(player, group));
     metrics.forEach((metric) => {
       const values = peers
         .filter((peer) => footballPercentileEligible(peer, metric))
@@ -515,8 +557,8 @@ function footballHomeRankingsHtml() {
 
 function footballHomePerformersHtml() {
   const rankColors = ['gold', 'silver', 'bronze'];
-  const offense = FOOTBALL_PLAYERS.filter((player) => ['QB', 'Rusher', 'Receiver'].includes(player.role)).sort((a, b) => b.playerScore - a.playerScore).slice(0, 3);
-  const defense = FOOTBALL_PLAYERS.filter((player) => player.role === 'Defender').sort((a, b) => b.playerScore - a.playerScore).slice(0, 3);
+  const offense = FOOTBALL_PLAYERS.filter((player) => footballQualifiesForAnyGroup(player, ['QB', 'RB', 'WRTE'])).sort((a, b) => b.playerScore - a.playerScore).slice(0, 3);
+  const defense = FOOTBALL_PLAYERS.filter((player) => footballQualifiesForAnyGroup(player, ['DL', 'LB', 'DB'])).sort((a, b) => b.playerScore - a.playerScore).slice(0, 3);
   const card = (player, stat, label, index) => {
     const team = FOOTBALL_TEAM_BY_SLUG[player.teamSlug];
     return `<div class="performer-card" data-player-key="${encodeURIComponent(footballPlayerKey(player))}">
@@ -639,6 +681,7 @@ function footballScoreRow(game, rank = '', includeDate = false) {
 function footballFilteredPlayers() {
   const query = footballState.search.toLowerCase();
   return FOOTBALL_PLAYERS.filter((player) => footballPlayerInLeaderGroup(player, footballState.leaderGroup))
+    .filter((player) => footballQualifiesForLeaderGroup(player, footballState.leaderGroup))
     .filter((player) => footballState.conference === 'All' || player.conference === footballState.conference)
     .filter((player) => !query || player.name.toLowerCase().includes(query) || player.team.toLowerCase().includes(query));
 }
@@ -689,14 +732,15 @@ function footballRenderLeaders() {
   footballState.leaderPage = Math.min(footballState.leaderPage, pages);
   const visible = rows.slice((footballState.leaderPage - 1) * pageSize, footballState.leaderPage * pageSize);
   const groupLabel = FOOTBALL_LEADER_GROUPS.find(([group]) => group === footballState.leaderGroup)?.[1] || 'Football';
-  footballEl('view-leaders').innerHTML = `${footballPageHeader(`${groupLabel} Leaders`, footballMeta('New Jersey High School Football', `${FOOTBALL_DATA.season} Season`, `${rows.length.toLocaleString()} players`))}
+  const minimum = FOOTBALL_QUALIFYING_MINIMUMS[footballState.leaderGroup] || 'Qualified players';
+  footballEl('view-leaders').innerHTML = `${footballPageHeader(`${groupLabel} Leaders`, footballMeta('New Jersey High School Football', `${FOOTBALL_DATA.season} Season`, `${rows.length.toLocaleString()} qualified players`, minimum))}
     <main class="leaderboard-wrap pitch-leaders-wrap football-leaders-wrap">
       <div class="controls-row">
         <div class="football-side-switch football-position-switch">${FOOTBALL_LEADER_GROUPS.map(([group, label]) => `<button class="${footballState.leaderGroup === group ? 'active' : ''}" data-leader-group="${footballEsc(group)}">${footballEsc(label)}</button>`).join('')}</div>
         <div class="search-wrap"><input class="search-input" data-football-search type="search" value="${footballEsc(footballState.search)}" placeholder="Search player..."></div>
         <select class="ctrl-select" data-football-conference><option>All</option>${FOOTBALL_CONFERENCES.map((conference) => `<option ${footballState.conference === conference ? 'selected' : ''}>${footballEsc(conference)}</option>`).join('')}</select>
       </div>
-      <div class="lb-count">Showing <strong>${rows.length.toLocaleString()}</strong> players</div>
+      <div class="lb-count">Showing <strong>${rows.length.toLocaleString()}</strong> qualified players <span>&middot;</span> ${footballEsc(minimum)}</div>
       <div class="lb-table-wrap"><table><thead><tr><th>#</th><th>Player</th><th>Team</th><th>Role</th>${stats.map(([stat, label]) => `<th class="num sortable" data-player-sort="${stat}">${label}${key === stat ? (asc ? ' &#9650;' : ' &#9660;') : ''}</th>`).join('')}</tr></thead><tbody>${visible.map((player, index) => {
         const team = FOOTBALL_TEAM_BY_SLUG[player.teamSlug];
         return `<tr><td class="rank-cell">${(footballState.leaderPage - 1) * pageSize + index + 1}</td><td class="player-cell">${footballPlayerButton(player)}<div class="player-sub">${footballEsc(player.grade)}${player.position ? ` &middot; ${footballEsc(player.position)}` : ''}</div></td><td><button class="team-chip" data-team-slug="${footballEsc(player.teamSlug)}">${footballLogo(team, 18)}${footballEsc(player.team)}</button></td><td>${footballEsc(player.position || player.role)}</td>${stats.map(([stat, , digits]) => `<td class="num ${stat === 'playerScore' ? 'score-good' : ''}">${footballFormatLeaderValue(player, stat, digits)}</td>`).join('')}</tr>`;
@@ -835,6 +879,7 @@ function footballRenderGlossary() {
     ['AdjD', 'Points allowed per game adjusted for opponent offensive quality. Lower is better.'],
     ['SOS', 'Average opponent winning percentage, displayed on a 0-100 scale.'],
     ['Player Score', '0-100 composite calculated against players in the same primary role. Team schedule strength provides a small adjustment.'],
+    ['Qualified Leaders', 'Leaderboards and percentile rankings use minimum samples by position: QB 75 pass attempts; RB 50 touches; WR/TE 20 receptions; DL 20 tackles; LB 35 tackles; DB 15 tackles; K 15 kicks; P 15 punts; returners 8 returns.'],
     ['Completion %', 'Completions divided by passing attempts.'],
     ['Yards / Attempt', 'Passing yards divided by passing attempts.'],
     ['Adj Y/A', '(Passing yards + 20 x passing TD - 45 x interceptions) / attempts.'],
@@ -980,8 +1025,11 @@ function footballFormatStat(player, stat, digits = 0) {
   return Number.isFinite(Number(value)) ? footballNum(value, digits) : '-';
 }
 function footballPercentileSections(player) {
-  const metricEntries = Object.entries(player.metricPercentiles || {});
-  if (!metricEntries.length) return '<div class="empty">No percentile metrics available for this role.</div>';
+  const group = footballPrimaryLeaderGroup(player);
+  if (!footballQualifiesForLeaderGroup(player, group)) return '<div class="empty">No qualified percentile metrics available yet. Percentiles require the position minimum sample size.</div>';
+  const allowedMetrics = new Set(footballLeaderColumns(group).map(([stat]) => stat));
+  const metricEntries = Object.entries(player.metricPercentiles || {}).filter(([metric]) => allowedMetrics.has(metric));
+  if (!metricEntries.length) return '<div class="empty">No qualified percentile metrics available yet. Percentiles require the position minimum sample size.</div>';
   const rateStats = new Set(['AdjYPA', 'CmpPct', 'PassYPA', 'PassTDPct', 'INTPct', 'TDINT', 'NFLRating', 'QBUsage', 'QBEffPlus', 'RushYPA', 'RushTDRate', 'YardsPerTouch', 'TouchShare', 'RushYardShare', 'ExplosiveRun', 'RBImpact', 'RecYPR', 'RecTDRate', 'RecYardShare', 'ReceptionShare', 'RecTDShare', 'BigPlayScore', 'WREffPlus', 'TFLPerTackle', 'SackPerTackle', 'HavocRate', 'TacklesPerGame', 'TFLRate', 'PuntAvg', 'Inside20Pct', 'FieldPositionScore', 'ReturnAvg', 'KickReturnAvg', 'PuntReturnAvg', 'ExplosiveReturn', 'SpecialTeamsImpact', 'FGPct', 'XPPct']);
   const productionStats = new Set(['PassYds', 'PassTD', 'QBTotalTD', 'QBTotalYds', 'RushYds', 'RushTD', 'Rec', 'RecYds', 'RecTD', 'ScrimYds', 'ScrimTD', 'TotalTouches', 'Tackles', 'TFL', 'Sacks', 'DefINT', 'TurnoversCreated', 'HavocPlays', 'DLImpact', 'DefensiveImpactScore', 'DBTurnovers', 'TakeawayTD', 'DBPlaymaker', 'KickPoints', 'FGM', 'XPM', 'PuntYds', 'Inside20', 'ReturnTD', 'ReturnYds', 'TotalYds', 'TotalTD', 'DefImpact']);
   const groups = [
