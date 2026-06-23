@@ -1234,7 +1234,7 @@
 }
 
 .football-player-summary {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .football-player-page .stat-mini,
@@ -1251,7 +1251,9 @@
   display: block;
   max-width: 100%;
   line-height: 1.15;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .football-player-page .stat-mini-val,
@@ -1259,13 +1261,18 @@
 .football-team-page .team-stat-card-val,
 .football-team-page .counting-value {
   max-width: 100%;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: clamp(18px, 2.3vw, 28px);
 }
 
-.football-player-page .counting-grid,
+.football-player-page .counting-grid {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+}
+
 .football-team-page .counting-grid {
-  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
 }
 
 .football-player-page .pct-label {
