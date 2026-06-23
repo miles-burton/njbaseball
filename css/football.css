@@ -554,7 +554,7 @@
 }
 
 .predictor-panel .predictor-controls {
-  grid-template-columns: minmax(220px, 1fr) 180px minmax(220px, 1fr);
+  grid-template-columns: minmax(220px, 1fr) 42px minmax(220px, 1fr) 180px;
 }
 
 .predictor-search-wrap {
@@ -1221,6 +1221,15 @@
 
 .football-player-summary {
   grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.football-player-page .pct-label {
+  width: 72px;
+  white-space: nowrap;
+}
+
+.football-player-page .pct-row {
+  gap: 12px;
 }
 
 .football-win-bar {

@@ -504,13 +504,49 @@ function footballPredict(teamA, teamB, venue) {
   return { scoreA, scoreB, winA };
 }
 function footballTeamInput(slot, team) {
-  return `<input class="predictor-team-search" data-predict-team-search="${slot}" list="footballTeamList" type="search" value="${footballEsc(team?.name || '')}" placeholder="Search teams...">`;
+  return `<input class="ctrl-select predictor-team-input predictor-team-search" data-predict-team-search="${slot}" list="footballTeamList" type="search" value="${footballEsc(team?.name || '')}" placeholder="Search teams..." autocomplete="off">`;
+}
+function footballSwapPredictorTeams() {
+  const currentA = footballState.predictor.teamA;
+  footballState.predictor.teamA = footballState.predictor.teamB;
+  footballState.predictor.teamB = currentA;
+  footballState.predictor.venue = footballState.predictor.venue === 'a-home' ? 'b-home' : footballState.predictor.venue === 'b-home' ? 'a-home' : 'neutral';
+  footballRenderPredictor();
 }
 function footballRenderPredictor() {
   const teamA = FOOTBALL_TEAM_BY_SLUG[footballState.predictor.teamA] || FOOTBALL_TEAMS[0];
   const teamB = FOOTBALL_TEAM_BY_SLUG[footballState.predictor.teamB] || FOOTBALL_TEAMS[1];
   const prediction = footballPredict(teamA, teamB, footballState.predictor.venue);
-  footballEl('view-predictor').innerHTML = `${footballPageHeader('Matchup Predictor', footballMeta('Projected score and win probability', 'Uses Gridiron Index adjusted team ratings', `${FOOTBALL_DATA.season} Season`))}<main class="predictor-wrap"><div class="predictor-panel"><div class="predictor-controls"><label class="predictor-field"><span>Team A</span>${footballTeamInput('A', teamA)}</label><label class="predictor-field"><span>Venue</span><select data-predict-venue><option value="neutral">Neutral</option><option value="a-home" ${footballState.predictor.venue === 'a-home' ? 'selected' : ''}>Team A Home</option><option value="b-home" ${footballState.predictor.venue === 'b-home' ? 'selected' : ''}>Team B Home</option></select></label><label class="predictor-field"><span>Team B</span>${footballTeamInput('B', teamB)}</label></div><datalist id="footballTeamList">${FOOTBALL_TEAMS.map((team) => `<option value="${footballEsc(team.name)}"></option>`).join('')}</datalist>${prediction ? `<div class="prediction-card"><div class="prediction-head"><div class="prediction-team">${footballLogo(teamA, 42, 'prediction-logo')}<div><div class="prediction-team-name">${footballEsc(teamA.name)}</div><div class="prediction-team-meta">#${teamA.rank} · GI ${teamA.powerScore.toFixed(1)} · ${footballEsc(teamA.record)}</div></div></div><div class="prediction-vs"><span>vs</span></div><div class="prediction-team prediction-team-right">${footballLogo(teamB, 42, 'prediction-logo')}<div><div class="prediction-team-name">${footballEsc(teamB.name)}</div><div class="prediction-team-meta">#${teamB.rank} · GI ${teamB.powerScore.toFixed(1)} · ${footballEsc(teamB.record)}</div></div></div></div><div class="prediction-main"><div class="prediction-pick-label">Projected Winner</div><div class="prediction-pick">${footballEsc(prediction.winA >= 0.5 ? teamA.name : teamB.name)}</div><div class="prediction-score">${prediction.scoreA.toFixed(1)} - ${prediction.scoreB.toFixed(1)} projected points</div><div class="prediction-confidence">Win probability: ${(Math.max(prediction.winA, 1 - prediction.winA) * 100).toFixed(1)}%</div></div><div class="prediction-prob"><div class="prediction-prob-row"><span>${footballEsc(teamA.name)}</span><strong>${(prediction.winA * 100).toFixed(1)}%</strong></div><div class="prediction-bar"><div class="prediction-bar-a" style="width:${(prediction.winA * 100).toFixed(1)}%"></div></div><div class="prediction-prob-row"><span>${footballEsc(teamB.name)}</span><strong>${((1 - prediction.winA) * 100).toFixed(1)}%</strong></div><div class="prediction-bar"><div class="prediction-bar-b" style="width:${((1 - prediction.winA) * 100).toFixed(1)}%"></div></div></div></div>` : '<div class="predictor-empty">Choose two different teams to generate a prediction.</div>'}</div></main>`;
+  footballEl('view-predictor').innerHTML = `${footballPageHeader('Matchup Predictor', footballMeta('Projected score and win probability', 'Uses Gridiron Index adjusted team ratings', `${FOOTBALL_DATA.season} Season`))}
+  <main class="predictor-wrap">
+    <div class="predictor-panel">
+      <div class="predictor-controls">
+        <label class="predictor-field">
+          <span>Team A</span>
+          ${footballTeamInput('A', teamA)}
+        </label>
+        <button class="predictor-swap" onclick="footballSwapPredictorTeams()" title="Swap teams" type="button">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M3 5h10M10 2l3 3-3 3M13 11H3M6 8l-3 3 3 3"/>
+          </svg>
+        </button>
+        <label class="predictor-field">
+          <span>Team B</span>
+          ${footballTeamInput('B', teamB)}
+        </label>
+        <label class="predictor-field predictor-field-small">
+          <span>Venue</span>
+          <select class="ctrl-select" data-predict-venue>
+            <option value="neutral" ${footballState.predictor.venue === 'neutral' ? 'selected' : ''}>Neutral</option>
+            <option value="a-home" ${footballState.predictor.venue === 'a-home' ? 'selected' : ''}>Team A home</option>
+            <option value="b-home" ${footballState.predictor.venue === 'b-home' ? 'selected' : ''}>Team B home</option>
+          </select>
+        </label>
+      </div>
+      <datalist id="footballTeamList">${FOOTBALL_TEAMS.map((team) => `<option value="${footballEsc(team.name)}"></option>`).join('')}</datalist>
+      ${prediction ? `<div class="prediction-card"><div class="prediction-head"><div class="prediction-team">${footballLogo(teamA, 42, 'prediction-logo')}<div><div class="prediction-team-name">${footballEsc(teamA.name)}</div><div class="prediction-team-meta">#${teamA.rank} · GI ${teamA.powerScore.toFixed(1)} · ${footballEsc(teamA.record)}</div></div></div><div class="prediction-vs"><span>vs</span></div><div class="prediction-team prediction-team-right">${footballLogo(teamB, 42, 'prediction-logo')}<div><div class="prediction-team-name">${footballEsc(teamB.name)}</div><div class="prediction-team-meta">#${teamB.rank} · GI ${teamB.powerScore.toFixed(1)} · ${footballEsc(teamB.record)}</div></div></div></div><div class="prediction-main"><div class="prediction-pick-label">Projected Winner</div><div class="prediction-pick">${footballEsc(prediction.winA >= 0.5 ? teamA.name : teamB.name)}</div><div class="prediction-score">${prediction.scoreA.toFixed(1)} - ${prediction.scoreB.toFixed(1)} projected points</div><div class="prediction-confidence">Win probability: ${(Math.max(prediction.winA, 1 - prediction.winA) * 100).toFixed(1)}%</div></div><div class="prediction-prob"><div class="prediction-prob-row"><span>${footballEsc(teamA.name)}</span><strong>${(prediction.winA * 100).toFixed(1)}%</strong></div><div class="prediction-bar"><div class="prediction-bar-a" style="width:${(prediction.winA * 100).toFixed(1)}%"></div></div><div class="prediction-prob-row"><span>${footballEsc(teamB.name)}</span><strong>${((1 - prediction.winA) * 100).toFixed(1)}%</strong></div><div class="prediction-bar"><div class="prediction-bar-b" style="width:${((1 - prediction.winA) * 100).toFixed(1)}%"></div></div></div></div>` : '<div class="predictor-empty">Choose two different teams to generate a prediction.</div>'}
+    </div>
+  </main>`;
 }
 
 function footballRenderGlossary() {
