@@ -17,6 +17,7 @@ const footballState = {
   search: '',
   role: 'All',
   teamPanel: 'offense',
+  gameKey: '',
   predictor: { teamA: FOOTBALL_TEAMS[0]?.slug || '', teamB: FOOTBALL_TEAMS[1]?.slug || '', venue: 'neutral' },
 };
 
@@ -73,6 +74,24 @@ function footballGroupBy(items, keyFor) {
     (groups[key] ||= []).push(item);
     return groups;
   }, {});
+}
+
+function footballGameKey(game) {
+  const raw = game.gameUrl || `${game.date}::${game.teamSlug}::${game.opponentSlug || game.opponent}`;
+  return encodeURIComponent(raw);
+}
+
+function footballFindGame(key) {
+  const decoded = decodeURIComponent(key || '');
+  return footballUniqueGames().find((game) => (game.gameUrl || `${game.date}::${game.teamSlug}::${game.opponentSlug || game.opponent}`) === decoded);
+}
+
+function footballDisplayDate(game) {
+  return footballEsc(game?.date || '');
+}
+
+function footballSiteLabel(site) {
+  return site === '@' ? '@' : site === 'vs' ? 'vs' : '';
 }
 
 function initFootballTheme() {
@@ -182,7 +201,7 @@ function footballHomeLeaders(title, players) {
   }).join('')}</div></section>`;
 }
 
-function footballScoreRow(game, rank = '') {
+function footballScoreRow(game, rank = '', includeDate = false) {
   const team = FOOTBALL_TEAM_BY_SLUG[game.teamSlug];
   const opponent = FOOTBALL_TEAM_BY_SLUG[game.opponentSlug];
   const teamWon = game.result === 'W';
@@ -192,7 +211,21 @@ function footballScoreRow(game, rank = '') {
   const loserName = loser?.name || (teamWon ? game.opponent : game.team);
   const winnerScore = Math.max(game.teamScore, game.opponentScore);
   const loserScore = Math.min(game.teamScore, game.opponentScore);
-  return `<tr class="football-score-row"><td class="rank-cell">${rank}</td><td>${game.tournament ? '<span class="home-score-badge">TOURNEY</span>' : ''}<div class="football-score-matchup"><strong>${winner ? footballTeamButton(winner) : footballEsc(winnerName)}</strong><span>def.</span>${loser ? footballTeamButton(loser) : footballEsc(loserName)}</div></td><td class="num">${winnerScore}-${loserScore}</td><td class="num score-good">${winner?.powerScore?.toFixed(1) || '-'}</td></tr>`;
+  const logoSmall = (club) => club ? footballLogo(club, 18) : '';
+  return `<tr class="football-score-row game-row-clickable" data-game-key="${footballGameKey(game)}">
+    <td class="rank-cell${Number(rank) <= 3 ? ' top3' : ''}">${rank}</td>
+    ${includeDate ? `<td class="football-date-cell">${footballDisplayDate(game)}</td>` : ''}
+    <td>
+      <div class="home-score-game">
+        ${game.tournament ? '<span class="home-score-badge">TOURNEY</span>' : ''}
+        <span class="home-score-team home-score-primary">${logoSmall(winner)}<span>${footballEsc(winnerName)}</span></span>
+        <span class="home-score-vs">def.</span>
+        <span class="home-score-team home-score-primary">${logoSmall(loser)}<span>${footballEsc(loserName)}</span></span>
+      </div>
+    </td>
+    <td class="num">${winnerScore}-${loserScore}</td>
+    <td class="num score-good">${winner?.powerScore?.toFixed(1) || '-'}</td>
+  </tr>`;
 }
 
 function footballFilteredPlayers() {
@@ -242,26 +275,46 @@ function footballRenderRankings() {
   const columns = [['powerScore', 'Gridiron'], ['adjO', 'AdjO'], ['adjD', 'AdjD'], ['adjNet', 'Net'], ['sos', 'SOS'], ['qualityScore', 'Quality'], ['luck', 'Luck'], ['pfPerGame', 'PF/G'], ['paPerGame', 'PA/G']];
   footballEl('view-rankings').innerHTML = `${footballPageHeader('Team Analytics', 'Power Rankings', 'Opponent-adjusted football ratings on a 0-100 scale')}
     <main class="shell football-rankings"><div class="controls-row"><div class="search-wrap"><input class="search-input" data-football-search type="search" value="${footballEsc(footballState.search)}" placeholder="Search teams..."></div><select class="ctrl-select" data-football-conference><option>All</option>${FOOTBALL_CONFERENCES.map((conference) => `<option ${footballState.conference === conference ? 'selected' : ''}>${footballEsc(conference)}</option>`).join('')}</select></div>
-    <div class="lb-table-wrap"><table><thead><tr><th>#</th><th>Team</th><th>Conf</th><th>Record</th>${columns.map(([stat, label]) => `<th class="num sortable" data-ranking-sort="${stat}">${label}${key === stat ? (asc ? ' &#9650;' : ' &#9660;') : ''}</th>`).join('')}</tr></thead><tbody>${teams.map((team) => `<tr><td class="rank-cell">${team.rank}</td><td><div class="football-table-team">${footballLogo(team, 28)}${footballTeamButton(team)}</div></td><td>${footballEsc(team.conference)}</td><td>${footballEsc(team.record)}</td>${columns.map(([stat]) => `<td class="num ${stat === 'powerScore' ? 'score-good' : ''}">${footballNum(team[stat], 1)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></main>`;
+    <div class="lb-table-wrap"><table><thead><tr><th>#</th><th>Team</th><th>Conf</th><th>Record</th>${columns.map(([stat, label]) => `<th class="num sortable" data-ranking-sort="${stat}">${label}${key === stat ? (asc ? ' &#9650;' : ' &#9660;') : ''}</th>`).join('')}</tr></thead><tbody>${teams.map((team) => `<tr class="${team.rank <= 3 ? 'football-top-rank' : ''}"><td class="rank-cell${team.rank <= 3 ? ' top3' : ''}">${team.rank}</td><td><div class="football-table-team rankings-team-cell">${footballLogo(team, 28)}${footballTeamButton(team)}</div></td><td>${footballEsc(team.conference)}</td><td>${footballEsc(team.record)}</td>${columns.map(([stat]) => `<td class="num ${stat === 'powerScore' ? 'score-good' : ''}">${footballNum(team[stat], 1)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></main>`;
 }
 
 function footballRenderScores() {
-  const games = footballUniqueGames().sort((a, b) => footballDateValue(b.date) - footballDateValue(a.date) || ((FOOTBALL_TEAM_BY_SLUG[b.teamSlug]?.powerScore || 0) - (FOOTBALL_TEAM_BY_SLUG[a.teamSlug]?.powerScore || 0)));
+  const games = footballUniqueGames().sort((a, b) => {
+    const dateDiff = footballDateValue(b.date) - footballDateValue(a.date);
+    if (dateDiff) return dateDiff;
+    const importanceA = (FOOTBALL_TEAM_BY_SLUG[a.teamSlug]?.powerScore || 0) + (FOOTBALL_TEAM_BY_SLUG[a.opponentSlug]?.powerScore || 0) + (a.tournament ? 8 : 0);
+    const importanceB = (FOOTBALL_TEAM_BY_SLUG[b.teamSlug]?.powerScore || 0) + (FOOTBALL_TEAM_BY_SLUG[b.opponentSlug]?.powerScore || 0) + (b.tournament ? 8 : 0);
+    return importanceB - importanceA;
+  });
   footballEl('view-scores').innerHTML = `${footballPageHeader('Scoreboard', 'Recent Scores', 'Completed games from the NJ.com statewide schedule')}
-    <main class="shell football-scores"><div class="card"><div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Game</th><th class="num">Score</th><th class="num">Gridiron</th></tr></thead><tbody>${games.slice(0, 300).map((game, index) => footballScoreRow(game, index + 1).replace('<td class="rank-cell">', `<td class="rank-cell">`).replace('</td><td>', `</td><td>${footballEsc(game.date)}</td><td>`)).join('')}</tbody></table></div></div></main>`;
+    <main class="shell football-scores"><div class="card"><div class="table-wrap"><table class="home-rankings-table"><thead><tr><th>#</th><th>Date</th><th>Game</th><th class="num">Score</th><th class="num">GI</th></tr></thead><tbody>${games.slice(0, 300).map((game, index) => footballScoreRow(game, index + 1, true)).join('')}</tbody></table></div></div></main>`;
 }
 
 function footballRenderTeams() {
   const query = footballState.search.toLowerCase();
   const teams = FOOTBALL_TEAMS.filter((team) => footballState.conference === 'All' || team.conference === footballState.conference).filter((team) => !query || team.name.toLowerCase().includes(query));
-  footballEl('view-teams').innerHTML = `${footballPageHeader('Directory', 'All Teams', `${teams.length} football programs`)}<main class="teams-wrap"><div class="controls-row"><div class="search-wrap"><input class="search-input" data-football-search value="${footballEsc(footballState.search)}" placeholder="Search teams..."></div><select class="ctrl-select" data-football-conference><option>All</option>${FOOTBALL_CONFERENCES.map((conference) => `<option ${footballState.conference === conference ? 'selected' : ''}>${footballEsc(conference)}</option>`).join('')}</select></div><div class="teams-grid">${teams.map((team) => `<button class="team-card" data-team-slug="${footballEsc(team.slug)}"><div class="team-card-top">${footballLogo(team, 44)}<div><strong>${footballEsc(team.name)}</strong><small>${footballEsc(team.conference)} &middot; ${footballEsc(team.division)}</small></div></div><div class="team-card-stats"><div><b>#${team.rank}</b><span>State</span></div><div><b>${team.powerScore.toFixed(1)}</b><span>GI</span></div><div><b>${footballEsc(team.record)}</b><span>Record</span></div></div></button>`).join('')}</div></main>`;
+  footballEl('view-teams').innerHTML = `${footballPageHeader('Directory', 'All Teams', `${teams.length} football programs`)}<main class="teams-wrap"><div class="controls-row"><div class="search-wrap"><input class="search-input" data-football-search value="${footballEsc(footballState.search)}" placeholder="Search teams..."></div><select class="ctrl-select" data-football-conference><option>All</option>${FOOTBALL_CONFERENCES.map((conference) => `<option ${footballState.conference === conference ? 'selected' : ''}>${footballEsc(conference)}</option>`).join('')}</select></div><div class="teams-grid">${teams.map((team) => `<button class="team-card" data-team-slug="${footballEsc(team.slug)}">
+    <div class="team-card-header">
+      <div class="team-card-icon">${footballLogo(team, 34)}</div>
+      <div>
+        <div class="team-card-name">${footballEsc(team.name)}</div>
+        <div class="team-card-mascot">${footballEsc(team.conference)} &middot; ${footballEsc(team.division || 'Independent')}</div>
+      </div>
+    </div>
+    <div class="team-card-stats">
+      <div class="team-card-stat"><div class="team-card-stat-val">#${team.rank}</div><div class="team-card-stat-label">State</div></div>
+      <div class="team-card-stat"><div class="team-card-stat-val">${team.powerScore.toFixed(1)}</div><div class="team-card-stat-label">GI</div></div>
+      <div class="team-card-stat"><div class="team-card-stat-val">${footballEsc(team.record)}</div><div class="team-card-stat-label">Record</div></div>
+    </div>
+  </button>`).join('')}</div></main>`;
 }
 
 function footballRenderStandings() {
   const conferences = footballState.conference === 'All' ? FOOTBALL_CONFERENCES : [footballState.conference];
-  footballEl('view-standings').innerHTML = `${footballPageHeader('League Tables', 'Standings', 'Conference and division records from NJ.com')}<main class="standings-wrap"><div class="controls-row"><select class="ctrl-select" data-football-conference><option>All</option>${FOOTBALL_CONFERENCES.map((conference) => `<option ${footballState.conference === conference ? 'selected' : ''}>${footballEsc(conference)}</option>`).join('')}</select></div>${conferences.map((conference) => {
+  footballEl('view-standings').innerHTML = `${footballPageHeader('League Tables', 'Standings', 'Conference and division records from NJ.com')}<main class="standings-wrap standings-page-wrap"><div class="standings-controls-row controls-row"><select class="ctrl-select" data-football-conference><option>All</option>${FOOTBALL_CONFERENCES.map((conference) => `<option ${footballState.conference === conference ? 'selected' : ''}>${footballEsc(conference)}</option>`).join('')}</select></div>${conferences.map((conference) => {
     const divisions = footballGroupBy(FOOTBALL_TEAMS.filter((team) => team.conference === conference), (team) => team.division || 'Overall');
-    return `<section class="card standings-group"><div class="standings-heading">${footballEsc(conference)}</div>${Object.entries(divisions).map(([division, teams]) => `<div class="standings-division-block"><h3>${footballEsc(division)}</h3><div class="standings-table-wrap"><table><thead><tr><th>#</th><th>Team</th><th>Record</th><th>Division</th><th class="num">PF</th><th class="num">PA</th><th class="num">GI</th></tr></thead><tbody>${teams.sort((a, b) => b.divisionWins - a.divisionWins || b.winPct - a.winPct).map((team, index) => `<tr><td>${index + 1}</td><td><div class="football-table-team">${footballLogo(team, 22)}${footballTeamButton(team)}</div></td><td>${footballEsc(team.record)}</td><td>${footballEsc(team.divisionRecord)}</td><td class="num">${team.pf}</td><td class="num">${team.pa}</td><td class="num score-good">${team.powerScore.toFixed(1)}</td></tr>`).join('')}</tbody></table></div></div>`).join('')}</section>`;
+    const total = Object.values(divisions).reduce((sum, teams) => sum + teams.length, 0);
+    return `<section class="card standings-group"><div class="standings-heading"><span>${footballEsc(conference)}</span><span>${total} teams</span></div>${Object.entries(divisions).map(([division, teams]) => `<div class="standings-division-block"><div class="division-label"><span>${footballEsc(division)}</span><span>Division</span></div><div class="standings-table-wrap"><table class="standings-table"><thead><tr><th>#</th><th>Team</th><th>Record</th><th>Division</th><th class="num">PF</th><th class="num">PA</th><th class="num">PF/G</th><th class="num">PA/G</th><th class="num">GI</th></tr></thead><tbody>${teams.sort((a, b) => b.divisionWins - a.divisionWins || b.winPct - a.winPct || b.powerScore - a.powerScore).map((team, index) => `<tr data-team-slug="${footballEsc(team.slug)}"><td><span class="standings-pos ${index === 0 ? 'leader' : ''}">${index + 1}</span></td><td><div class="standings-team-cell">${footballLogo(team, 22)}<span class="standings-team-name">${footballEsc(team.name)}</span></div></td><td><span class="standings-record">${footballEsc(team.record)}</span></td><td><span class="standings-record division-record">${footballEsc(team.divisionRecord)}</span></td><td class="num">${team.pf}</td><td class="num">${team.pa}</td><td class="num">${team.pfPerGame.toFixed(1)}</td><td class="num">${team.paPerGame.toFixed(1)}</td><td class="num score-good">${team.powerScore.toFixed(1)}</td></tr>`).join('')}</tbody></table></div></div>`).join('')}</section>`;
   }).join('')}</main>`;
 }
 
@@ -308,7 +361,12 @@ function footballRosterTable(players, side) {
 function footballSchedule(team) {
   return `<div class="table-wrap"><table class="football-schedule"><thead><tr><th>Date</th><th>Opponent</th><th>W/L</th><th class="num">Score</th></tr></thead><tbody>${team.schedule.map((game) => {
     const opponent = FOOTBALL_TEAM_BY_SLUG[game.opponentSlug];
-    return `<tr><td>${footballEsc(game.date)}</td><td><div class="pitch-schedule-opponent">${opponent ? footballLogo(opponent, 22) : ''}${opponent ? footballTeamButton(opponent, 'schedule-team-link') : `<strong>${footballEsc(game.opponent)}</strong>`}${game.tournament ? `<span class="tournament-badge schedule-tournament-badge">${footballEsc(game.tournament)}</span>` : ''}</div></td><td class="result-${footballEsc(game.result.toLowerCase())}">${footballEsc(game.result || '-')}</td><td class="num">${footballEsc(game.scoreText || (game.teamScore == null ? '-' : `${game.teamScore}-${game.opponentScore}`))}</td></tr>`;
+    return `<tr class="${game.teamScore == null ? '' : 'game-row-clickable'}" ${game.teamScore == null ? '' : `data-game-key="${footballGameKey({ ...game, team: team.name, teamSlug: team.slug })}"`}>
+      <td class="football-date-cell">${footballEsc(game.date)}</td>
+      <td><div class="pitch-schedule-opponent"><span class="pitch-schedule-site">${footballEsc(footballSiteLabel(game.site))}</span>${opponent ? footballLogo(opponent, 22) : ''}${opponent ? footballTeamButton(opponent, 'schedule-team-link') : `<strong>${footballEsc(game.opponent)}</strong>`}${game.tournament ? `<span class="tournament-badge schedule-tournament-badge">${footballEsc(game.tournament)}</span>` : ''}</div></td>
+      <td class="pitch-result-${game.result === 'W' ? 'win' : game.result === 'L' ? 'loss' : 'tie'}">${footballEsc(game.result || '-')}</td>
+      <td class="num pitch-schedule-score">${footballEsc(game.scoreText || (game.teamScore == null ? '-' : `${game.teamScore}-${game.opponentScore}`))}</td>
+    </tr>`;
   }).join('')}</tbody></table></div>`;
 }
 
@@ -316,7 +374,36 @@ function footballRenderTeam() {
   const team = FOOTBALL_TEAM_BY_SLUG[footballState.teamSlug];
   if (!team) return footballSetView('teams');
   const players = FOOTBALL_PLAYERS.filter((player) => player.teamSlug === team.slug);
-  footballEl('view-team').innerHTML = `<main class="team-wrap football-team-page"><div class="team-hero"><div class="team-shield-lg">${footballLogo(team, 70)}</div><div class="team-info"><div class="team-name-lg">${footballEsc(team.name)}</div><div class="team-details"><span class="team-meta-pill team-meta-pill-accent"><span>Record</span>${footballEsc(team.record)}</span><span class="team-meta-pill"><span>Conference</span>${footballEsc(team.conference)}</span><span class="team-meta-pill"><span>Division</span>${footballEsc(team.division)}</span><span class="team-meta-pill team-meta-pill-accent"><span>Div Record</span>${footballEsc(team.divisionRecord)}</span></div></div></div><div class="team-stat-cards"><div class="team-stat-card team-score-card"><div class="team-stat-card-label">GI Score</div><div class="team-stat-card-val">${team.powerScore.toFixed(1)}</div></div><div class="team-stat-card"><div class="team-stat-card-label">State Rank</div><div class="team-stat-card-val">#${team.rank}</div></div><div class="team-stat-card"><div class="team-stat-card-label">AdjO</div><div class="team-stat-card-val">${team.adjO.toFixed(1)}</div></div><div class="team-stat-card"><div class="team-stat-card-label">AdjD</div><div class="team-stat-card-val">${team.adjD.toFixed(1)}</div></div><div class="team-stat-card"><div class="team-stat-card-label">SOS</div><div class="team-stat-card-val">${team.sos.toFixed(1)}</div></div><div class="team-stat-card"><div class="team-stat-card-label">PF/G</div><div class="team-stat-card-val">${team.pfPerGame.toFixed(1)}</div></div><div class="team-stat-card"><div class="team-stat-card-label">PA/G</div><div class="team-stat-card-val">${team.paPerGame.toFixed(1)}</div></div><div class="team-stat-card"><div class="team-stat-card-label">Quality Wins</div><div class="team-stat-card-val">${team.qualityWins}</div></div></div><div class="team-section-tabs"><button class="team-section-tab ${footballState.teamPanel === 'offense' ? 'active' : ''}" data-team-panel-target="offense">Offense</button><button class="team-section-tab ${footballState.teamPanel === 'defense' ? 'active' : ''}" data-team-panel-target="defense">Defense</button><button class="team-section-tab ${footballState.teamPanel === 'schedule' ? 'active' : ''}" data-team-panel-target="schedule">Schedule</button></div><section class="card football-team-panel">${footballState.teamPanel === 'schedule' ? footballSchedule(team) : footballRosterTable(players, footballState.teamPanel)}</section></main>`;
+  footballEl('view-team').innerHTML = `<main class="team-wrap football-team-page">
+    <div class="team-hero">
+      <div class="team-shield-lg">${footballLogo(team, 70)}</div>
+      <div class="team-info">
+        <div class="team-name-lg">${footballEsc(team.name)}</div>
+        <div class="team-details">
+          <span class="team-meta-pill team-meta-pill-accent"><span>Record</span>${footballEsc(team.record)}</span>
+          <span class="team-meta-pill"><span>Conference</span>${footballEsc(team.conference)}</span>
+          <span class="team-meta-pill"><span>Division</span>${footballEsc(team.division || 'Independent')}</span>
+          <span class="team-meta-pill team-meta-pill-accent"><span>Div Record</span>${footballEsc(team.divisionRecord)}</span>
+        </div>
+      </div>
+    </div>
+    <div class="team-stat-cards">
+      <div class="team-stat-card team-score-card"><div class="team-stat-card-label">GI Score</div><div class="team-stat-card-val">${team.powerScore.toFixed(1)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">State Rank</div><div class="team-stat-card-val">#${team.rank}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">AdjO</div><div class="team-stat-card-val">${team.adjO.toFixed(1)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">AdjD</div><div class="team-stat-card-val">${team.adjD.toFixed(1)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">SOS</div><div class="team-stat-card-val">${team.sos.toFixed(1)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">PF/G</div><div class="team-stat-card-val">${team.pfPerGame.toFixed(1)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">PA/G</div><div class="team-stat-card-val">${team.paPerGame.toFixed(1)}</div></div>
+      <div class="team-stat-card"><div class="team-stat-card-label">Quality Wins</div><div class="team-stat-card-val">${team.qualityWins}</div></div>
+    </div>
+    <div class="team-section-tabs">
+      <button class="team-section-tab ${footballState.teamPanel === 'offense' ? 'active' : ''}" data-team-panel-target="offense">Offense</button>
+      <button class="team-section-tab ${footballState.teamPanel === 'defense' ? 'active' : ''}" data-team-panel-target="defense">Defense</button>
+      <button class="team-section-tab ${footballState.teamPanel === 'schedule' ? 'active' : ''}" data-team-panel-target="schedule">Schedule</button>
+    </div>
+    <section class="card football-team-panel">${footballState.teamPanel === 'schedule' ? footballSchedule(team) : footballRosterTable(players, footballState.teamPanel)}</section>
+  </main>`;
 }
 
 function footballPlayerSummary(player) {
@@ -344,8 +431,97 @@ function footballRenderPlayer() {
   const summary = footballPlayerSummary(player);
   const percentileRows = Object.entries(player.metricPercentiles || {}).map(([metric, pct]) => `<div class="pct-row"><span class="pct-label">${footballEsc(footballMetricLabels[metric] || metric)}</span><div class="pct-bar-outer"><div class="pct-bar-track"><div class="pct-bar-fill" style="width:${pct}%;background:${footballPctColor(pct)}"></div><div class="pct-bubble" style="left:${pct}%;background:${footballPctColor(pct)}">${Math.round(pct)}</div></div></div><span class="pct-raw">${footballNum(player[metric], ['CmpPct', 'INTPct', 'FGPct', 'XPPct'].includes(metric) ? 1 : 1)}</span></div>`).join('');
   const countingKeys = ['Cmp', 'PassAtt', 'PassYds', 'PassTD', 'INT', 'PassLng', 'RushAtt', 'RushYds', 'RushTD', 'RushLng', 'Rec', 'RecYds', 'RecTD', 'RecLng', 'Sacks', 'TFL', 'Solo', 'Ast', 'Tackles', 'FF', 'FR', 'FumTD', 'DefINT', 'IntTD', 'Safety', 'KB', 'KORAtt', 'KORYds', 'KORLng', 'KORTD', 'PRAtt', 'PRYds', 'PRLng', 'PRTD', 'FGM', 'FGA', 'FGLng', 'XPM', 'XPA', 'TwoPT', 'Punts', 'PuntYds', 'PuntLng', 'Inside20'];
-  const allStats = countingKeys.filter((key) => Number(player[key]) !== 0).map((key) => [key, player[key]]);
-  footballEl('view-player').innerHTML = `<main class="player-wrap pitch-player-page football-player-page"><div class="football-player-hero">${footballLogo(team, 64)}<div><button class="player-team-link" data-team-slug="${footballEsc(team.slug)}">${footballEsc(team.name)}</button><h1>${footballEsc(player.name)}</h1><div class="player-meta">${footballEsc(player.grade)}${player.position ? ` &middot; ${footballEsc(player.position)}` : ''} &middot; ${footballEsc(player.role)}</div></div></div><div class="team-stat-cards football-player-summary"><div class="team-stat-card team-score-card"><div class="team-stat-card-label">Player Score</div><div class="team-stat-card-val">${player.playerScore.toFixed(1)}</div></div>${summary.map(([stat, label]) => `<div class="team-stat-card"><div class="team-stat-card-label">${footballEsc(label)}</div><div class="team-stat-card-val">${footballNum(player[stat], ['CmpPct', 'AdjYPA', 'RushYPA', 'RecYPR', 'PuntAvg', 'ReturnAvg', 'FGPct'].includes(stat) ? 1 : 0)}</div></div>`).join('')}</div><section class="football-player-layout"><div class="card pad"><div class="pct-section-title">${footballEsc(player.role)} Percentile Rankings</div><p class="football-percentile-note">Compared only with qualified ${footballEsc(player.role.toLowerCase())} players statewide. Player Score is shown above and is not itself a percentile.</p><div class="football-percentiles">${percentileRows}</div></div><div class="card pad"><div class="pct-section-title">Season Counting Stats</div><div class="counting-grid">${allStats.map(([stat, value]) => `<div class="counting-card"><div class="counting-value">${footballNum(value, Number.isInteger(value) ? 0 : 1)}</div><div class="counting-label">${footballEsc(footballMetricLabels[stat] || stat)}</div></div>`).join('')}</div></div></section></main>`;
+  const allStats = countingKeys.filter((key) => Number.isFinite(Number(player[key])) && Number(player[key]) !== 0).map((key) => [key, player[key]]);
+  footballEl('view-player').innerHTML = `<main class="player-wrap pitch-player-page football-player-page">
+    <div class="player-hero">
+      <div class="player-shield">${footballLogo(team, 64)}</div>
+      <div class="player-info">
+        <div class="player-full-name">${footballEsc(player.name)}</div>
+        <div class="player-details">
+          <button class="p-tag pa player-team-link" data-team-slug="${footballEsc(team.slug)}">${footballEsc(team.name)}</button>
+          ${player.grade ? `<span class="p-tag">${footballEsc(player.grade)}</span>` : ''}
+          ${player.position ? `<span class="p-tag">${footballEsc(player.position)}</span>` : ''}
+          <span class="p-tag">${footballEsc(player.role)}</span>
+        </div>
+      </div>
+    </div>
+    <div class="team-stat-cards football-player-summary">
+      <div class="team-stat-card team-score-card"><div class="team-stat-card-label">Player Score</div><div class="team-stat-card-val">${player.playerScore.toFixed(1)}</div></div>
+      ${summary.map(([stat, label]) => `<div class="team-stat-card"><div class="team-stat-card-label">${footballEsc(label)}</div><div class="team-stat-card-val">${footballNum(player[stat], ['CmpPct', 'AdjYPA', 'RushYPA', 'RecYPR', 'PuntAvg', 'ReturnAvg', 'FGPct'].includes(stat) ? 1 : 0)}</div></div>`).join('')}
+    </div>
+    <section class="football-player-layout">
+      <div class="card pad"><div class="pct-section-title">${footballEsc(player.role)} Percentile Rankings</div><p class="football-percentile-note">Compared only with qualified ${footballEsc(player.role.toLowerCase())} players statewide. Player Score is shown above and is not itself a percentile.</p><div class="football-percentiles">${percentileRows || '<div class="empty">No percentile metrics available for this role.</div>'}</div></div>
+      <div class="card pad"><div class="pct-section-title">Season Counting Stats</div><div class="counting-grid">${allStats.map(([stat, value]) => `<div class="counting-card"><div class="counting-value">${footballNum(value, Number.isInteger(value) ? 0 : 1)}</div><div class="counting-label">${footballEsc(footballMetricLabels[stat] || stat)}</div></div>`).join('')}</div></div>
+    </section>
+  </main>`;
+}
+
+function footballGameStatCard(label, value, accent = false) {
+  return `<div class="team-stat-card ${accent ? 'team-score-card' : ''}"><div class="team-stat-card-label">${footballEsc(label)}</div><div class="team-stat-card-val">${footballEsc(value)}</div></div>`;
+}
+
+function footballRenderGame() {
+  const game = footballFindGame(footballState.gameKey);
+  if (!game) return footballSetView('scores');
+  const team = FOOTBALL_TEAM_BY_SLUG[game.teamSlug];
+  const opponent = FOOTBALL_TEAM_BY_SLUG[game.opponentSlug];
+  const teamWon = game.result === 'W';
+  const teamClass = teamWon ? 'winner' : game.result === 'L' ? 'loser' : '';
+  const opponentClass = teamWon ? 'loser' : game.result === 'L' ? 'winner' : '';
+  const teamScore = game.teamScore ?? '—';
+  const opponentScore = game.opponentScore ?? '—';
+  const metaScore = game.scoreText || `${teamScore}-${opponentScore}`;
+  const opponentName = opponent?.name || game.opponent;
+  footballEl('view-game').innerHTML = `<main class="team-wrap football-game-page">
+    <div class="game-detail-hero">
+      <div>
+        <div class="game-detail-kicker">${footballDisplayDate(game)} · ${footballEsc(footballSiteLabel(game.site))} ${footballEsc(opponentName)} ${game.tournament ? `<span class="tournament-badge">${footballEsc(game.tournament)}</span>` : ''}</div>
+        <div class="game-detail-title">Game Detail</div>
+      </div>
+      <div class="game-detail-meta">${footballEsc(metaScore)}</div>
+    </div>
+    <div class="game-scoreboard">
+      <button class="game-team-card ${teamClass}" data-team-slug="${footballEsc(team.slug)}">
+        <span class="game-team-logo">${footballLogo(team, 36)}</span>
+        <span class="game-team-info"><span class="game-team-name">${footballEsc(team.name)}</span><span class="game-team-sub">#${team.rank} · GI ${team.powerScore.toFixed(1)}</span></span>
+        <span class="game-team-score">${footballEsc(teamScore)}</span>
+      </button>
+      <div class="game-score-divider">${footballEsc(footballSiteLabel(game.site) || 'vs')}</div>
+      ${opponent ? `<button class="game-team-card ${opponentClass}" data-team-slug="${footballEsc(opponent.slug)}">
+        <span class="game-team-logo">${footballLogo(opponent, 36)}</span>
+        <span class="game-team-info"><span class="game-team-name">${footballEsc(opponent.name)}</span><span class="game-team-sub">#${opponent.rank} · GI ${opponent.powerScore.toFixed(1)}</span></span>
+        <span class="game-team-score">${footballEsc(opponentScore)}</span>
+      </button>` : `<div class="game-team-card disabled"><span class="game-team-info"><span class="game-team-name">${footballEsc(opponentName)}</span><span class="game-team-sub">Opponent not connected</span></span><span class="game-team-score">${footballEsc(opponentScore)}</span></div>`}
+    </div>
+    <div class="team-stat-cards football-game-stat-cards">
+      ${footballGameStatCard('Winner', teamWon ? team.name : opponentName, true)}
+      ${footballGameStatCard('Margin', Number.isFinite(game.teamScore) && Number.isFinite(game.opponentScore) ? Math.abs(game.teamScore - game.opponentScore) : '—')}
+      ${footballGameStatCard(`${team.name} PF/G`, team.pfPerGame.toFixed(1))}
+      ${footballGameStatCard(`${team.name} PA/G`, team.paPerGame.toFixed(1))}
+      ${opponent ? footballGameStatCard(`${opponent.name} PF/G`, opponent.pfPerGame.toFixed(1)) : ''}
+      ${opponent ? footballGameStatCard(`${opponent.name} PA/G`, opponent.paPerGame.toFixed(1)) : ''}
+    </div>
+    <div class="game-detail-grid">
+      <section class="game-team-section">
+        <div class="game-section-heading">${footballTeamButton(team, 'game-team-link')}</div>
+        <div class="counting-grid">
+          ${footballGameStatCard('Record', team.record)}
+          ${footballGameStatCard('AdjO', team.adjO.toFixed(1))}
+          ${footballGameStatCard('AdjD', team.adjD.toFixed(1))}
+          ${footballGameStatCard('SOS', team.sos.toFixed(1))}
+        </div>
+      </section>
+      <section class="game-team-section">
+        <div class="game-section-heading">${opponent ? footballTeamButton(opponent, 'game-team-link') : footballEsc(opponentName)}</div>
+        ${opponent ? `<div class="counting-grid">
+          ${footballGameStatCard('Record', opponent.record)}
+          ${footballGameStatCard('AdjO', opponent.adjO.toFixed(1))}
+          ${footballGameStatCard('AdjD', opponent.adjD.toFixed(1))}
+          ${footballGameStatCard('SOS', opponent.sos.toFixed(1))}
+        </div>` : '<div class="game-empty">This opponent is not connected to a team page yet.</div>'}
+      </section>
+    </div>
+  </main>`;
 }
 
 function footballRenderGlobalSearch() {
@@ -374,6 +550,7 @@ function footballRender() {
   if (footballState.view === 'glossary') footballRenderGlossary();
   if (footballState.view === 'team') footballRenderTeam();
   if (footballState.view === 'player') footballRenderPlayer();
+  if (footballState.view === 'game') footballRenderGame();
 }
 
 document.addEventListener('click', (event) => {
@@ -399,6 +576,8 @@ document.addEventListener('click', (event) => {
   if (team) { footballState.teamSlug = team.dataset.teamSlug; footballSetView('team'); return; }
   const player = event.target.closest('[data-player-key]');
   if (player) { footballState.playerKey = player.dataset.playerKey; footballSetView('player'); return; }
+  const game = event.target.closest('[data-game-key]');
+  if (game && !event.target.closest('[data-team-slug]')) { footballState.gameKey = game.dataset.gameKey; footballSetView('game'); return; }
   const panel = event.target.closest('[data-team-panel-target]');
   if (panel) { footballState.teamPanel = panel.dataset.teamPanelTarget; footballRenderTeam(); return; }
   const side = event.target.closest('[data-leader-side]');
