@@ -348,12 +348,30 @@ def compute_team_ratings(teams):
         team["sos"] = round(sos * 100, 1)
         team["qualityScore"] = round(max(0, min(100, quality)), 1)
         team["qualityWins"] = quality_wins
-        # Predictive efficiency leads; strength of schedule carries heavy weight
-        # so the powers that survive NJ's elite (largely Non-Public) gauntlet are
-        # not buried by undefeated teams from soft conferences. Raw win% is kept
-        # low on purpose — winning is already rewarded through quality and
-        # efficiency, so a few losses to elite opponents shouldn't sink a team.
-        team["rawPower"] = round(0.40 * expected * 100 + 0.05 * team["winPct"] * 100 + 0.35 * team["sos"] + 0.20 * team["qualityScore"], 8)
+        # Predictive efficiency and schedule strength drive the baseline.
+        # Win% is intentionally light: one or two losses to elite opponents
+        # should not bury a team behind a softer undefeated profile.
+        team["basePower"] = round(0.30 * expected * 100 + 0.05 * team["winPct"] * 100 + 0.55 * team["sos"] + 0.10 * team["qualityScore"], 8)
+
+    for team in teams:
+        elite_win_bonus = 0
+        bad_loss_penalty = 0
+        for game in team["schedule"]:
+            opponent = find_opponent(game)
+            if not opponent or game.get("result") not in {"W", "L", "T"}:
+                continue
+            margin = (game.get("teamScore") or 0) - (game.get("opponentScore") or 0)
+            opponent_power = opponent.get("basePower", 50)
+            if margin > 0:
+                win_value = max(0, opponent_power - 70) * 0.35 + min(margin, 28) * 0.015
+                elite_win_bonus += min(3.0, win_value)
+            elif margin < 0:
+                bad_loss_penalty += max(0, 70 - opponent_power) * 0.08 + max(0, abs(margin) - 21) * 0.02
+        # Best-win resume matters, but it is normalized by games played so it
+        # complements the power rating instead of turning one upset into the
+        # whole ranking.
+        team["resumeBonus"] = round((elite_win_bonus * 2.5 - bad_loss_penalty) / max(team["games"], 1), 3)
+        team["rawPower"] = round(team["basePower"] + team["resumeBonus"], 8)
 
     raw_values = sorted(team["rawPower"] for team in teams)
     low = raw_values[0]

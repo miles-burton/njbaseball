@@ -755,8 +755,8 @@ function footballRenderRankings() {
     .filter((team) => !query || team.name.toLowerCase().includes(query));
   const { key, asc } = footballState.rankingSort;
   teams.sort((a, b) => ((Number(a[key]) || 0) - (Number(b[key]) || 0)) * (asc ? 1 : -1));
-  const columns = [['powerScore', 'Gridiron'], ['adjO', 'AdjO'], ['adjD', 'AdjD'], ['adjNet', 'Net'], ['sos', 'SOS'], ['qualityScore', 'Quality'], ['luck', 'Luck'], ['pfPerGame', 'PF/G'], ['paPerGame', 'PA/G']];
-  footballEl('view-rankings').innerHTML = `${footballPageHeader('Power Rankings', footballMeta('Gridiron Index Team Score', '0-100 scale', 'Opponent-adjusted offensive and defensive efficiency'))}
+  const columns = [['powerScore', 'Gridiron'], ['basePower', 'Base'], ['resumeBonus', 'Resume'], ['adjO', 'AdjO'], ['adjD', 'AdjD'], ['adjNet', 'Net'], ['sos', 'SOS'], ['qualityScore', 'Quality'], ['pfPerGame', 'PF/G'], ['paPerGame', 'PA/G']];
+  footballEl('view-rankings').innerHTML = `${footballPageHeader('Power Rankings', footballMeta('Gridiron Index Team Score', '0-100 scale', 'Predictive rating plus resume strength'))}
     <main class="shell football-rankings"><div class="controls-row"><div class="search-wrap"><input class="search-input" data-football-search type="search" value="${footballEsc(footballState.search)}" placeholder="Search teams..."></div><select class="ctrl-select" data-football-conference><option>All</option>${FOOTBALL_CONFERENCES.map((conference) => `<option ${footballState.conference === conference ? 'selected' : ''}>${footballEsc(conference)}</option>`).join('')}</select></div>
     <div class="lb-table-wrap"><table><thead><tr><th>#</th><th>Team</th><th>Conf</th><th>Record</th>${columns.map(([stat, label]) => `<th class="num sortable" data-ranking-sort="${stat}">${label}${key === stat ? (asc ? ' &#9650;' : ' &#9660;') : ''}</th>`).join('')}</tr></thead><tbody>${teams.map((team) => `<tr class="${team.rank <= 3 ? 'football-top-rank' : ''}"><td class="rank-cell${team.rank <= 3 ? ' top3' : ''}">${team.rank}</td><td><div class="football-table-team rankings-team-cell">${footballLogo(team, 28)}${footballTeamButton(team)}</div></td><td>${footballEsc(team.conference)}</td><td>${footballEsc(team.record)}</td>${columns.map(([stat]) => `<td class="num ${stat === 'powerScore' ? 'score-good' : ''}">${footballNum(team[stat], 1)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></main>`;
 }
@@ -874,7 +874,9 @@ function footballRenderPredictor() {
 
 function footballRenderGlossary() {
   const cards = [
-    ['Gridiron Score', '0-100 team rating blending opponent-adjusted efficiency, results, schedule strength, and quality performance. Blowout margins are logarithmically dampened.'],
+    ['Gridiron Score', '0-100 team rating built from a predictive base plus resume bonus. The base uses expected performance, schedule strength, quality score, and a light win percentage component.'],
+    ['Base', 'The pre-resume team rating: 30% expected performance, 55% strength of schedule, 10% quality score, and 5% win percentage.'],
+    ['Resume', 'Bonus for beating highly rated opponents, with small penalties for bad losses. The bonus is normalized by games played so one upset does not control the whole ranking.'],
     ['AdjO', 'Points scored per game adjusted for the defensive quality of every opponent. Higher is better.'],
     ['AdjD', 'Points allowed per game adjusted for opponent offensive quality. Lower is better.'],
     ['SOS', 'Average opponent winning percentage, displayed on a 0-100 scale.'],
