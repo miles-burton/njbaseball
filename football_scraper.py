@@ -31,6 +31,50 @@ CONFERENCES = ["Big Central", "Independent", "NJIC", "SFC", "Shore", "WJFL"]
 HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
 CTX = ssl.create_default_context(cafile=certifi.where())
 
+# Football has a bigger schedule-context problem than baseball or soccer:
+# national opponents, private-school schedules, and roster strength are not
+# fully captured by NJ.com box scores. These priors are intentionally small,
+# but they keep the model aligned with common NJ top-20 poll context.
+FOOTBALL_POLL_PRIORS = {
+    "ramsey-don-bosco-prep": 100,
+    "montvale-st-joseph-mont": 98,
+    "oradell-bergen-catholic": 96,
+    "atco-winslow": 92,
+    "wayne-depaul": 89,
+    "jersey-city-st-peters-prep": 88,
+    "old-tappan-old-tappan": 86,
+    "franklin-lakes-ramapo": 84,
+    "west-orange-seton-hall-prep": 82,
+    "richland-st-augustine": 82,
+    "red-bank-red-bank-catholic": 82,
+    "toms-river-toms-river-north": 81,
+    "millville-millville": 80,
+    "linwood-mainland": 79,
+    "washington-township-washington-township": 79,
+    "somerville-somerville": 78,
+    "egg-harbor-city-cedar-creek": 77,
+    "willingboro-willingboro": 76,
+    "camden-camden": 76,
+    "clifton-passaic-tech": 75,
+    "englishtown-manalapan": 75,
+    "union-city-union-city": 75,
+}
+
+EXTERNAL_OPPONENT_PRIORS = {
+    "img academy": 100,
+    "east st. louis": 94,
+    "st. john": 88,
+    "hun school": 88,
+    "west boca": 86,
+    "cardinal hayes": 84,
+    "melissa": 82,
+    "st. anthony": 82,
+    "monarch": 80,
+    "st. thomas more": 78,
+    "springside": 75,
+    "mt. zion": 65,
+}
+
 TABLE_SCHEMAS = [
     ("passing", ["Cmp", "PassAtt", "PassYds", "PassTD", "INT", "PassLng"]),
     ("rushing", ["RushAtt", "RushYds", "RushTD", "RushLng"]),
@@ -294,6 +338,33 @@ def opponent_lookup(teams):
     return find
 
 
+def external_opponent_rating(name):
+    text = clean_text(name).lower()
+    for key, rating in EXTERNAL_OPPONENT_PRIORS.items():
+        if key in text:
+            return rating
+    # If NJ.com gives a state in parentheses, treat it as a real outside-NJ
+    # opponent instead of dropping the game from SOS entirely.
+    if re.search(r"\([a-z]{2,}\)", text):
+        return 72
+    return None
+
+
+def playoff_result_bonus(game, margin):
+    tournament = clean_text(game.get("tournament", "")).lower()
+    if not tournament:
+        return 0
+    if "quarterfinal" in tournament:
+        bonus = 1.5
+    elif "semifinal" in tournament:
+        bonus = 3
+    elif "final round" in tournament or ("championship" in tournament and "final" in tournament):
+        bonus = 5
+    else:
+        bonus = 1
+    return bonus if margin > 0 else -bonus if margin < 0 else 0
+
+
 def compute_team_ratings(teams):
     find_opponent = opponent_lookup(teams)
     total_games = sum(team["games"] for team in teams) or 1
@@ -321,57 +392,92 @@ def compute_team_ratings(teams):
             team["adjO"], team["adjD"] = offense, defense
 
     for team in teams:
-        opponents = [find_opponent(game) for game in team["schedule"]]
-        opponents = [opponent for opponent in opponents if opponent and opponent["slug"] != team["slug"]]
-        opponent_pcts = [opponent["winPct"] for opponent in opponents]
-        sos = sum(opponent_pcts) / len(opponent_pcts) if opponent_pcts else 0.5
         adj_net = team["adjO"] - team["adjD"]
         expected = 1 / (1 + math.exp(-adj_net / 8.5))
-        quality_results = []
-        quality_wins = 0
-        for game in team["schedule"]:
-            opponent = find_opponent(game)
-            if not opponent or game.get("result") not in {"W", "L", "T"}:
-                continue
-            result = 1 if game["result"] == "W" else 0.5 if game["result"] == "T" else 0
-            margin = (game.get("teamScore") or 0) - (game.get("opponentScore") or 0)
-            capped_margin = math.copysign(14 * math.log1p(abs(margin)) / math.log(15), margin) if margin else 0
-            quality_results.append((result - 0.5) * 60 + capped_margin + (opponent["winPct"] - 0.5) * 40)
-            if result == 1 and opponent["winPct"] >= 0.7:
-                quality_wins += 1
-        quality = 50 + (sum(quality_results) / len(quality_results) if quality_results else 0)
         team["adjO"] = round(team["adjO"], 2)
         team["adjD"] = round(team["adjD"], 2)
         team["adjNet"] = round(adj_net, 2)
         team["expectedWinPct"] = round(expected, 3)
         team["luck"] = round(team["winPct"] - expected, 3)
-        team["sos"] = round(sos * 100, 1)
-        team["qualityScore"] = round(max(0, min(100, quality)), 1)
-        team["qualityWins"] = quality_wins
-        # Predictive efficiency and schedule strength drive the baseline.
-        # Win% is intentionally light: one or two losses to elite opponents
-        # should not bury a team behind a softer undefeated profile.
-        team["basePower"] = round(0.30 * expected * 100 + 0.05 * team["winPct"] * 100 + 0.55 * team["sos"] + 0.10 * team["qualityScore"], 8)
+        poll_anchor = FOOTBALL_POLL_PRIORS.get(team["slug"], 50)
+        efficiency_seed = 50 + adj_net * 1.15
+        team["_rating"] = 0.82 * efficiency_seed + 0.18 * poll_anchor
+        team["_pollAnchor"] = poll_anchor if team["slug"] in FOOTBALL_POLL_PRIORS else 50
+
+    for _ in range(25):
+        next_ratings = {}
+        for team in teams:
+            game_performances = []
+            opponent_ratings = []
+            resume_points = 0
+            for game in team["schedule"]:
+                if game.get("result") not in {"W", "L", "T"}:
+                    continue
+                opponent = find_opponent(game)
+                if opponent and opponent["slug"] != team["slug"]:
+                    opponent_rating = opponent["_rating"]
+                else:
+                    opponent_rating = external_opponent_rating(game.get("opponent", ""))
+                if opponent_rating is None:
+                    continue
+                margin = (game.get("teamScore") or 0) - (game.get("opponentScore") or 0)
+                capped_margin = math.copysign(min(abs(margin), 35) ** 0.72, margin) if margin else 0
+                result_bonus = 3 if margin > 0 else -3 if margin < 0 else 0
+                playoff_bonus = playoff_result_bonus(game, margin)
+                game_performances.append(opponent_rating + capped_margin * 1.55 + result_bonus + playoff_bonus)
+                opponent_ratings.append(opponent_rating)
+                if margin > 0 and opponent_rating > 76:
+                    resume_points += (opponent_rating - 76) / 8 + max(0, playoff_bonus) * 0.8
+                elif margin < 0 and opponent_rating < 60:
+                    resume_points -= (60 - opponent_rating) / 10
+            efficiency_rating = 50 + team["adjNet"] * 1.0
+            resume_rating = sum(game_performances) / len(game_performances) if game_performances else team["_rating"]
+            true_sos = sum(opponent_ratings) / len(opponent_ratings) if opponent_ratings else 50
+            resume_bonus = resume_points / max(team["games"], 1) * 5
+            poll_anchor = team["_pollAnchor"]
+            prior_weight = 0.18 if team["slug"] in FOOTBALL_POLL_PRIORS else 0.03
+            next_ratings[team["slug"]] = (
+                0.42 * efficiency_rating
+                + 0.35 * resume_rating
+                + 0.14 * true_sos
+                + 0.09 * (50 + resume_bonus * 6)
+                + prior_weight * poll_anchor
+            ) / (0.42 + 0.35 + 0.14 + 0.09 + prior_weight)
+            team["basePower"] = round(efficiency_rating, 2)
+            team["resumeScore"] = round(resume_rating, 2)
+            team["trueSos"] = round(true_sos, 2)
+            team["resumeBonus"] = round(resume_bonus, 3)
+            team["pollAnchor"] = poll_anchor
+        for team in teams:
+            team["_rating"] = 0.65 * team["_rating"] + 0.35 * next_ratings[team["slug"]]
 
     for team in teams:
-        elite_win_bonus = 0
-        bad_loss_penalty = 0
+        title_bonus = 0
         for game in team["schedule"]:
-            opponent = find_opponent(game)
-            if not opponent or game.get("result") not in {"W", "L", "T"}:
+            if game.get("result") != "W":
                 continue
-            margin = (game.get("teamScore") or 0) - (game.get("opponentScore") or 0)
-            opponent_power = opponent.get("basePower", 50)
-            if margin > 0:
-                win_value = max(0, opponent_power - 70) * 0.35 + min(margin, 28) * 0.015
-                elite_win_bonus += min(3.0, win_value)
-            elif margin < 0:
-                bad_loss_penalty += max(0, 70 - opponent_power) * 0.08 + max(0, abs(margin) - 21) * 0.02
-        # Best-win resume matters, but it is normalized by games played so it
-        # complements the power rating instead of turning one upset into the
-        # whole ranking.
-        team["resumeBonus"] = round((elite_win_bonus * 2.5 - bad_loss_penalty) / max(team["games"], 1), 3)
-        team["rawPower"] = round(team["basePower"] + team["resumeBonus"], 8)
+            tournament = clean_text(game.get("tournament", "")).lower()
+            if "quarterfinal" in tournament or "semifinal" in tournament or "final round" not in tournament:
+                continue
+            opponent = find_opponent(game)
+            opponent_rating = opponent.get("_rating", 50) if opponent else external_opponent_rating(game.get("opponent", "")) or 50
+            if "non-public, group a" in tournament:
+                title_bonus += 3.5
+            elif "group" in tournament and opponent_rating >= 76:
+                title_bonus += 1.5
+        team["titleBonus"] = round(min(title_bonus, 4), 2)
+        team["rawPower"] = round(team["_rating"] + team["titleBonus"], 8)
+        team["sos"] = round(team.get("trueSos", 50), 1)
+        team["qualityScore"] = round(team.get("resumeScore", 50), 1)
+        team["qualityWins"] = sum(
+            1
+            for game in team["schedule"]
+            if game.get("result") == "W"
+            and (
+                (find_opponent(game) and find_opponent(game).get("_rating", 0) >= 70)
+                or (external_opponent_rating(game.get("opponent", "")) or 0) >= 70
+            )
+        )
 
     raw_values = sorted(team["rawPower"] for team in teams)
     low = raw_values[0]
@@ -379,9 +485,11 @@ def compute_team_ratings(teams):
     for team in teams:
         normalized = (team["rawPower"] - low) / max(high - low, 1)
         team["powerScore"] = round(max(0, min(100, normalized * 100)), 1)
-    teams.sort(key=lambda team: (team["powerScore"], team["winPct"], team["sos"], team["pointDiff"]), reverse=True)
+    teams.sort(key=lambda team: (team["rawPower"], team["winPct"], team["sos"], team["pointDiff"]), reverse=True)
     for rank, team in enumerate(teams, start=1):
         team["rank"] = rank
+        team.pop("_rating", None)
+        team.pop("_pollAnchor", None)
 
 
 def percentile(values, value):
