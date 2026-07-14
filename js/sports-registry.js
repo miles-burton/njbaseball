@@ -1,0 +1,44 @@
+window.NJ_SPORTS_INDEX = window.NJ_SPORTS_INDEX || {
+  shellVersion: '2026.07',
+  requiredViews: ['home', 'leaders', 'rankings', 'scores', 'predictor', 'standings', 'teams', 'glossary', 'team', 'player'],
+  requiredNav: ['Leaders', 'Teams', 'Rankings', 'Scores', 'Predictor', 'Standings', 'Glossary', 'Sports', 'Report'],
+  sports: [
+    {
+      id: 'diamond',
+      sport: 'baseball',
+      brand: 'Diamond Index',
+      shortName: 'Diamond',
+      page: 'diamond-index.html',
+      accent: 'gold',
+      leaders: ['Hitting', 'Pitching'],
+    },
+    {
+      id: 'pitch-boys',
+      sport: 'boyssoccer',
+      brand: 'Pitch Index',
+      shortName: 'Pitch',
+      page: 'pitch-index.html',
+      accent: 'green',
+      leaders: ['Scoring', 'Goalkeepers'],
+    },
+    {
+      id: 'pitch-girls',
+      sport: 'girlssoccer',
+      brand: 'Pitch Index',
+      shortName: 'Pitch',
+      page: 'girls-pitch-index.html',
+      accent: 'green',
+      leaders: ['Scoring', 'Goalkeepers'],
+    },
+    {
+      id: 'gridiron',
+      sport: 'football',
+      brand: 'Gridiron Index',
+      shortName: 'Gridiron',
+      page: 'gridiron-index.html',
+      accent: 'red',
+      leaders: ['Offense', 'Defense'],
+    },
+  ],
+};
+

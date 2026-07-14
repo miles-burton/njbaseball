@@ -24,5 +24,6 @@ jobs:
           python-version: '3.11'
 
       - name: Check fall production readiness
-        run: python3 scripts/fall_readiness_check.py
-
+        run: |
+          python3 scripts/check_sport_format.py
+          python3 scripts/fall_readiness_check.py
