@@ -1,0 +1,35 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/diamond", "destination": "/diamond-index.html" },
+    { "source": "/baseball", "destination": "/diamond-index.html" },
+    { "source": "/pitch", "destination": "/pitch-index.html" },
+    { "source": "/soccer", "destination": "/pitch-index.html" },
+    { "source": "/boys-soccer", "destination": "/pitch-index.html" },
+    { "source": "/girls-soccer", "destination": "/girls-pitch-index.html" },
+    { "source": "/gridiron", "destination": "/gridiron-index.html" },
+    { "source": "/football", "destination": "/gridiron-index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/js/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/css/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ]
+}
+

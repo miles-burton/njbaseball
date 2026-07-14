@@ -1,0 +1,35 @@
+name: Generate Instagram Drafts
+
+on:
+  schedule:
+    # 9:15am ET during daylight saving time. Adjust if you want a different posting rhythm.
+    - cron: '15 13 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-drafts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate social drafts
+        run: python3 scripts/generate_instagram_drafts.py
+
+      - name: Upload draft graphics and captions
+        uses: actions/upload-artifact@v4
+        with:
+          name: instagram-drafts-${{ github.run_id }}
+          path: dist/instagram-drafts
+          if-no-files-found: error
+
