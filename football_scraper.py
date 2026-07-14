@@ -24,7 +24,7 @@ def current_football_season():
     return f"{start_year}-{start_year + 1}"
 
 
-SEASON = os.environ.get("FOOTBALL_SEASON", current_football_season())
+SEASON = os.environ.get("FOOTBALL_SEASON") or current_football_season()
 BASE = "https://highschoolsports.nj.com"
 OUTPUT_PATH = os.environ.get("FOOTBALL_OUTPUT_PATH", "js/football-data.js")
 CONFERENCES = ["Big Central", "Independent", "NJIC", "SFC", "Shore", "WJFL"]

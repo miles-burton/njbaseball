@@ -23,7 +23,7 @@ def current_soccer_season():
     return f"{start_year}-{start_year + 1}"
 
 
-SEASON = os.environ.get("PITCH_SEASON", current_soccer_season())
+SEASON = os.environ.get("PITCH_SEASON") or current_soccer_season()
 SPORT = os.environ.get("PITCH_SPORT", "boyssoccer")
 if SPORT not in {"boyssoccer", "girlssoccer"}:
     raise ValueError(f"Unsupported Pitch Index sport: {SPORT}")

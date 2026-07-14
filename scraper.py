@@ -13,12 +13,21 @@ import ssl
 import certifi
 import re
 import json
+import os
 import sys
 import time
+from datetime import datetime
 from html import unescape
+from zoneinfo import ZoneInfo
 
 # ── LEAGUE CONSTANTS ───────────────────────────────────────────────────────────
-SEASON       = "2025-2026"
+def current_academic_season():
+    now = datetime.now(ZoneInfo("America/New_York"))
+    start_year = now.year if now.month >= 7 else now.year - 1
+    return f"{start_year}-{start_year + 1}"
+
+
+SEASON       = os.environ.get("BASEBALL_SEASON") or current_academic_season()
 WOBA_SCALE   = 1.12
 WOBA_LEAGUE  = 0.353   # league-average wOBA (adjust each season)
 R_PA_LEAGUE  = 0.177   # league runs/PA  (adjust each season)

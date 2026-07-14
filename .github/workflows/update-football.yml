@@ -10,6 +10,11 @@ on:
     # Refresh schedules, scores, rankings, and all seven player stat groups.
     - cron: '45 5,11,17,23 * * *'
   workflow_dispatch:
+    inputs:
+      season:
+        description: Optional NJ.com season override, like 2026-2027
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -38,7 +43,13 @@ jobs:
         run: pip install certifi
 
       - name: Refresh Gridiron Index data
-        run: python3 football_scraper.py
+        env:
+          SEASON_OVERRIDE: ${{ github.event_name == 'workflow_dispatch' && inputs.season || '' }}
+        run: |
+          if [ -n "$SEASON_OVERRIDE" ]; then
+            export FOOTBALL_SEASON="$SEASON_OVERRIDE"
+          fi
+          python3 football_scraper.py
 
       - name: Commit and push if data changed
         run: |

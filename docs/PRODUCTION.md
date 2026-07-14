@@ -24,6 +24,30 @@ The site currently updates from NJ.com through GitHub Actions:
 
 Each workflow commits changed files back to GitHub. Vercel then redeploys from that commit.
 
+## Fall Season Readiness
+
+Fall sports use the NJ.com school-year season. On or after July 1, the scrapers default to the new school year, such as `2026-2027`.
+
+Manual overrides are available from GitHub Actions:
+
+- `Update Pitch Index` accepts an optional `season` input and sends it to `PITCH_SEASON`.
+- `Update Gridiron Index` accepts an optional `season` input and sends it to `FOOTBALL_SEASON`.
+- `Update Stats` accepts an optional `season` input and sends it to `BASEBALL_SEASON`.
+
+Run the readiness check locally:
+
+```bash
+python3 scripts/fall_readiness_check.py
+```
+
+Run it in GitHub:
+
+1. Open GitHub Actions.
+2. Select `Fall Readiness Check`.
+3. Click `Run workflow`.
+
+Before NJ.com publishes fall data, warnings that local data files are still on the previous season are normal. After NJ.com has standings and schedules for fall, those warnings should disappear after the first successful scrape.
+
 ## Instagram Drafts
 
 `.github/workflows/instagram-drafts.yml` runs every morning and creates post-ready SVG drafts plus captions from the current site data.
@@ -65,4 +89,3 @@ To add another sport cleanly:
 3. Add a GitHub Action schedule for that sport.
 4. Add a Vercel clean route.
 5. Add that sport to `scripts/generate_instagram_drafts.py`.
-

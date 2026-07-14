@@ -18,6 +18,10 @@ on:
         required: false
         default: true
         type: boolean
+      season:
+        description: Optional NJ.com season override, like 2026-2027
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -48,7 +52,11 @@ jobs:
       - name: Refresh boys and girls Pitch Index data
         env:
           FULL_PLAYER_LOGS: ${{ github.event_name == 'workflow_dispatch' && inputs.full_player_logs || github.event.schedule == '30 6 * * *' }}
+          SEASON_OVERRIDE: ${{ github.event_name == 'workflow_dispatch' && inputs.season || '' }}
         run: |
+          if [ -n "$SEASON_OVERRIDE" ]; then
+            export PITCH_SEASON="$SEASON_OVERRIDE"
+          fi
           if [ "$FULL_PLAYER_LOGS" = "true" ]; then
             PITCH_SPORT=boyssoccer python3 pitch_scraper.py
             PITCH_SPORT=girlssoccer python3 pitch_scraper.py
