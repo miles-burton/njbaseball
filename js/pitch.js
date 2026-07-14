@@ -118,12 +118,36 @@ function closeReportProblem() {
   modal.setAttribute('aria-hidden', 'true');
 }
 
-function submitProblemReport(event) {
+async function submitProblemReport(event) {
   event.preventDefault();
   const type = $('reportType')?.value || 'Site problem';
   const details = $('reportDetails')?.value.trim() || '';
   const contact = $('reportContact')?.value.trim() || '';
   const title = `[Pitch Index Report] ${type}`;
+  const report = {
+    site: PITCH_GENDER === 'girls' ? 'Pitch Index Girls' : 'Pitch Index Boys',
+    sport: PITCH_DATA.sport || 'soccer',
+    season: PITCH_DATA.season || '',
+    pageUrl: window.location.href,
+    type,
+    details,
+    contact,
+    metadata: {
+      gender: PITCH_GENDER,
+      theme: document.documentElement.dataset.theme || 'dark',
+    },
+  };
+  try {
+    const stored = await window.NJSupabaseReports?.submit(report);
+    if (stored?.ok) {
+      alert('Report sent. Thanks for flagging it.');
+      closeReportProblem();
+      return;
+    }
+    if (stored?.error) console.warn('Supabase report failed; falling back to GitHub issue.', stored.error);
+  } catch (err) {
+    console.warn('Supabase report failed; falling back to GitHub issue.', err);
+  }
   const body = [
     '## Problem type',
     type,

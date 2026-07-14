@@ -412,14 +412,38 @@ function toggleTheme() {
 }
 function openReportProblem() { footballEl('reportModal')?.classList.add('open'); footballEl('reportModal')?.setAttribute('aria-hidden', 'false'); }
 function closeReportProblem() { footballEl('reportModal')?.classList.remove('open'); footballEl('reportModal')?.setAttribute('aria-hidden', 'true'); }
-function submitProblemReport(event) {
+async function submitProblemReport(event) {
   event.preventDefault();
   const type = footballEl('reportType')?.value || 'Other';
   const details = footballEl('reportDetails')?.value || '';
   const contact = footballEl('reportContact')?.value || '';
+  const report = {
+    site: 'Gridiron Index',
+    sport: 'football',
+    season: FOOTBALL_DATA.season || '',
+    pageUrl: window.location.href,
+    type,
+    details,
+    contact,
+    metadata: {
+      theme: document.documentElement.dataset.theme || 'dark',
+    },
+  };
+  try {
+    const stored = await window.NJSupabaseReports?.submit(report);
+    if (stored?.ok) {
+      alert('Report sent. Thanks for flagging it.');
+      closeReportProblem();
+      return;
+    }
+    if (stored?.error) console.warn('Supabase report failed; falling back to GitHub issue.', stored.error);
+  } catch (err) {
+    console.warn('Supabase report failed; falling back to GitHub issue.', err);
+  }
   const title = encodeURIComponent(`[Gridiron Index] ${type}`);
   const body = encodeURIComponent(`Page: ${location.href}\nSeason: ${FOOTBALL_DATA.season}\n\n${details}\n\nContact: ${contact || 'Not provided'}`);
   window.open(`https://github.com/miles-burton/njbaseball/issues/new?title=${title}&body=${body}`, '_blank', 'noopener');
+  closeReportProblem();
 }
 
 function footballSetView(view) {

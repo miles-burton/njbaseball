@@ -40,12 +40,35 @@ function closeReportProblem() {
   modal.setAttribute('aria-hidden', 'true');
 }
 
-function submitProblemReport(event) {
+async function submitProblemReport(event) {
   event.preventDefault();
   const type = document.getElementById('reportType')?.value || 'Site problem';
   const details = document.getElementById('reportDetails')?.value.trim() || '';
   const contact = document.getElementById('reportContact')?.value.trim() || '';
   const title = `[Report] ${type}`;
+  const report = {
+    site: 'Diamond Index',
+    sport: 'baseball',
+    season: activeSeasonYear || CURRENT_SEASON_YEAR,
+    pageUrl: window.location.href,
+    type,
+    details,
+    contact,
+    metadata: {
+      theme: document.documentElement.dataset.theme || 'dark',
+    },
+  };
+  try {
+    const stored = await window.NJSupabaseReports?.submit(report);
+    if (stored?.ok) {
+      alert('Report sent. Thanks for flagging it.');
+      closeReportProblem();
+      return;
+    }
+    if (stored?.error) console.warn('Supabase report failed; falling back to GitHub issue.', stored.error);
+  } catch (err) {
+    console.warn('Supabase report failed; falling back to GitHub issue.', err);
+  }
   const body = [
     '## Problem type',
     type,

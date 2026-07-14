@@ -152,11 +152,13 @@
           <button class="report-submit" type="submit">Create Report</button>
           <button class="report-cancel" type="button" onclick="closeReportProblem()">Cancel</button>
         </div>
-        <div class="report-note">This opens a pre-filled GitHub issue. Nothing is sent until the issue is submitted there.</div>
+        <div class="report-note">This sends to the Pitch Index report queue when connected, with GitHub issue fallback.</div>
       </form>
     </div>
   </div>
 
+  <script src="js/supabase-config.js"></script>
+  <script src="js/supabase-client.js"></script>
   <script src="js/team-logos.js"></script>
   <script src="js/girls-pitch-data.js?v=20260622-girls-launch"></script>
   <script src="js/pitch.js?v=20260623-uniform-shell"></script>
