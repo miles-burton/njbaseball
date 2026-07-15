@@ -167,6 +167,7 @@ h1 {
 .sport-card.baseball    { --card: oklch(0.80 0.12 86); }   /* Diamond  — gold  */
 .sport-card.soccer      { --card: oklch(0.78 0.15 154); }  /* Pitch    — green */
 .sport-card.football    { --card: oklch(0.72 0.17 31); }   /* Gridiron — red   */
+.sport-card.basketball  { --card: oklch(0.76 0.17 58); }   /* Court    — orange */
 
 .sport-logo {
   width: 44px;

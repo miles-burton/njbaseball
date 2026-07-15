@@ -39,6 +39,14 @@ window.NJ_SPORTS_INDEX = window.NJ_SPORTS_INDEX || {
       accent: 'red',
       leaders: ['Offense', 'Defense'],
     },
+    {
+      id: 'court-boys',
+      sport: 'boysbasketball',
+      brand: 'Court Index',
+      shortName: 'Court',
+      page: 'court-index.html',
+      accent: 'orange',
+      leaders: ['Scoring', 'All-Around'],
+    },
   ],
 };
-

@@ -10,9 +10,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-HTML_PAGES = ["index.html", "diamond-index.html", "pitch-index.html", "girls-pitch-index.html", "gridiron-index.html"]
-DATA_FILES = ["js/data.js", "js/player_logs.js", "js/pitch-data.js", "js/girls-pitch-data.js", "js/football-data.js"]
-SCRIPT_FILES = ["js/app.js", "js/pitch.js", "js/football.js", "js/supabase-client.js", "js/supabase-config.js", "js/sports-registry.js"]
+HTML_PAGES = ["index.html", "diamond-index.html", "pitch-index.html", "girls-pitch-index.html", "gridiron-index.html", "court-index.html"]
+DATA_FILES = ["js/data.js", "js/player_logs.js", "js/pitch-data.js", "js/girls-pitch-data.js", "js/football-data.js", "js/basketball-data.js"]
+SCRIPT_FILES = ["js/app.js", "js/pitch.js", "js/football.js", "js/basketball.js", "js/supabase-client.js", "js/supabase-config.js", "js/sports-registry.js"]
 
 
 def read(path: str) -> str:
@@ -61,7 +61,7 @@ def main() -> int:
 
     vercel = json.loads(read("vercel.json"))
     route_sources = {item.get("source") for item in vercel.get("rewrites", [])}
-    for route in ["/diamond", "/pitch", "/girls-soccer", "/gridiron", "/football"]:
+    for route in ["/diamond", "/pitch", "/girls-soccer", "/gridiron", "/football", "/court", "/basketball", "/boys-basketball"]:
         record(route in route_sources, f"Vercel route {route} exists", f"Vercel route missing: {route}")
     record(
         any(header.get("source") == "/js/(.*)" for header in vercel.get("headers", [])),
@@ -90,4 +90,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

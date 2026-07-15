@@ -9,7 +9,10 @@
     { "source": "/boys-soccer", "destination": "/pitch-index.html" },
     { "source": "/girls-soccer", "destination": "/girls-pitch-index.html" },
     { "source": "/gridiron", "destination": "/gridiron-index.html" },
-    { "source": "/football", "destination": "/gridiron-index.html" }
+    { "source": "/football", "destination": "/gridiron-index.html" },
+    { "source": "/court", "destination": "/court-index.html" },
+    { "source": "/basketball", "destination": "/court-index.html" },
+    { "source": "/boys-basketball", "destination": "/court-index.html" }
   ],
   "headers": [
     {
@@ -32,4 +35,3 @@
     }
   ]
 }
-

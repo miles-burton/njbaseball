@@ -1,0 +1,51 @@
+/* Court Index uses the shared NJ Sports Index design system. */
+:root {
+  --accent: oklch(0.72 0.17 55);
+  --accent2: oklch(0.72 0.17 55 / 0.16);
+  --accent3: oklch(0.72 0.17 55 / 0.09);
+}
+
+:root[data-theme="light"] {
+  --accent: oklch(0.54 0.15 55);
+  --accent2: oklch(0.54 0.15 55 / 0.13);
+  --accent3: oklch(0.54 0.15 55 / 0.08);
+}
+
+.game-detail-row {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.game-detail-row > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--border);
+}
+
+.game-score {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.tourney-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  margin-left: 8px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--border));
+  border-radius: 7px;
+  color: var(--accent);
+  background: var(--accent3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}

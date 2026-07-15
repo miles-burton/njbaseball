@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" data-sport-shell="sports-index" data-sport="boysbasketball" data-index-brand="court">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Court Index — Boys Basketball Analytics</title>
+  <meta name="description" content="Court Index provides New Jersey boys basketball rankings, leaders, team pages, player pages, scores, standings, and matchup predictions.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/pitch.css?v=20260623-uniform-shell">
+  <link rel="stylesheet" href="css/basketball.css">
+</head>
+<body>
+  <header class="site-header">
+    <button class="site-logo pitch-site-logo" data-view-target="home" type="button">
+      <span class="logo-icon" aria-hidden="true"></span>
+      <span class="logo-wordmark"><span class="logo-accent">COURT</span><span>INDEX</span></span>
+    </button>
+
+    <nav class="nav-tabs pitch-nav" id="navTabs">
+      <div class="nav-dropdown">
+        <button class="nav-tab nav-dropdown-trigger" id="tab-leaders" data-view="leaders" type="button">Leaders
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-left:4px;opacity:.6"><path d="M2 3.5L5 6.5L8 3.5"/></svg>
+        </button>
+        <div class="nav-dropdown-menu" id="menu-leaders">
+          <button class="nav-dropdown-item" data-view="leaders" data-leader-type="scoring" type="button">Scoring</button>
+          <button class="nav-dropdown-item" data-view="leaders" data-leader-type="all-around" type="button">All-Around</button>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-tab nav-dropdown-trigger" id="tab-teams-dd" data-view="teams" type="button">Teams
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style="margin-left:4px;opacity:.6"><path d="M2 3.5L5 6.5L8 3.5"/></svg>
+        </button>
+        <div class="nav-dropdown-menu nav-dropdown-menu--wide" id="menu-teams">
+          <button class="nav-dropdown-item nav-dropdown-item--highlight" data-view="rankings" type="button">Power Rankings</button>
+          <button class="nav-dropdown-item nav-dropdown-item--highlight" data-view="teams" type="button">All Teams</button>
+          <div class="nav-dropdown-divider"></div>
+          <div id="teamsNavList"></div>
+        </div>
+      </div>
+      <button class="nav-tab" id="tab-team-rankings" data-view="rankings" type="button">Rankings</button>
+      <button class="nav-tab" id="tab-scores" data-view="scores" type="button">Scores</button>
+      <button class="nav-tab" id="tab-predictor" data-view="predictor" type="button">Predictor</button>
+      <button class="nav-tab" id="tab-standings" data-view="standings" type="button">Standings</button>
+      <button class="nav-tab" id="tab-glossary" data-view="glossary" type="button">Glossary</button>
+      <a class="nav-tab" href="index.html" title="Sports Home">Sports</a>
+      <button class="nav-tab nav-tab-report" id="tab-report" onclick="openReportProblem()" type="button">Report</button>
+    </nav>
+
+    <div class="season-switcher">
+      <span>Yr</span>
+      <select id="basketballSeasonSelect" aria-label="Season"><option>2026</option></select>
+    </div>
+    <button class="theme-toggle" id="themeToggle" type="button" onclick="toggleTheme()" aria-label="Toggle light and dark mode">
+      <span class="theme-toggle-icon theme-toggle-sun" aria-hidden="true">☀</span>
+      <span class="theme-toggle-icon theme-toggle-moon" aria-hidden="true">☾</span>
+      <span id="themeToggleLabel">Dark</span>
+    </button>
+    <div class="global-search pitch-global-search">
+      <svg class="global-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/></svg>
+      <input class="global-search-input" id="globalSearch" type="search" placeholder="Search..." autocomplete="off">
+      <div id="searchResults" class="global-search-results search-results"></div>
+    </div>
+    <button class="back-btn" id="backBtn" onclick="basketballGoBack()" type="button">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg>
+      <span id="backLabel">Back</span>
+    </button>
+  </header>
+
+  <section id="view-home" class="view active"></section>
+  <section id="view-rankings" class="view"></section>
+  <section id="view-leaders" class="view"></section>
+  <section id="view-scores" class="view"></section>
+  <section id="view-predictor" class="view"></section>
+  <section id="view-standings" class="view"></section>
+  <section id="view-teams" class="view"></section>
+  <section id="view-glossary" class="view"></section>
+  <section id="view-team" class="view"></section>
+  <section id="view-player" class="view"></section>
+  <section id="view-game" class="view"></section>
+
+  <div class="report-modal" id="reportModal" aria-hidden="true">
+    <div class="report-modal-backdrop" onclick="closeReportProblem()"></div>
+    <div class="report-dialog" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+      <button class="report-close" type="button" onclick="closeReportProblem()" aria-label="Close report form">×</button>
+      <div class="report-kicker">Court Index Feedback</div>
+      <h2 id="reportTitle">Report a Problem</h2>
+      <p>Send incorrect stats, missing teams, broken pages, score issues, or anything that looks off.</p>
+      <form class="report-form" onsubmit="submitProblemReport(event)">
+        <label>Problem Type<select id="reportType"><option>Incorrect data</option><option>Missing team/player</option><option>Broken link or page</option><option>Design issue</option><option>Other</option></select></label>
+        <label>Details<textarea id="reportDetails" required placeholder="What should be fixed?"></textarea></label>
+        <label>Contact<input id="reportContact" type="text" placeholder="Optional email or Instagram"></label>
+        <div class="report-actions">
+          <button class="report-submit" type="submit">Create Report</button>
+          <button class="report-cancel" type="button" onclick="closeReportProblem()">Cancel</button>
+        </div>
+        <div class="report-note">This sends to the Court Index report queue when connected, with GitHub issue fallback.</div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/sports-registry.js"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/team-logos.js"></script>
+  <script src="js/basketball-data.js"></script>
+  <script src="js/basketball.js"></script>
+</body>
+</html>
+

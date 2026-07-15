@@ -34,6 +34,11 @@ SPORT_PAGES = {
         "brand": "Gridiron Index",
         "view_aliases": {},
     },
+    "court-index.html": {
+        "sport": "boysbasketball",
+        "brand": "Court Index",
+        "view_aliases": {},
+    },
 }
 
 REQUIRED_NAV = ["Leaders", "Teams", "Rankings", "Scores", "Predictor", "Standings", "Glossary", "Sports", "Report"]
@@ -108,4 +113,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

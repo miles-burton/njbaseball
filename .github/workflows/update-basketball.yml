@@ -1,0 +1,60 @@
+name: Update Court Index
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - basketball_scraper.py
+      - .github/workflows/update-basketball.yml
+  schedule:
+    # Refresh boys basketball standings, scores, rankings, and player stats.
+    - cron: '20 6,12,18,0 * * *'
+  workflow_dispatch:
+    inputs:
+      season:
+        description: Optional NJ.com season override, like 2026-2027
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stats-data-updates
+  cancel-in-progress: false
+
+jobs:
+  scrape-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install certifi
+
+      - name: Refresh Court Index data
+        env:
+          SEASON_OVERRIDE: ${{ github.event_name == 'workflow_dispatch' && inputs.season || '' }}
+        run: |
+          if [ -n "$SEASON_OVERRIDE" ]; then
+            export BASKETBALL_SEASON="$SEASON_OVERRIDE"
+          fi
+          python3 basketball_scraper.py
+
+      - name: Commit and push if data changed
+        run: |
+          git config user.name "Court Index Bot"
+          git config user.email "bot@courtindex.com"
+          git add js/basketball-data.js
+          git diff --staged --quiet || git commit -m "Auto-update basketball stats $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push

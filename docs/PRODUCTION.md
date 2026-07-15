@@ -11,6 +11,7 @@ The site is a static Vercel deployment backed by GitHub. Vercel should be connec
 - `/pitch`, `/soccer`, and `/boys-soccer` -> boys Pitch Index
 - `/girls-soccer` -> girls Pitch Index
 - `/gridiron` and `/football` -> Gridiron Index
+- `/court`, `/basketball`, and `/boys-basketball` -> Court Index
 
 JavaScript and CSS are marked `must-revalidate` so daily data updates do not get stuck behind stale browser/CDN cache.
 
@@ -21,6 +22,7 @@ The site currently updates from NJ.com through GitHub Actions:
 - `.github/workflows/update-stats.yml` refreshes baseball data with `scraper.py`.
 - `.github/workflows/update-pitch.yml` refreshes boys and girls soccer data with `pitch_scraper.py`.
 - `.github/workflows/update-football.yml` refreshes football data with `football_scraper.py`.
+- `.github/workflows/update-basketball.yml` refreshes boys basketball data with `basketball_scraper.py`.
 
 Each workflow commits changed files back to GitHub. Vercel then redeploys from that commit.
 
@@ -33,6 +35,7 @@ Manual overrides are available from GitHub Actions:
 - `Update Pitch Index` accepts an optional `season` input and sends it to `PITCH_SEASON`.
 - `Update Gridiron Index` accepts an optional `season` input and sends it to `FOOTBALL_SEASON`.
 - `Update Stats` accepts an optional `season` input and sends it to `BASEBALL_SEASON`.
+- `Update Court Index` accepts an optional `season` input and sends it to `BASKETBALL_SEASON`.
 
 Run the readiness check locally:
 
