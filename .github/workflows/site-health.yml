@@ -1,16 +1,16 @@
-name: Fall Readiness Check
+name: Site Health Check
 
 on:
-  schedule:
-    # Weekly preseason check. During the season, the update workflows are the real monitors.
-    - cron: '0 14 * * 1'
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  readiness:
+  health:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -23,8 +23,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Check fall production readiness
+      - name: Run site health checks
         run: |
           python3 scripts/check_sport_format.py
           python3 scripts/site_health_check.py
-          python3 scripts/fall_readiness_check.py
+
